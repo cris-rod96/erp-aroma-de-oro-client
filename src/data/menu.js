@@ -25,67 +25,67 @@ export const MENU_DATA = [
   },
 
   {
-    path: '/',
+    path: '/inicio/usuarios',
     label: 'Usuarios',
     icon: FaUsers,
   },
 
   {
-    path: '/',
+    path: '/inicio/inventario',
     label: 'Inventario',
     icon: FaBoxesStacked,
   },
 
   {
-    path: '/',
+    path: '/inicio/kardex',
     label: 'Kardex',
     icon: FaTruckLoading,
   },
 
   {
-    path: '/',
+    path: '/inicio/nomina',
     label: 'Nómina',
     icon: GrUserWorker,
   },
 
   {
-    path: '/',
+    path: '/inicio/compras',
     label: 'Compras',
     icon: FaShoppingBasket,
   },
 
   {
-    path: '/',
+    path: '/inicio/ventas',
     label: 'Ventas',
     icon: GiCash,
   },
 
   {
-    path: '/',
+    path: '/inicio/reportes',
     label: 'Reportes',
     icon: FaFilePdf,
   },
 
   {
-    path: '/',
+    path: '/inicio/empresa',
     label: 'Empresa',
     icon: BiSolidBusiness,
   },
 
   {
-    path: '/',
+    path: '/inicio/cuentas-por-pagar',
     label: 'Cuentas por pagar',
     icon: GiPayMoney,
   },
 
   {
-    path: '/',
+    path: '/inicio/cuentas-por-cobrar',
     label: 'Cuentas por cobrar',
     icon: GiReceiveMoney,
   },
 
   {
-    path: '/',
+    path: '/inicio/configuracion',
     label: 'Configuración',
     icon: GiGears,
   },
