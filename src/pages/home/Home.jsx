@@ -9,7 +9,10 @@ const Home = () => {
         className={`grid md:grid-cols-2 sm:grid-cols-1 items-center  ${hiddenMenu ? 'w-[90%] lg:grid-cols-4' : 'w-[80%] pl-56 lg:grid-cols-3'}  mx-auto gap-10 px-10 py-28 transition-all duration-300`}
       >
         {ITEMS_DATA.map((item) => (
-          <NavLink className="flex flex-col border border-gray-200 rounded-2xl w-full bg-[#FFFFFF] cursor-pointer hover:scale-105 transition-all duration-300 ">
+          <NavLink
+            className="flex flex-col border border-gray-200 rounded-2xl w-full bg-[#FFFFFF] cursor-pointer hover:scale-105 transition-all duration-300 "
+            to={item.path}
+          >
             <header className="h-16 flex justify-center items-center border-b border-gray-200">
               <h2 className="text-xl font-bold text-[#375A65]">{item.label}</h2>
             </header>

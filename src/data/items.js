@@ -7,7 +7,7 @@ import { TbCashRegister } from 'react-icons/tb'
 
 export const ITEMS_DATA = [
   {
-    path: '/',
+    path: '/inicio/cajas',
     label: 'CAJAS',
     icon: TbCashRegister,
   },

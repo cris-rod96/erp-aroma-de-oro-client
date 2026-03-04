@@ -13,7 +13,7 @@ export const MENU_DATA = [
   },
 
   {
-    path: '/',
+    path: '/inicio/cajas',
     label: 'Cajas',
     icon: TbCashRegister,
   },

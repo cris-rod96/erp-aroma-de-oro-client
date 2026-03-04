@@ -22,6 +22,7 @@ const Aside = ({ hiddenMenu }) => {
         {MENU_DATA.map((item) => (
           <NavLink
             to={item.path}
+            end
             className={({ isActive }) =>
               isActive
                 ? 'px-8 py-5  flex flex-row items-center w-full gap-3 text-white bg-gray-500/20'
