@@ -1,10 +1,9 @@
 import { NavLink, Outlet } from 'react-router-dom'
-import { MENU_DATA } from '../data'
-import Aside from '../components/aside/Aside'
 import { FaPowerOff, FaUserCog } from 'react-icons/fa'
 import { HiOutlineSwitchHorizontal } from 'react-icons/hi'
 import { useState } from 'react'
 import { IoMenu } from 'react-icons/io5'
+import { Aside } from '../components/index.components'
 
 const RootLayout = () => {
   const [hiddenMenu, setHiddenMenu] = useState(false)

@@ -13,7 +13,7 @@ export const ITEMS_DATA = [
   },
 
   {
-    path: '/',
+    path: '/inicio/productores',
     label: 'PRODUCTORES',
     icon: FaTruckFast,
   },

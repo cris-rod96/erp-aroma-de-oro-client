@@ -1,11 +1,11 @@
 import { Container } from '../../components/index.components'
 
-const Cajas = () => {
+const Productores = () => {
   return (
     <Container>
-      <h2>Hi world</h2>
+      <h2>Productores</h2>
     </Container>
   )
 }
 
-export default Cajas
+export default Productores

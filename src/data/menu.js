@@ -19,7 +19,7 @@ export const MENU_DATA = [
   },
 
   {
-    path: '/',
+    path: '/inicio/productores',
     label: 'Productores',
     icon: FaTruckFast,
   },
