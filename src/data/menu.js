@@ -7,7 +7,7 @@ import { GrUserWorker } from 'react-icons/gr'
 import { TbCashRegister } from 'react-icons/tb'
 export const MENU_DATA = [
   {
-    path: '/',
+    path: '/inicio',
     label: 'Panel principal',
     icon: TbLayoutDashboardFilled,
   },

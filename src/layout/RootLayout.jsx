@@ -1,0 +1,46 @@
+import { NavLink, Outlet } from 'react-router-dom'
+import { MENU_DATA } from '../data'
+import Aside from '../components/aside/Aside'
+import { FaPowerOff, FaUserCog } from 'react-icons/fa'
+import { HiOutlineSwitchHorizontal } from 'react-icons/hi'
+import { useState } from 'react'
+import { IoMenu } from 'react-icons/io5'
+
+const RootLayout = () => {
+  const [hiddenMenu, setHiddenMenu] = useState(false)
+  const toggleHiddenMenu = () => setHiddenMenu(!hiddenMenu)
+  return (
+    <>
+      <Aside hiddenMenu={hiddenMenu} />
+      <main className="h-screen w-full bg-[#F5F9FF]">
+        <section className="flex-1 bg-[#F5F5F5] overflow-x-hidden flex flex-col">
+          <header
+            className={`w-screen ${hiddenMenu ? 'px-10' : 'pl-85 pr-10'}  h-20 px-5 flex items-center fixed z-10 justify-between border-b border-gray-500/20 bg-white transition-all duration-300`}
+          >
+            <button onClick={toggleHiddenMenu} className="cursor-pointer">
+              {hiddenMenu ? (
+                <IoMenu size={25} color="#375A65" />
+              ) : (
+                <HiOutlineSwitchHorizontal size={25} color="#375A65" />
+              )}
+            </button>
+
+            <div className="flex flex-row gap-5">
+              <NavLink>
+                <FaUserCog size={20} color="#375A65" />
+              </NavLink>
+
+              <NavLink>
+                <FaPowerOff size={20} color="#375A65" />
+              </NavLink>
+            </div>
+          </header>
+          {/* Opciones */}
+        </section>
+        <Outlet context={{ hiddenMenu }} />
+      </main>
+    </>
+  )
+}
+
+export default RootLayout
