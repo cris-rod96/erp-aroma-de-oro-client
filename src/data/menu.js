@@ -1,4 +1,4 @@
-import { TbLayoutDashboardFilled } from 'react-icons/tb'
+import { TbBellFilled, TbLayoutDashboardFilled } from 'react-icons/tb'
 import { BiSolidBusiness } from 'react-icons/bi'
 import { FaFilePdf, FaShoppingBasket, FaTruckLoading, FaUsers } from 'react-icons/fa'
 import { FaBoxesStacked, FaTruckFast } from 'react-icons/fa6'
@@ -82,5 +82,10 @@ export const MENU_DATA = [
     path: '/inicio/configuracion',
     label: 'Configuración',
     icon: GiGears,
+  },
+  {
+    path: '/inicio/alertas', // La nueva ruta
+    label: 'Estilo de Alertas',
+    icon: TbBellFilled, // Icono de campana: universal para notificaciones/alertas
   },
 ]

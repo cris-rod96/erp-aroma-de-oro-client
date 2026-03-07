@@ -14,6 +14,7 @@ import {
   Reportes,
   Usuarios,
   Ventas,
+  Alerta,
 } from './pages/index.pages'
 import RootLayout from './layout/RootLayout'
 const AppRouter = () => {
@@ -37,6 +38,7 @@ const AppRouter = () => {
         <Route path="/inicio/reportes" element={<Reportes />} />
         <Route path="/inicio/usuarios" element={<Usuarios />} />
         <Route path="/inicio/ventas" element={<Ventas />} />
+        <Route path="/inicio/alertas" element={<Alerta />} />
       </Route>
     </Routes>
   )

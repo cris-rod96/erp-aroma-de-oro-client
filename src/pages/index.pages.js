@@ -12,6 +12,7 @@ import Kardex from './kardex/Kardex'
 import Nomina from './nomina/Nomina'
 import Reportes from './reportes/Reportes'
 import Ventas from './ventas/Ventas'
+import Alerta from './alerta/Alerta'
 export {
   Login,
   Home,
@@ -27,4 +28,5 @@ export {
   Nomina,
   Reportes,
   Ventas,
+  Alerta,
 }
