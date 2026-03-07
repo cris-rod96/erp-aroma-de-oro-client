@@ -67,12 +67,6 @@ export const MENU_DATA = [
   },
 
   {
-    path: '/inicio/empresa',
-    label: 'Empresa',
-    icon: BiSolidBusiness,
-  },
-
-  {
     path: '/inicio/cuentas-por-pagar',
     label: 'Cuentas por pagar',
     icon: GiPayMoney,

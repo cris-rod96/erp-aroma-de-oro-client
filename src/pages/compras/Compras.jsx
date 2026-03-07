@@ -1,9 +1,307 @@
+import { useState } from 'react'
+import {
+  MdPayments,
+  MdScale,
+  MdAccountBalanceWallet,
+  MdInventory2,
+  MdPersonAdd,
+  MdCheckCircle,
+  MdPrint,
+  MdSend,
+} from 'react-icons/md'
 import { Container } from '../../components/index.components'
 
 const Compras = () => {
+  const [ticketsPendientes] = useState([
+    {
+      id: 'tk-1',
+      numero: '001-992',
+      pesoNeto: 125.5,
+      cedulaProductor: '0940501596',
+      productoId: '1',
+    },
+    {
+      id: 'tk-2',
+      numero: '001-995',
+      pesoNeto: 80.0,
+      cedulaProductor: '1234567890',
+      productoId: '2',
+    },
+  ])
+
+  const [productosBD] = useState([
+    { id: '1', nombre: 'Cacao CCN51 Seco', unidad: 'Quintal' },
+    { id: '2', nombre: 'Maíz Amarillo Duro', unidad: 'Quintal' },
+  ])
+
+  const [productoresDB] = useState([{ cedula: '0940501596', nombre: 'Cristhian Rodríguez' }])
+
+  const [ticketSeleccionado, setTicketSeleccionado] = useState(null)
+  const [productoInfo, setProductoInfo] = useState({ nombre: '', unidad: '' })
+  const [productor, setProductor] = useState(null)
+  const [peso, setPeso] = useState(0)
+  const [precio, setPrecio] = useState(0)
+
+  const [retencionDesc, setRetencionDesc] = useState('')
+  const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
+  const [pagoEfectivo, setPagoEfectivo] = useState(0)
+  const [pagoCheque, setPagoCheque] = useState(0)
+  const [pagoTransferencia, setPagoTransferencia] = useState(0)
+
+  const handleTicketChange = (id) => {
+    const tk = ticketsPendientes.find((t) => t.id === id)
+    if (tk) {
+      setTicketSeleccionado(tk)
+      setPeso(tk.pesoNeto)
+      const prod = productosBD.find((p) => p.id === tk.productoId)
+      setProductoInfo(prod || { nombre: 'Desconocido', unidad: '---' })
+      const p = productoresDB.find((prod) => prod.cedula === tk.cedulaProductor)
+      setProductor(p || { cedula: tk.cedulaProductor, inexistente: true })
+    } else {
+      setTicketSeleccionado(null)
+      setProductoInfo({ nombre: '', unidad: '' })
+      setPeso(0)
+      setProductor(null)
+    }
+  }
+
+  const subtotal = peso * precio
+  const valorRetenido = subtotal * (retencionPorcentaje / 100)
+  const totalAPagar = subtotal - valorRetenido
+  const montoAbonado =
+    parseFloat(pagoEfectivo || 0) + parseFloat(pagoCheque || 0) + parseFloat(pagoTransferencia || 0)
+  const montoPorPagar = totalAPagar - montoAbonado
+
+  // Función para imprimir (Simulación)
+  const handlePrint = () => {
+    window.print()
+  }
+
   return (
-    <Container>
-      <h2>Compras</h2>
+    <Container fullWidth={true}>
+      <div className="w-full px-4 md:px-8 py-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-gray-100 pb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Liquidación de Compra</h1>
+            <p className="text-gray-500 text-sm italic">
+              Generación de factura y comprobante de pago al productor.
+            </p>
+          </div>
+          {ticketSeleccionado && (
+            <button
+              onClick={handlePrint}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-5 py-2.5 rounded-xl text-xs font-black transition-all flex items-center gap-2 border border-gray-200 uppercase tracking-widest"
+            >
+              <MdPrint size={18} /> Imprimir Borrador
+            </button>
+          )}
+        </div>
+
+        <div className="w-full space-y-8">
+          {/* SECCIÓN 1: TICKET Y PRODUCTOR */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+              <label className="text-[11px] font-bold text-gray-400 uppercase mb-3 block tracking-widest">
+                1. Seleccionar Ticket de Recepción
+              </label>
+              <select
+                onChange={(e) => handleTicketChange(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-black text-indigo-700 outline-none focus:border-indigo-500 transition-all cursor-pointer"
+              >
+                <option value="">-- Buscar ticket pendiente... --</option>
+                {ticketsPendientes.map((tk) => (
+                  <option key={tk.id} value={tk.id}>
+                    TICKET #{tk.numero} | C.I: {tk.cedulaProductor}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div
+              className={`rounded-2xl shadow-sm border p-6 flex justify-between items-center transition-all ${productor?.inexistente ? 'bg-orange-50 border-orange-200 animate-pulse' : 'bg-white border-gray-200'}`}
+            >
+              <div>
+                <label className="text-[11px] font-bold text-gray-400 uppercase mb-1 block">
+                  Productor Beneficiario
+                </label>
+                <p className="text-sm font-black text-gray-800 uppercase leading-none mb-1">
+                  {productor?.nombre || 'Pendiente'}
+                </p>
+                <p className="text-xs font-mono text-gray-500 font-bold">
+                  {productor?.cedula || 'Esperando ticket...'}
+                </p>
+              </div>
+              {productor?.inexistente && (
+                <button className="bg-orange-600 text-white px-4 py-2 rounded-xl text-[10px] font-black shadow-lg flex items-center gap-2">
+                  <MdPersonAdd size={16} /> REGISTRAR
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* SECCIÓN 2: PRODUCTO */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+                <MdInventory2 className="text-indigo-600" size={20} />
+                <h2 className="text-sm font-bold text-gray-700 uppercase italic">
+                  Detalle de Mercancía
+                </h2>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-6">
+                <div className="col-span-2">
+                  <label className="text-[11px] font-bold text-gray-400 uppercase mb-2 block">
+                    Producto
+                  </label>
+                  <div className="w-full bg-gray-100 border border-gray-200 rounded-xl px-4 py-3 text-sm font-black text-gray-600 flex items-center justify-between">
+                    {productoInfo.nombre || 'SELECCIONE TICKET'}
+                    {productoInfo.nombre && (
+                      <MdCheckCircle className="text-emerald-500" size={18} />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-indigo-600 uppercase mb-2 block font-black">
+                    Peso Neto ({productoInfo.unidad || '---'})
+                  </label>
+                  <input
+                    type="number"
+                    value={peso}
+                    readOnly
+                    className="w-full bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-sm font-black text-indigo-700 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-gray-400 uppercase mb-2 block tracking-widest">
+                    Precio por {productoInfo.unidad || 'U'}
+                  </label>
+                  <input
+                    type="number"
+                    onChange={(e) => setPrecio(e.target.value)}
+                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-black text-gray-800 outline-none focus:border-indigo-500 shadow-sm"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN: RETENCIÓN */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+                <MdAccountBalanceWallet className="text-red-500" size={18} />
+                <h2 className="text-sm font-bold text-gray-700 uppercase italic">
+                  Retenciones de Ley
+                </h2>
+              </div>
+              <div className="p-6 space-y-4">
+                <input
+                  type="text"
+                  onChange={(e) => setRetencionDesc(e.target.value)}
+                  placeholder="DESCRIPCIÓN (E.J. RETENCIÓN 1.5%)"
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold outline-none uppercase focus:bg-white"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <input
+                    type="number"
+                    onChange={(e) => setRetencionPorcentaje(e.target.value)}
+                    className="w-full bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm font-black text-red-600 outline-none"
+                    placeholder="% Porcentaje"
+                  />
+                  <div className="w-full bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-sm font-black text-gray-400 font-mono italic flex items-center justify-center">
+                    Desc: -${valorRetenido.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* SECCIÓN FINAL: PAGOS Y CIERRE */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-2 space-y-6">
+                <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] border-b border-gray-50 pb-3 italic">
+                  Formas de Pago Aplicadas
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase ml-2 italic">
+                      Efectivo
+                    </span>
+                    <input
+                      type="number"
+                      onChange={(e) => setPagoEfectivo(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-emerald-600 outline-none focus:bg-white"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase ml-2 italic">
+                      Cheque
+                    </span>
+                    <input
+                      type="number"
+                      onChange={(e) => setPagoCheque(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-blue-600 outline-none focus:bg-white"
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <span className="text-[9px] font-bold text-gray-400 uppercase ml-2 italic">
+                      Transferencia
+                    </span>
+                    <input
+                      type="number"
+                      onChange={(e) => setPagoTransferencia(e.target.value)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold text-indigo-600 outline-none focus:bg-white"
+                      placeholder="0.00"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* PANEL DE RESULTADO FINAL */}
+              <div className="bg-gray-900 rounded-[2rem] p-8 flex flex-col justify-center shadow-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-4 opacity-10 text-white transform rotate-12">
+                  <MdPayments size={100} />
+                </div>
+
+                <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.4em] mb-2 text-center relative z-10">
+                  Total Neto Factura
+                </span>
+                <span className="text-5xl font-black text-white font-mono text-center tracking-tighter relative z-10 animate-in fade-in">
+                  ${totalAPagar.toFixed(2)}
+                </span>
+
+                <div className="mt-8 space-y-3 border-t border-gray-800 pt-6 relative z-10">
+                  <div className="flex justify-between text-[10px] font-bold uppercase italic">
+                    <span className="text-gray-500">Subtotal:</span>
+                    <span className="text-gray-300 font-mono">${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] font-bold uppercase italic">
+                    <span className="text-emerald-500">Pagado:</span>
+                    <span className="text-emerald-400 font-mono">${montoAbonado.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] font-bold uppercase italic">
+                    <span className="text-red-500">Saldo Pendiente:</span>
+                    <span className="text-red-400 font-mono">${montoPorPagar.toFixed(2)}</span>
+                  </div>
+                </div>
+
+                <button
+                  disabled={productor?.inexistente || !ticketSeleccionado || precio <= 0}
+                  className={`mt-8 w-full py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-3 ${
+                    productor?.inexistente || !ticketSeleccionado || precio <= 0
+                      ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-xl shadow-indigo-500/30 active:scale-95'
+                  }`}
+                >
+                  <MdSend size={18} /> Finalizar e Imprimir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </Container>
   )
 }

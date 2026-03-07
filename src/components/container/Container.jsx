@@ -13,7 +13,9 @@ const Container = ({ children, fullWidth = false }) => {
     <section className={`${baseStyles} ${paddingStyles} pr-10 py-28`}>
       {fullWidth ? (
         // Si es para tablas, usamos un div simple sin Grid rígida
-        <div className="w-full max-w-350 mx-auto">{children}</div>
+        <div className={`w-full mx-auto ${!hiddenMenu === true ? 'pl-40' : 'px-10'}`}>
+          {children}
+        </div>
       ) : (
         // Tu diseño original de Grid para otros componentes
         <div

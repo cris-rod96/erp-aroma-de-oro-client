@@ -61,12 +61,6 @@ export const ITEMS_DATA = [
   },
 
   {
-    path: '/inicio/empresa',
-    label: 'EMPRESA',
-    icon: BiSolidBusiness,
-  },
-
-  {
     path: '/inicio/cuentas-por-pagar',
     label: 'POR PAGAR',
     icon: GiPayMoney,

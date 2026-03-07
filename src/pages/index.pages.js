@@ -7,7 +7,6 @@ import Compras from './compras/Compras'
 import Configuracion from './configuracion/Configuracion'
 import CuentasPorCobrar from './cuentas_por_cobrar/CuentasPorCobrar'
 import CuentasPorPagar from './cuentas_por_pagar/CuentasPorPagar'
-import Empresa from './empresa/Empresa'
 import Inventario from './inventario/Inventario'
 import Kardex from './kardex/Kardex'
 import Nomina from './nomina/Nomina'
@@ -23,7 +22,6 @@ export {
   Configuracion,
   CuentasPorCobrar,
   CuentasPorPagar,
-  Empresa,
   Inventario,
   Kardex,
   Nomina,

@@ -5,7 +5,6 @@ import {
   Configuracion,
   CuentasPorCobrar,
   CuentasPorPagar,
-  Empresa,
   Home,
   Inventario,
   Kardex,
@@ -32,7 +31,6 @@ const AppRouter = () => {
         <Route path="/inicio/configuracion" element={<Configuracion />} />
         <Route path="/inicio/cuentas-por-cobrar" element={<CuentasPorCobrar />} />
         <Route path="/inicio/cuentas-por-pagar" element={<CuentasPorPagar />} />
-        <Route path="/inicio/empresa" element={<Empresa />} />
         <Route path="/inicio/inventario" element={<Inventario />} />
         <Route path="/inicio/kardex" element={<Kardex />} />
         <Route path="/inicio/nomina" element={<Nomina />} />
