@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { MdBadge, MdLock, MdErrorOutline, MdVisibility, MdVisibilityOff } from 'react-icons/md'
 import { authAPI } from '../../api/index.api'
 import { AxiosError } from 'axios'
+import { useNavigate } from 'react-router-dom'
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ cedula: '', clave: '' })
@@ -9,6 +10,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false)
   const [fieldErrors, setFieldErrors] = useState({})
   const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -19,12 +21,14 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    setLoading(true)
-    // Simulación de validación y envío...
-    authAPI.loginWithCredentials(credentials).catch((err) => {
-      if (err instanceof AxiosError) setError(err.response?.data?.message || 'Error de acceso')
-      setLoading(false)
-    })
+    navigate('/inicio')
+
+    // setLoading(true)
+    // // Simulación de validación y envío...
+    // authAPI.loginWithCredentials(credentials).catch((err) => {
+    //   if (err instanceof AxiosError) setError(err.response?.data?.message || 'Error de acceso')
+    //   setLoading(false)
+    // })
   }
 
   return (
