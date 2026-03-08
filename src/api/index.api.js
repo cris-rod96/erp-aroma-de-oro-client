@@ -4,4 +4,5 @@ import empresaAPI from './empresa/empresa.api'
 import productoAPI from './producto/producto.api'
 import productorAPI from './productor/productor.api'
 import compradorAPI from './comprador/comprador.api'
-export { authAPI, usuarioAPI, empresaAPI, productoAPI, productorAPI, compradorAPI }
+import trabajadorAPI from './trabajador/trabajador.api'
+export { authAPI, usuarioAPI, empresaAPI, productoAPI, productorAPI, compradorAPI, trabajadorAPI }
