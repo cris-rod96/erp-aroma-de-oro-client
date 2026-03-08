@@ -13,6 +13,8 @@ import Nomina from './nomina/Nomina'
 import Reportes from './reportes/Reportes'
 import Ventas from './ventas/Ventas'
 import Alerta from './alerta/Alerta'
+import NotFound from './404/NotFound'
+import NotAuthorized from './401/NotAuthorized'
 export {
   Login,
   Home,
@@ -29,4 +31,6 @@ export {
   Reportes,
   Ventas,
   Alerta,
+  NotFound,
+  NotAuthorized,
 }
