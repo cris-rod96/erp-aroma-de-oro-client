@@ -1,3 +1,3 @@
 import authAPI from './auth/auth.api'
-
-export { authAPI }
+import usuarioAPI from './usuario/usuario.api'
+export { authAPI, usuarioAPI }

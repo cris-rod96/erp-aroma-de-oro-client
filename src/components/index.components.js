@@ -1,4 +1,4 @@
 import Aside from './aside/Aside'
 import Container from './container/Container'
-
-export { Aside, Container }
+import Loading from './loading/Loading'
+export { Aside, Container, Loading }
