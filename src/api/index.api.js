@@ -5,4 +5,14 @@ import productoAPI from './producto/producto.api'
 import productorAPI from './productor/productor.api'
 import compradorAPI from './comprador/comprador.api'
 import trabajadorAPI from './trabajador/trabajador.api'
-export { authAPI, usuarioAPI, empresaAPI, productoAPI, productorAPI, compradorAPI, trabajadorAPI }
+import cajaAPI from './caja/caja.api'
+export {
+  authAPI,
+  usuarioAPI,
+  empresaAPI,
+  productoAPI,
+  productorAPI,
+  compradorAPI,
+  trabajadorAPI,
+  cajaAPI,
+}
