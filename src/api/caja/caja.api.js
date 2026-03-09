@@ -3,8 +3,8 @@ import { instance } from '../base.api'
 const model = 'cajas'
 
 const cajaAPI = {
-  abriCaja: (token) => {
-    return instance.get(`/${model}/abrir-caja`, {
+  abriCaja: (token, data) => {
+    return instance.post(`/${model}/abrir-caja`, data, {
       headers: {
         'x-token': token,
       },
@@ -12,11 +12,15 @@ const cajaAPI = {
   },
 
   cerrarCaja: (id, token) => {
-    return instance.patch(`/${model}/cerrar-caja/${id}`, {
-      headers: {
-        'x-token': token,
-      },
-    })
+    return instance.patch(
+      `/${model}/cerrar-caja/${id}`,
+      {},
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
   },
 
   listarTodas: (token) => {
