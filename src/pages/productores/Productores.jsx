@@ -1,84 +1,107 @@
-import { FaUserEdit, FaMapMarkerAlt } from 'react-icons/fa'
-import { Container } from '../../components/index.components'
-import { MdDelete, MdPhone } from 'react-icons/md'
+import { useState } from 'react'
+import { FaUserEdit, FaMapMarkerAlt, FaPlus, FaIdCard, FaUserAlt } from 'react-icons/fa'
+import { Container, Modal } from '../../components/index.components'
+import { MdDelete, MdPhone, MdLocationOn, MdEmail } from 'react-icons/md'
 
 const Productores = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isEdit, setIsEdit] = useState(false)
+
+  const handleOpenModal = (edit = false) => {
+    setIsEdit(edit)
+    setIsModalOpen(true)
+  }
+
   return (
     <Container fullWidth={true}>
-      <div className="w-full px-4 md:px-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-          <div className="flex flex-col justify-between">
-            <h1 className="text-2xl font-bold text-gray-800">Gestión de Productores</h1>
-            <p className="text-gray-500 text-sm">
-              Administra el directorio de proveedores y productores registrados.
+      <div className="w-full px-4 md:px-8 py-4">
+        {/* HEADER DEL MÓDULO */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+          <div className="border-l-4 border-amber-400 pl-4">
+            <h1 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter">
+              Gestión de Productores
+            </h1>
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">
+              Directorio de proveedores y origen del cacao
             </p>
           </div>
 
-          <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold transition-all shadow-md active:scale-95">
-            + Nuevo Productor
+          <button
+            onClick={() => handleOpenModal(false)}
+            className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-amber-400 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
+          >
+            <FaPlus size={14} />
+            Nuevo Productor
           </button>
         </div>
 
-        {/* Contenedor Principal */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* TABLA Y VISTA MÓVIL */}
+        <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden">
           {/* --- VISTA ESCRITORIO --- */}
           <div className="hidden md:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50/80">
+            <table className="min-w-full divide-y divide-gray-100">
+              <thead className="bg-gray-50/50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                     Productor
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                     Identificación
                   </th>
-                  <th className="px-6 py-4 text-left text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                     Contacto
                   </th>
-                  <th className="px-6 py-4 text-right text-xs font-bold text-gray-400 uppercase tracking-widest">
+                  <th className="px-6 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                     Acciones
                   </th>
                 </tr>
               </thead>
 
-              <tbody className="divide-y divide-gray-100 bg-white">
-                <tr className="hover:bg-indigo-50/30 transition-colors">
+              <tbody className="divide-y divide-gray-50 bg-white">
+                <tr className="hover:bg-amber-50/30 transition-colors group">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-amber-400 to-orange-500 text-white flex items-center justify-center font-bold shadow-sm">
+                      <div className="h-11 w-11 rounded-2xl bg-gray-900 text-amber-400 flex items-center justify-center font-black text-sm shadow-md group-hover:scale-105 transition-transform">
                         CR
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-bold text-gray-900 leading-none">
+                        <div className="text-sm font-black text-gray-800 uppercase tracking-tighter">
                           Cristhian Rodríguez
                         </div>
-                        <div className="flex items-center text-[10px] text-gray-400 font-medium mt-1 uppercase">
-                          <FaMapMarkerAlt className="mr-1 text-orange-400" /> Guayas, Ecuador
+                        <div className="flex items-center text-[9px] text-gray-400 font-bold mt-1 uppercase tracking-widest">
+                          <MdLocationOn className="mr-1 text-amber-500" size={14} /> Guayas, Ecuador
                         </div>
                       </div>
                     </div>
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-700 font-medium italic">Cédula</div>
-                    <div className="text-xs text-gray-400 font-mono tracking-tighter">
+                    <div className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">
+                      Cédula / RUC
+                    </div>
+                    <div className="text-sm text-gray-700 font-mono font-bold tracking-tight">
                       0940501596
                     </div>
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <MdPhone className="mr-2 text-indigo-400" size={16} />
+                    <div className="flex items-center text-sm text-gray-700 font-bold">
+                      <div className="p-1.5 bg-gray-100 rounded-lg mr-2 text-gray-500 group-hover:text-amber-600 transition-colors">
+                        <MdPhone size={16} />
+                      </div>
                       0967148226
                     </div>
                   </td>
 
                   <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="flex justify-end gap-2">
-                      <button className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all cursor-pointer">
+                    <div className="flex justify-end gap-3">
+                      <button
+                        onClick={() => handleOpenModal(true)}
+                        className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all cursor-pointer"
+                      >
                         <FaUserEdit size={18} />
                       </button>
-                      <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all cursor-pointer">
+                      <button className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all cursor-pointer">
                         <MdDelete size={20} />
                       </button>
                     </div>
@@ -89,55 +112,52 @@ const Productores = () => {
           </div>
 
           {/* --- VISTA MÓVIL --- */}
-          <div className="md:hidden divide-y divide-gray-100">
-            <div className="p-5 flex flex-col gap-4 bg-white">
-              {/* Header Card */}
+          <div className="md:hidden divide-y divide-gray-50">
+            <div className="p-6 flex flex-col gap-5 bg-white">
               <div className="flex justify-between items-start">
                 <div className="flex items-center">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center font-bold shadow-lg">
+                  <div className="h-14 w-14 rounded-2xl bg-gray-900 text-amber-400 flex items-center justify-center font-black text-lg shadow-xl border-2 border-amber-400/20">
                     CR
                   </div>
-                  <div className="ml-3">
-                    <div className="text-base font-extrabold text-gray-900 leading-tight">
+                  <div className="ml-4">
+                    <div className="text-base font-black text-gray-900 uppercase tracking-tighter leading-tight">
                       Cristhian Rodríguez
                     </div>
-                    <div className="flex items-center text-[11px] text-gray-400 font-bold uppercase mt-0.5">
-                      <FaMapMarkerAlt className="mr-1" /> Zona Costera
+                    <div className="flex items-center text-[10px] text-gray-400 font-black uppercase mt-1 tracking-widest">
+                      <FaMapMarkerAlt className="mr-1 text-amber-500" /> Guayas
                     </div>
                   </div>
                 </div>
-                <span className="px-2 py-1 rounded text-[10px] font-black bg-amber-50 text-amber-700 border border-amber-100 uppercase">
-                  Productor
-                </span>
               </div>
 
-              {/* Data Grid */}
-              <div className="grid grid-cols-2 gap-3 py-3 border-y border-gray-50">
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">
-                    Cédula / RUC
+              <div className="grid grid-cols-2 gap-3 py-4 border-y border-gray-50">
+                <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
+                  <span className="text-[9px] font-black text-gray-400 uppercase block mb-1 tracking-widest">
+                    Identificación
                   </span>
-                  <span className="text-sm font-mono text-gray-800 font-semibold">0940501596</span>
+                  <span className="text-xs font-mono text-gray-800 font-bold">0940501596</span>
                 </div>
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">
+                <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
+                  <span className="text-[9px] font-black text-gray-400 uppercase block mb-1 tracking-widest">
                     Teléfono
                   </span>
-                  <span className="text-sm text-gray-800 font-semibold">0967148226</span>
+                  <span className="text-xs text-gray-800 font-bold">0967148226</span>
                 </div>
               </div>
 
-              {/* Action Footer */}
               <div className="flex justify-between items-center pt-1">
-                <div className="flex items-center text-[10px] font-black text-green-600 tracking-widest">
-                  <span className="h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse"></span>
-                  VERIFICADO
+                <div className="flex items-center text-[10px] font-black text-emerald-600 tracking-[0.2em] italic">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 mr-2 animate-pulse"></span>
+                  ACTIVO
                 </div>
                 <div className="flex gap-2">
-                  <button className="flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl">
+                  <button
+                    onClick={() => handleOpenModal(true)}
+                    className="flex items-center gap-2 text-[10px] font-black text-gray-900 bg-gray-100 px-4 py-2.5 rounded-xl uppercase tracking-widest transition-all active:scale-95"
+                  >
                     <FaUserEdit size={14} /> EDITAR
                   </button>
-                  <button className="flex items-center gap-1 text-xs font-bold text-red-600 bg-red-50 px-4 py-2 rounded-xl">
+                  <button className="flex items-center gap-2 text-[10px] font-black text-red-600 bg-red-50 px-4 py-2.5 rounded-xl uppercase tracking-widest transition-all active:scale-95">
                     <MdDelete size={16} /> BORRAR
                   </button>
                 </div>
@@ -146,6 +166,108 @@ const Productores = () => {
           </div>
         </div>
       </div>
+
+      {/* --- MODAL PARA PRODUCTORES --- */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title={isEdit ? 'Editar Productor' : 'Registrar Productor'}
+      >
+        <form className="space-y-6">
+          {/* Productor Name */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+              Nombre Completo / Razón Social
+            </label>
+            <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 focus-within:border-amber-400 px-4 transition-all shadow-sm">
+              <FaUserAlt className="text-amber-500 mr-3" size={16} />
+              <input
+                type="text"
+                placeholder="Ej. Hacienda La Bendición"
+                className="bg-transparent w-full outline-none text-sm font-bold text-gray-700"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Cédula */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+                Identificación
+              </label>
+              <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 focus-within:border-amber-400 px-4 shadow-sm">
+                <FaIdCard className="text-amber-500 mr-3" size={18} />
+                <input
+                  type="text"
+                  placeholder="09XXXXXXXX"
+                  className="bg-transparent w-full outline-none text-sm font-bold text-gray-700"
+                />
+              </div>
+            </div>
+            {/* Teléfono */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+                Teléfono Celular
+              </label>
+              <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 focus-within:border-amber-400 px-4 shadow-sm">
+                <MdPhone className="text-amber-500 mr-3" size={18} />
+                <input
+                  type="text"
+                  placeholder="0987654321"
+                  className="bg-transparent w-full outline-none text-sm font-bold text-gray-700"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Ubicación */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+              Zona / Dirección
+            </label>
+            <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 focus-within:border-amber-400 px-4 shadow-sm transition-all">
+              <MdLocationOn className="text-amber-500 mr-3" size={18} />
+              <input
+                type="text"
+                placeholder="Sector, Ciudad, Provincia"
+                className="bg-transparent w-full outline-none text-sm font-bold text-gray-700"
+              />
+            </div>
+          </div>
+
+          {/* Opcional: Email */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+              Correo Electrónico (Opcional)
+            </label>
+            <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 focus-within:border-amber-400 px-4 shadow-sm transition-all">
+              <MdEmail className="text-amber-500 mr-3" size={18} />
+              <input
+                type="email"
+                placeholder="contacto@productor.com"
+                className="bg-transparent w-full outline-none text-sm font-bold text-gray-700"
+              />
+            </div>
+          </div>
+
+          {/* Botones de Acción */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-6">
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-gray-200 transition-all"
+            >
+              Cerrar
+            </button>
+            <button
+              type="submit"
+              className="flex-1 py-4 bg-gray-900 text-amber-400 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] hover:bg-gray-800 shadow-xl shadow-gray-200 transition-all active:scale-95 italic"
+            >
+              {isEdit ? 'Actualizar Productor' : 'Guardar Productor'}
+            </button>
+          </div>
+        </form>
+      </Modal>
     </Container>
   )
 }

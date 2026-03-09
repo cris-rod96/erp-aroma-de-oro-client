@@ -8,11 +8,11 @@ export const useAuthStore = create(
       isAdmin: null,
       adminData: null,
 
-      login: (usuario) =>
+      login: (data) =>
         set({
-          token: usuario.token,
-          isAdmin: usuario.esAdministrador,
-          adminData: usuario,
+          token: data.token,
+          isAdmin: data.usuario.esAdministrador,
+          adminData: data.usuario,
         }),
 
       logout: () =>

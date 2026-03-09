@@ -16,65 +16,32 @@ import {
   Ventas,
   Alerta,
   NotFound,
-  NotAuthorized,
 } from './pages/index.pages'
-
 import RootLayout from './layout/RootLayout'
-import { useAuthStore } from './store/useAuthStore'
-import { ProtectedRoute } from './components/protected/ProtectedRoute'
-
 const AppRouter = () => {
-  const token = useAuthStore((state) => state.token)
-  const isAdmin = useAuthStore((state) => state.isAdmin)
-
   return (
     <Routes>
-      {/* 1. LOGIN */}
-      <Route
-        path="/inicio-sesion"
-        element={!token ? <Login /> : <Navigate to="/inicio" replace />}
-      />
+      <Route path="/" element={<Navigate to="/inicio-sesion" replace />} />
+      <Route path="/inicio-sesion" element={<Login />} />
 
-      {/* 2. PROTECCIÓN DE SESIÓN (NIVEL 1) */}
-      <Route
-        element={
-          token ? <RootLayout /> : <NotAuthorized /> // SI NO HAY TOKEN, MUESTRO LA 401 EN LUGAR DE MANDAR AL LOGIN
-        }
-      >
-        <Route path="/inicio">
-          <Route index element={<Home />} />
-          <Route path="cajas" element={<Cajas />} />
-          <Route path="productores" element={<Productores />} />
-          <Route path="compras" element={<Compras />} />
-          <Route path="configuracion" element={<Configuracion />} />
-          <Route path="cuentas-por-cobrar" element={<CuentasPorCobrar />} />
-          <Route path="cuentas-por-pagar" element={<CuentasPorPagar />} />
-          <Route path="inventario" element={<Inventario />} />
-          <Route path="kardex" element={<Kardex />} />
-          <Route path="nomina" element={<Nomina />} />
-          <Route path="reportes" element={<Reportes />} />
-          <Route path="ventas" element={<Ventas />} />
-          <Route path="alertas" element={<Alerta />} />
+      <Route path="/inicio" element={<RootLayout />}>
+        <Route index element={<Home />} />
+        <Route path="/inicio/cajas" element={<Cajas />} />
+        <Route path="/inicio/productores" element={<Productores />} />
 
-          {/* 3. PROTECCIÓN DE ADMIN (NIVEL 2) */}
-          <Route
-            path="usuarios"
-            element={
-              isAdmin ? <Usuarios /> : <NotAuthorized /> // SI NO ES ADMIN, MUESTRO LA 401
-            }
-          />
-        </Route>
+        <Route path="/inicio/compras" element={<Compras />} />
+        <Route path="/inicio/configuracion" element={<Configuracion />} />
+        <Route path="/inicio/cuentas-por-cobrar" element={<CuentasPorCobrar />} />
+        <Route path="/inicio/cuentas-por-pagar" element={<CuentasPorPagar />} />
+        <Route path="/inicio/inventario" element={<Inventario />} />
+        <Route path="/inicio/kardex" element={<Kardex />} />
+        <Route path="/inicio/nomina" element={<Nomina />} />
+        <Route path="/inicio/reportes" element={<Reportes />} />
+        <Route path="/inicio/usuarios" element={<Usuarios />} />
+        <Route path="/inicio/ventas" element={<Ventas />} />
+        <Route path="/inicio/alertas" element={<Alerta />} />
       </Route>
 
-      {/* RUTA RAIZ */}
-      <Route
-        path="/"
-        element={
-          token ? <Navigate to="/inicio" replace /> : <Navigate to="/inicio-sesion" replace />
-        }
-      />
-
-      {/* 404 GENERAL */}
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

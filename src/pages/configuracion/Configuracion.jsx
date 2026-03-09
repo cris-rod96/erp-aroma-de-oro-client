@@ -7,7 +7,6 @@ import {
   MdCloudUpload,
   MdAlternateEmail,
   MdPhoneIphone,
-  MdSettings,
 } from 'react-icons/md'
 import { Container } from '../../components/index.components'
 
@@ -37,16 +36,15 @@ const Configuracion = () => {
 
   return (
     <Container fullWidth={true}>
-      {/* Alineación idéntica a Nómina (px-4 md:px-8) */}
-      <div className="w-full px-4 md:px-8">
-        {/* Cabecera idéntica al diseño de Nómina */}
+      <div className="w-full px-4 md:px-8 py-4">
+        {/* CABECERA */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-800 tracking-tight">
+          <div className="border-l-4 border-amber-400 pl-4">
+            <h1 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter">
               Configuración del Sistema
             </h1>
-            <p className="text-gray-500 text-sm">
-              Gestione su perfil, seguridad y parámetros de la organización.
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">
+              Gestione su perfil, seguridad y parámetros de la organización
             </p>
           </div>
         </div>
@@ -54,18 +52,18 @@ const Configuracion = () => {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-20">
           {/* LADO IZQUIERDO: PERFIL Y SEGURIDAD */}
           <div className="xl:col-span-2 space-y-8">
-            {/* CARD: PERFIL (Estilo de tabla de nómina) */}
+            {/* CARD: PERFIL */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                <MdBadge className="text-indigo-600" size={20} />
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+                <MdBadge className="text-amber-500" size={20} />
+                <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                   Información Personal
                 </h2>
               </div>
 
               <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                     Nombre Completo
                   </label>
                   <input
@@ -73,63 +71,63 @@ const Configuracion = () => {
                     name="nombre"
                     value={userData.nombre}
                     onChange={handleUserChange}
-                    className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                    className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-amber-400 transition-all shadow-sm"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
-                    Cédula
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                    Identificación (Cédula)
                   </label>
                   <input
                     type="text"
                     value={userData.cedula}
                     readOnly
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold text-gray-400 cursor-not-allowed font-mono"
+                    className="w-full bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 text-sm font-bold text-gray-400 cursor-not-allowed font-mono shadow-inner"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                     Correo Electrónico
                   </label>
                   <div className="relative">
                     <MdAlternateEmail
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                      size={16}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500"
+                      size={18}
                     />
                     <input
                       type="email"
                       name="email"
                       value={userData.email}
                       onChange={handleUserChange}
-                      className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all"
+                      className="w-full bg-white border border-gray-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-amber-400 transition-all shadow-sm"
                     />
                   </div>
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
-                    Teléfono
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                    Teléfono Celular
                   </label>
                   <div className="relative">
                     <MdPhoneIphone
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                      size={16}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-500"
+                      size={18}
                     />
                     <input
                       type="text"
                       name="telefono"
                       value={userData.telefono}
                       onChange={handleUserChange}
-                      className="w-full bg-white border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-bold text-gray-700 outline-none focus:border-indigo-500 transition-all"
+                      className="w-full bg-white border border-gray-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-amber-400 transition-all shadow-sm"
                     />
                   </div>
                 </div>
 
                 <div className="md:col-span-2 flex justify-end pt-4">
-                  <button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-2">
-                    <MdSave size={18} /> ACTUALIZAR PERFIL
+                  <button className="bg-gray-900 hover:bg-gray-800 text-amber-400 px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center gap-2 italic">
+                    <MdSave size={18} /> Actualizar Perfil
                   </button>
                 </div>
               </div>
@@ -137,31 +135,31 @@ const Configuracion = () => {
 
             {/* CARD: SEGURIDAD */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
                 <MdOutlineSecurity className="text-red-500" size={20} />
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                   Seguridad de la Cuenta
                 </h2>
               </div>
               <div className="p-6 md:p-8 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input
                   type="password"
-                  placeholder="Clave Actual"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-red-400 transition-all"
+                  placeholder="CLAVE ACTUAL"
+                  className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest outline-none focus:border-red-400 transition-all"
                 />
                 <input
                   type="password"
-                  placeholder="Nueva Clave"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-indigo-500 transition-all"
+                  placeholder="NUEVA CLAVE"
+                  className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest outline-none focus:border-amber-400 transition-all"
                 />
                 <input
                   type="password"
-                  placeholder="Repetir Clave"
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-bold outline-none focus:border-indigo-500 transition-all"
+                  placeholder="REPETIR CLAVE"
+                  className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-[10px] font-black uppercase tracking-widest outline-none focus:border-amber-400 transition-all"
                 />
                 <div className="md:col-span-3 flex justify-end pt-2">
-                  <button className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-6 py-2 rounded-xl text-xs font-bold transition-all">
-                    CAMBIAR CONTRASEÑA
+                  <button className="text-red-600 bg-red-50 hover:bg-red-100 border border-red-100 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all italic">
+                    Cambiar Contraseña
                   </button>
                 </div>
               </div>
@@ -171,27 +169,27 @@ const Configuracion = () => {
           {/* LADO DERECHO: EMPRESA */}
           <div className="space-y-8">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-3">
-                <MdBusiness className="text-indigo-600" size={20} />
-                <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+                <MdBusiness className="text-amber-500" size={20} />
+                <h2 className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
                   Datos de Empresa
                 </h2>
               </div>
 
               <div className="p-6 space-y-6">
-                <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-gray-100 rounded-2xl bg-gray-50 group hover:border-indigo-200 transition-all cursor-pointer">
+                <div className="flex flex-col items-center justify-center py-8 border-2 border-dashed border-gray-100 rounded-[2rem] bg-gray-50 group hover:border-amber-200 transition-all cursor-pointer">
                   <MdCloudUpload
-                    className="text-gray-300 group-hover:text-indigo-400 transition-colors"
-                    size={32}
+                    className="text-gray-300 group-hover:text-amber-400 transition-colors"
+                    size={40}
                   />
-                  <span className="text-[10px] font-bold text-gray-400 uppercase mt-2">
-                    Logotipo
+                  <span className="text-[9px] font-black text-gray-400 uppercase mt-2 tracking-widest">
+                    Logotipo Institucional
                   </span>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                       Razón Social
                     </label>
                     <input
@@ -199,37 +197,37 @@ const Configuracion = () => {
                       name="razonSocial"
                       value={empresaData.razonSocial}
                       onChange={handleEmpresaChange}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 outline-none"
+                      className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm font-bold text-gray-700 outline-none focus:border-amber-400"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
-                      RUC
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      Número de RUC
                     </label>
                     <input
                       type="text"
                       name="ruc"
                       value={empresaData.ruc}
                       onChange={handleEmpresaChange}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 outline-none font-mono"
+                      className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm font-bold text-gray-700 outline-none font-mono focus:border-amber-400"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider ml-1">
-                      Dirección
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      Dirección Matriz
                     </label>
                     <textarea
                       name="direccion"
                       rows="3"
                       value={empresaData.direccion}
                       onChange={handleEmpresaChange}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-gray-700 outline-none resize-none"
+                      className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm font-bold text-gray-700 outline-none resize-none focus:border-amber-400"
                     ></textarea>
                   </div>
                 </div>
 
-                <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl text-xs font-bold shadow-md transition-all flex justify-center items-center gap-2 uppercase tracking-widest">
-                  <MdSave size={18} /> GUARDAR DATOS
+                <button className="w-full bg-gray-900 hover:bg-gray-800 text-amber-400 py-4 rounded-2xl text-[10px] font-black shadow-xl transition-all flex justify-center items-center gap-2 uppercase tracking-[0.2em] italic">
+                  <MdSave size={18} /> Guardar Datos
                 </button>
               </div>
             </div>
