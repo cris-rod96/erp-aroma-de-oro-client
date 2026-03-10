@@ -4,22 +4,22 @@ const model = 'personas'
 
 const trabajadorAPI = {
   listarTodos: (token) => {
-    return instance.get(`/${model}/trabajadores/todos`, {
+    return instance.get(`/${model}/listar/trabajadores`, {
       headers: {
         'x-token': token,
       },
     })
   },
 
-  agregarProductor: (data, token) => {
-    return instance.post(`/${model}/trabajadores/agregar`, data, {
+  agregarTrabajador: (data, token) => {
+    return instance.post(`/${model}/agregar`, data, {
       headers: {
         'x-token': token,
       },
     })
   },
 
-  actualizarProductor: (id, data, token) => {
+  actualizarTrabajador: (id, data, token) => {
     return instance.patch(`/${model}/trabajadores/actualizar-informacion/${id}`, data, {
       headers: {
         'x-token': token,
@@ -27,7 +27,7 @@ const trabajadorAPI = {
     })
   },
 
-  eliminarProductor: (id, token) => {
+  eliminarTrabajador: (id, token) => {
     return instance.delete(`/${model}/trabajadores/borrar-persona/${id}`, {
       headers: {
         'x-token': token,

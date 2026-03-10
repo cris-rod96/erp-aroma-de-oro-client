@@ -6,6 +6,8 @@ import productorAPI from './productor/productor.api'
 import compradorAPI from './comprador/comprador.api'
 import trabajadorAPI from './trabajador/trabajador.api'
 import cajaAPI from './caja/caja.api'
+import cuentasPorCobrarAPI from './cuentas-por-cobrar/cuentasPorCobrar.api'
+import cuentasPorPagarAPI from './cuentas-por-pagar/cuentas-por-pagar.api'
 export {
   authAPI,
   usuarioAPI,
@@ -15,4 +17,6 @@ export {
   compradorAPI,
   trabajadorAPI,
   cajaAPI,
+  cuentasPorCobrarAPI,
+  cuentasPorPagarAPI,
 }

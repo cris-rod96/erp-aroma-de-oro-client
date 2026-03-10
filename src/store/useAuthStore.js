@@ -15,6 +15,13 @@ export const useAuthStore = create(
           adminData: data.usuario,
         }),
 
+      setAdminData: (newData) =>
+        set((state) => ({
+          adminData: { ...state.adminData, ...newData },
+          // También actualizamos isAdmin por si cambió el rango
+          isAdmin: newData.esAdministrador !== undefined ? newData.esAdministrador : state.isAdmin,
+        })),
+
       logout: () =>
         set({
           token: null,

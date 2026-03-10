@@ -11,11 +11,18 @@ const empresaAPI = {
     })
   },
   crearEmpresa: (token, data) => {
-    return instance.post(`/${model}/create`, data, {
-      headers: {
-        'x-token': token,
+    const { id, ...infoEmpresa } = data
+    return instance.post(
+      `/${model}/create`,
+      {
+        ...infoEmpresa,
       },
-    })
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
   },
 
   actualizarInformacion: (id, data, token) => {

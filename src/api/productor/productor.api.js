@@ -4,7 +4,7 @@ const model = 'personas'
 
 const productorAPI = {
   listarTodos: (token) => {
-    return instance.get(`/${model}/productores/todos`, {
+    return instance.get(`/${model}/listar/productores`, {
       headers: {
         'x-token': token,
       },
@@ -12,7 +12,8 @@ const productorAPI = {
   },
 
   agregarProductor: (data, token) => {
-    return instance.post(`/${model}/productores/agregar`, data, {
+    console.log(data)
+    return instance.post(`/${model}/agregar`, data, {
       headers: {
         'x-token': token,
       },
@@ -20,7 +21,7 @@ const productorAPI = {
   },
 
   actualizarProductor: (id, data, token) => {
-    return instance.patch(`/${model}/productores/actualizar-informacion/${id}`, data, {
+    return instance.patch(`/${model}/actualizar-informacion/${id}`, data, {
       headers: {
         'x-token': token,
       },
@@ -28,7 +29,7 @@ const productorAPI = {
   },
 
   eliminarProductor: (id, token) => {
-    return instance.delete(`/${model}/productores/borrar-persona/${id}`, {
+    return instance.delete(`/${model}/borrar-persona/${id}`, {
       headers: {
         'x-token': token,
       },
