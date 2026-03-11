@@ -1,62 +1,19 @@
 import { useState, useEffect } from 'react'
 import { Container, Modal } from '../../components/index.components'
 import { FaPlus, FaTicketAlt, FaSearch, FaIdCard, FaBox } from 'react-icons/fa'
-import {
-  MdDelete,
-  MdScale,
-  MdDirectionsCar,
-  MdInbox,
-  MdHistory,
-  MdCalendarToday,
-  MdBalance,
-} from 'react-icons/md'
+import { MdDelete, MdScale, MdDirectionsCar, MdHistory, MdCalendarToday } from 'react-icons/md' // Asegúrate de que la ruta de icons sea correcta
 import Swal from 'sweetalert2'
 import { useAuthStore } from '../../store/useAuthStore'
-import { ticketAPI, productoAPI } from '../../api/index.api'
+import { productoAPI, ticketAPI } from '../../api/index.api'
 
 const Tickets = () => {
-  // --- DATOS DE EJEMPLO (MOCK DATA) ---
-  const ticketsEjemplo = [
-    {
-      id: '1',
-      numero: 'TKT-001-2026',
-      identificacionTemporal: '0955842231',
-      placaVehiculo: 'GBA-1234',
-      pesoBruto: 150.75,
-      taraVehiculo: 50.25,
-      pesoNeto: 100.5,
-      estadoTicket: 'Pendiente',
-      fechaIngreso: '2026-03-10',
-      Producto: { nombre: 'CACAO SECO' },
-    },
-    {
-      id: '2',
-      numero: 'TKT-002-2026',
-      identificacionTemporal: '1204455871',
-      placaVehiculo: 'PBX-9088',
-      pesoBruto: 200.0,
-      taraVehiculo: 60.0,
-      pesoNeto: 140.0,
-      estadoTicket: 'Liquidado',
-      fechaIngreso: '2026-03-09',
-      Producto: { nombre: 'MAÍZ AMARILLO' },
-    },
-  ]
-
-  const productosEjemplo = [
-    { id: 'p1', nombre: 'CACAO SECO' },
-    { id: 'p2', nombre: 'MAÍZ AMARILLO' },
-  ]
-
-  // --- ESTADOS ---
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [tickets, setTickets] = useState(ticketsEjemplo)
-  const [productos, setProductos] = useState(productosEjemplo)
+  const [tickets, setTickets] = useState([])
+  const [productos, setProductos] = useState([])
   const [fetching, setFetching] = useState(false)
   const [loading, setLoading] = useState(false)
   const [filtro, setFiltro] = useState('')
 
-  // Sincronizado con TicketModel de Sequelize
   const [formData, setFormData] = useState({
     identificacionTemporal: '',
     placaVehiculo: '',
@@ -68,37 +25,55 @@ const Tickets = () => {
 
   const token = useAuthStore((state) => state.token)
 
-  // --- CÁLCULO DE PESO NETO AUTOMÁTICO ---
+  // Función para formatear fecha de ISO a legible
+  const formatFecha = (fechaISO) => {
+    if (!fechaISO) return 'N/A'
+    const date = new Date(fechaISO)
+    return new Intl.DateTimeFormat('es-EC', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date)
+  }
+
   useEffect(() => {
     const bruto = parseFloat(formData.pesoBruto) || 0
     const tara = parseFloat(formData.taraVehiculo) || 0
     setFormData((prev) => ({ ...prev, pesoNeto: (bruto - tara).toFixed(2) }))
   }, [formData.pesoBruto, formData.taraVehiculo])
 
-  // --- LÓGICA DE API (COMENTADA) ---
   const fetchTickets = async () => {
-    /* setFetching(true)
+    setFetching(true)
     try {
       const [respTickets, respProds] = await Promise.all([
         ticketAPI.listarTickets(token),
-        productoAPI.listarProductos(token)
+        productoAPI.listarProductos(token),
       ])
       setTickets(respTickets.data.tickets || respTickets.data || [])
       setProductos(respProds.data.productos || respProds.data || [])
-    } catch (error) { 
-      console.error('Error Aroma de Oro:', error) 
-    } finally { 
-      setFetching(false) 
-    } 
-    */
+    } catch (error) {
+      console.error('Error Aroma de Oro:', error)
+    } finally {
+      setFetching(false)
+    }
   }
 
   useEffect(() => {
     fetchTickets()
   }, [])
 
-  // --- MANEJADORES ---
   const handleOpenModal = () => {
+    if (productos.length === 0) {
+      return Swal.fire({
+        icon: 'error',
+        title: 'Faltan Productos',
+        text: 'Debes registrar al menos un producto antes de emitir tickets.',
+        confirmButtonColor: '#111827',
+      })
+    }
     setFormData({
       identificacionTemporal: '',
       placaVehiculo: '',
@@ -113,27 +88,38 @@ const Tickets = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
-    // Simulación de guardado exitoso
-    setTimeout(() => {
+    try {
+      await ticketAPI.generarTicket(formData, token)
       Swal.fire({
         icon: 'success',
         title: 'Ticket Generado',
-        text: 'Registro guardado en base de datos',
+        text: 'Registro guardado exitosamente',
         confirmButtonColor: '#111827',
       })
       setIsModalOpen(false)
+      fetchTickets()
+    } catch (error) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo guardar el registro',
+      })
+    } finally {
       setLoading(false)
-      // fetchTickets() <- Llamar aquí en producción
-    }, 800)
+    }
   }
+
+  const ticketsFiltrados = tickets.filter((t) =>
+    t.identificacionTemporal.toLowerCase().includes(filtro.toLowerCase())
+  )
 
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-4">
-        {/* ENCABEZADO PROLIJO */}
+        {/* ENCABEZADO */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
           <div className="border-l-4 border-amber-400 pl-4">
-            <h1 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter leading-none">
+            <h1 className="text-3xl font-black text-gray-800 uppercase tracking-tighter leading-none">
               Control de Pesaje
             </h1>
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
@@ -153,18 +139,35 @@ const Tickets = () => {
             </div>
             <button
               onClick={handleOpenModal}
-              className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-amber-400 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 italic"
+              className="flex items-center justify-center gap-2 bg-gray-900 hover:bg-gray-800 text-amber-400 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl active:scale-95"
             >
               <FaPlus size={14} /> Nuevo Registro
             </button>
           </div>
         </div>
 
-        {/* TABLA CON DESGLOSE DE PESOS */}
+        {/* TABLA PRINCIPAL */}
         <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
           {fetching ? (
-            <div className="px-6 py-20 text-center animate-pulse text-gray-300 font-black uppercase text-xs tracking-widest">
-              Sincronizando Báscula...
+            <div className="px-6 py-32 text-center">
+              <div className="animate-spin inline-block w-8 h-8 border-4 border-amber-400 border-t-transparent rounded-full mb-4"></div>
+              <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.3em]">
+                Sincronizando con Base de Datos...
+              </p>
+            </div>
+          ) : ticketsFiltrados.length === 0 ? (
+            <div className="px-6 py-32 text-center flex flex-col items-center">
+              <div className="h-20 w-20 bg-gray-50 rounded-full flex items-center justify-center mb-6 border border-gray-100">
+                <FaTicketAlt className="text-gray-200" size={40} />
+              </div>
+              <h3 className="text-gray-800 font-black uppercase tracking-tighter text-xl">
+                {filtro ? 'Sin coincidencias' : 'No hay registros'}
+              </h3>
+              <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mt-2">
+                {filtro
+                  ? `No hay resultados para: ${filtro}`
+                  : 'Aún no se han generado tickets de entrada.'}
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -195,69 +198,62 @@ const Tickets = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {tickets
-                    .filter((t) => t.identificacionTemporal.includes(filtro))
-                    .map((t) => (
-                      <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="h-10 w-10 rounded-xl bg-gray-900 text-amber-400 flex items-center justify-center mr-4 shadow-md">
-                              <FaTicketAlt size={16} />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-sm font-black uppercase tracking-tighter text-gray-800 italic">
-                                {t.numero}
-                              </span>
-                              <span className="text-[10px] font-bold text-gray-400">
-                                {t.identificacionTemporal}
-                              </span>
-                            </div>
+                  {ticketsFiltrados.map((t) => (
+                    <tr key={t.id} className="hover:bg-gray-50/50 transition-colors group">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="h-10 w-10 rounded-xl bg-gray-900 text-amber-400 flex items-center justify-center mr-4 shadow-md">
+                            <FaTicketAlt size={16} />
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
                           <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-gray-700 uppercase tracking-tighter">
-                              {t.Producto?.nombre}
+                            <span className="text-sm font-black uppercase tracking-tighter text-gray-800">
+                              {t.numero}
                             </span>
-                            <span className="flex items-center text-[9px] font-bold text-gray-400 mt-0.5 uppercase">
-                              <MdCalendarToday className="mr-1" /> {t.fechaIngreso}
+                            <span className="text-[13px] font-extrabold text-gray-400">
+                              {t.identificacionTemporal}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-center border-l border-gray-50">
-                          <span className="text-xs font-mono font-bold text-gray-600">
-                            {parseFloat(t.pesoBruto).toFixed(2)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                        <div className="flex flex-col">
+                          <span className="text-[12px] font-black text-gray-700 uppercase tracking-tighter">
+                            {t.Producto?.nombre}
                           </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-center border-l border-gray-50">
-                          <span className="text-xs font-mono font-bold text-gray-400">
-                            {parseFloat(t.taraVehiculo).toFixed(2)}
+                          <span className="flex items-center text-[12px] font-bold text-gray-400 mt-0.5 uppercase">
+                            <MdCalendarToday className="mr-1" />{' '}
+                            {formatFecha(t.createdAt || t.fechaIngreso)}
                           </span>
-                        </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-center border-l border-amber-100 bg-amber-50/20">
-                          <span className="text-sm font-mono font-black text-gray-900 italic">
-                            {parseFloat(t.pesoNeto).toFixed(2)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center hidden lg:table-cell">
-                          <span
-                            className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${t.estadoTicket === 'Liquidado' ? 'bg-green-100 text-green-600 border border-green-200' : 'bg-amber-100 text-amber-600 border border-amber-200'}`}
-                          >
-                            {t.estadoTicket}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right whitespace-nowrap">
-                          <div className="flex justify-end gap-2">
-                            <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">
-                              <MdHistory size={20} />
-                            </button>
-                            <button className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
-                              <MdDelete size={20} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center border-l border-gray-50 font-mono text-[14px] font-bold text-gray-600">
+                        {parseFloat(t.pesoBruto).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center border-l border-gray-50 font-mono text-[14px] font-bold text-gray-400">
+                        {parseFloat(t.taraVehiculo).toFixed(2)}
+                      </td>
+                      <td className="px-4 py-4 whitespace-nowrap text-center border-l border-amber-100 bg-amber-50/20 font-mono text-[14px] font-black text-gray-900">
+                        {parseFloat(t.pesoNeto).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center hidden lg:table-cell">
+                        <span
+                          className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${t.estadoTicket === 'Liquidado' ? 'bg-green-100 text-green-600 border border-green-200' : 'bg-amber-100 text-amber-600 border border-amber-200'}`}
+                        >
+                          {t.estadoTicket}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <div className="flex justify-end gap-2">
+                          <button className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all">
+                            <MdHistory size={20} />
+                          </button>
+                          <button className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all">
+                            <MdDelete size={20} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -265,7 +261,7 @@ const Tickets = () => {
         </div>
       </div>
 
-      {/* MODAL DE UNA COLUMNA (Estilo Inventario) */}
+      {/* MODAL */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -362,10 +358,10 @@ const Tickets = () => {
             </div>
 
             <div className="flex items-center justify-between bg-gray-900 px-4 py-3 rounded-xl border-l-4 border-amber-400 shadow-lg">
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                 Peso Neto Calculado
               </span>
-              <div className="text-xl font-black italic text-amber-400 leading-none">
+              <div className="text-xl font-black text-amber-400 leading-none">
                 {formData.pesoNeto} <span className="text-[10px] font-sans">QQ</span>
               </div>
             </div>
@@ -382,7 +378,7 @@ const Tickets = () => {
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-4 bg-gray-900 text-amber-400 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl italic active:scale-95 border-b-4 border-amber-600"
+              className="flex-1 py-4 bg-gray-900 text-amber-400 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 border-b-4 border-amber-600"
             >
               {loading ? 'Procesando...' : 'Confirmar Ticket'}
             </button>

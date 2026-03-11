@@ -9,6 +9,7 @@ import cajaAPI from './caja/caja.api'
 import cuentasPorCobrarAPI from './cuentas-por-cobrar/cuentasPorCobrar.api'
 import cuentasPorPagarAPI from './cuentas-por-pagar/cuentas-por-pagar.api'
 import ticketAPI from './ticket/ticket.api'
+import liquidacionAPI from './liquidacion/liquidacion.api'
 export {
   authAPI,
   usuarioAPI,
@@ -21,4 +22,5 @@ export {
   cuentasPorCobrarAPI,
   cuentasPorPagarAPI,
   ticketAPI,
+  liquidacionAPI,
 }

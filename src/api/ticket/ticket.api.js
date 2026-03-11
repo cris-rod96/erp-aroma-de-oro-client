@@ -12,7 +12,7 @@ const ticketAPI = {
   },
 
   listarTicketsPendientes: (token) => {
-    return instance.get(`/${model}/listar-por-clave?clave=estadoTicket&value=Pendiente`, {
+    return instance.get(`/${model}/listar/listar-por-clave?clave=estadoTicket&valor=Pendiente`, {
       headers: {
         'x-token': token,
       },
