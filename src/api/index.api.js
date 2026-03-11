@@ -8,6 +8,7 @@ import trabajadorAPI from './trabajador/trabajador.api'
 import cajaAPI from './caja/caja.api'
 import cuentasPorCobrarAPI from './cuentas-por-cobrar/cuentasPorCobrar.api'
 import cuentasPorPagarAPI from './cuentas-por-pagar/cuentas-por-pagar.api'
+import ticketAPI from './ticket/ticket.api'
 export {
   authAPI,
   usuarioAPI,
@@ -19,4 +20,5 @@ export {
   cajaAPI,
   cuentasPorCobrarAPI,
   cuentasPorPagarAPI,
+  ticketAPI,
 }

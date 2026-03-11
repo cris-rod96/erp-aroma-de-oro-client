@@ -5,6 +5,7 @@ import { FaBoxesStacked, FaTruckFast } from 'react-icons/fa6'
 import { GiCash, GiGears, GiPayMoney, GiReceiveMoney } from 'react-icons/gi'
 import { GrUserWorker } from 'react-icons/gr'
 import { TbCashRegister } from 'react-icons/tb'
+import { HiOutlineTicket } from 'react-icons/hi'
 export const MENU_DATA = [
   {
     path: '/inicio',
@@ -46,6 +47,12 @@ export const MENU_DATA = [
     path: '/inicio/nomina',
     label: 'Nómina',
     icon: GrUserWorker,
+  },
+
+  {
+    path: '/inicio/tickets',
+    label: 'Tickets',
+    icon: HiOutlineTicket,
   },
 
   {

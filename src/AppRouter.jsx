@@ -16,6 +16,7 @@ import {
   Ventas,
   Alerta,
   NotFound,
+  Tickets,
 } from './pages/index.pages'
 import RootLayout from './layout/RootLayout'
 const AppRouter = () => {
@@ -28,7 +29,7 @@ const AppRouter = () => {
         <Route index element={<Home />} />
         <Route path="/inicio/cajas" element={<Cajas />} />
         <Route path="/inicio/productores" element={<Productores />} />
-
+        <Route path="/inicio/tickets" element={<Tickets />} />
         <Route path="/inicio/compras" element={<Compras />} />
         <Route path="/inicio/configuracion" element={<Configuracion />} />
         <Route path="/inicio/cuentas-por-cobrar" element={<CuentasPorCobrar />} />

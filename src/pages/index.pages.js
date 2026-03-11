@@ -15,6 +15,7 @@ import Ventas from './ventas/Ventas'
 import Alerta from './alerta/Alerta'
 import NotFound from './404/NotFound'
 import NotAuthorized from './401/NotAuthorized'
+import Tickets from './tickets/Tickets'
 export {
   Login,
   Home,
@@ -33,4 +34,5 @@ export {
   Alerta,
   NotFound,
   NotAuthorized,
+  Tickets,
 }
