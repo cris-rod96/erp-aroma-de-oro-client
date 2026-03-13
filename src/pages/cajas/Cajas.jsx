@@ -12,6 +12,7 @@ import {
 import cajaAPI from '../../api/caja/caja.api'
 import Swal from 'sweetalert2'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useCajaStore } from '../../store/useCajaStore'
 
 const Cajas = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -21,6 +22,7 @@ const Cajas = () => {
   const [fetching, setFetching] = useState(true)
 
   const token = useAuthStore((state) => state.token)
+  const setCaja = useCajaStore((state) => state.setCaja)
 
   // --- FUNCIONES DE FORMATO ---
 
@@ -76,9 +78,14 @@ const Cajas = () => {
     setLoading(true)
     try {
       const data = { montoApertura: parseFloat(montoApertura) }
-      await cajaAPI.abriCaja(token, data)
+      const resp = await cajaAPI.abriCaja(token, data)
+
       setIsModalOpen(false)
       setMontoApertura('')
+      setCaja({
+        caja: resp.data.caja,
+        isCajaAbierta: true,
+      })
       fetchCajas()
       Swal.fire({
         icon: 'success',

@@ -31,8 +31,8 @@ const cajaAPI = {
     })
   },
 
-  listarCajasAbiertas: (token) => {
-    return instance.get(`/${model}/listar/abiertas`, {
+  obtenerCajaAbierta: (token) => {
+    return instance.get(`/${model}/obtener-abierta`, {
       headers: {
         'x-token': token,
       },

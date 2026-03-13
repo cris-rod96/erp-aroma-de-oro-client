@@ -26,6 +26,14 @@ const liquidacionAPI = {
       },
     })
   },
+
+  crearLiquidacion: (token, data) => {
+    return instance.post(`/${model}/crear-liquidacion`, data, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
 }
 
 export default liquidacionAPI

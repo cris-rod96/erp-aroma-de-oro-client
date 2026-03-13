@@ -4,8 +4,6 @@ import { useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import authAPI from '../../api/auth/auth.api'
 import { useAuthStore } from '../../store/useAuthStore'
-import { useEffect } from 'react'
-import { client, server } from '../../config/index.config'
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ cedula: '', clave: '' })

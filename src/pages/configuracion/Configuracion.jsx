@@ -13,12 +13,13 @@ import { Container } from '../../components/index.components'
 import { useAuthStore } from '../../store/useAuthStore'
 import { empresaAPI, usuarioAPI } from '../../api/index.api'
 import Swal from 'sweetalert2'
+import { useEmpresaStore } from '../../store/useEmpresaStore'
 
 const Configuracion = () => {
-  // --- ZUSTAND STORE ---
   const infoData = useAuthStore((state) => state.adminData)
   const token = useAuthStore((state) => state.token)
   const setAdminData = useAuthStore((state) => state.setAdminData)
+  const setEmpresa = useEmpresaStore((state) => state.setEmpresa)
 
   const [loading, setLoading] = useState(false)
 
@@ -43,12 +44,12 @@ const Configuracion = () => {
     correo: '',
   })
 
-  // --- CARGA DE DATOS ---
   const fetchEmpresaData = async () => {
     try {
       const resp = await empresaAPI.obtenerInformacion(token)
       if (resp.data && resp.data.empresa) {
         setEmpresaData(resp.data.empresa)
+        setEmpresa(resp.data.empresa) // Actualiza el store global
       }
     } catch (error) {
       console.error('Error al cargar información de la empresa:', error)
@@ -63,7 +64,6 @@ const Configuracion = () => {
     fetchEmpresaData()
   }, [])
 
-  // --- HANDLERS ---
   const handleUserChange = (e) => {
     setUserData({ ...userData, [e.target.name]: e.target.value })
   }
@@ -72,8 +72,6 @@ const Configuracion = () => {
     setEmpresaData({ ...empresaData, [e.target.name]: e.target.value })
   }
 
-  // --- LÓGICA DE ACTUALIZACIÓN ---
-
   const actualizarInformacionUsuario = async () => {
     try {
       setLoading(true)
@@ -81,11 +79,10 @@ const Configuracion = () => {
       const resp = await usuarioAPI.actualizarUsuario(id, userData, token)
 
       if (resp.status === 200) {
-        setAdminData(userData) // Sincroniza el store
+        setAdminData(userData)
         Swal.fire({
           icon: 'success',
           title: 'Perfil Actualizado',
-          text: 'Tus datos se han sincronizado correctamente.',
           timer: 2000,
           showConfirmButton: false,
         })
@@ -105,7 +102,6 @@ const Configuracion = () => {
     try {
       setLoading(true)
       let resp
-      // Lógica: Si hay ID actualiza, si no crea
       if (empresaData.id) {
         resp = await empresaAPI.actualizarInformacion(empresaData.id, empresaData, token)
       } else {
@@ -119,7 +115,11 @@ const Configuracion = () => {
           timer: 1500,
           showConfirmButton: false,
         })
-        await fetchEmpresaData()
+
+        // Sincronizamos con los datos que devolvió el servidor (importante por el ID)
+        const empresaActualizada = resp.data.empresa || empresaData
+        setEmpresa(empresaActualizada)
+        setEmpresaData(empresaActualizada)
       }
     } catch (error) {
       Swal.fire('Error', 'No se pudo guardar la empresa', 'error')
@@ -131,7 +131,6 @@ const Configuracion = () => {
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-4">
-        {/* CABECERA */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="border-l-4 border-amber-400 pl-4">
             <h1 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter">
@@ -144,7 +143,6 @@ const Configuracion = () => {
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 pb-20">
-          {/* LADO IZQUIERDO: PERFIL Y SEGURIDAD */}
           <div className="xl:col-span-2 space-y-8">
             <div className="bg-white rounded-[2rem] shadow-xl shadow-gray-100 border border-gray-100 overflow-hidden">
               <div className="px-8 py-5 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
@@ -164,7 +162,7 @@ const Configuracion = () => {
                     name="nombresCompletos"
                     value={userData.nombresCompletos || ''}
                     onChange={handleUserChange}
-                    className="h-14 w-full bg-white border border-gray-200 rounded-2xl px-5 text-sm font-bold text-gray-700 outline-none focus:border-amber-400 transition-all shadow-sm focus:ring-4 focus:ring-amber-50"
+                    className="h-14 w-full bg-white border border-gray-200 rounded-2xl px-5 text-sm font-bold text-gray-700 outline-none focus:border-amber-400 transition-all shadow-sm"
                   />
                 </div>
 
@@ -274,7 +272,6 @@ const Configuracion = () => {
             </div>
           </div>
 
-          {/* LADO DERECHO: EMPRESA */}
           <div className="space-y-8">
             <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden sticky top-4">
               <div className="px-8 py-5 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
