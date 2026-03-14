@@ -14,7 +14,7 @@ const RootLayout = () => {
       <main className="h-screen w-full bg-[#F5F9FF]">
         <section className="flex-1 bg-[#F5F5F5] overflow-x-hidden flex flex-col">
           <header
-            className={`w-screen ${hiddenMenu ? 'px-10' : 'pl-85 pr-10'}  h-20 px-5 flex items-center fixed z-10 justify-between border-b border-gray-500/20 bg-white transition-all duration-300`}
+            className={`w-screen ${hiddenMenu ? 'px-10' : 'pl-85 px-10'}  h-20 px-5 flex items-center fixed z-10 justify-between border-b border-gray-500/20 bg-white transition-all duration-300`}
           >
             <button onClick={toggleHiddenMenu} className="cursor-pointer">
               {hiddenMenu ? (

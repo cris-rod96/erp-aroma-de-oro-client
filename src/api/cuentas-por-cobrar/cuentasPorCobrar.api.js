@@ -14,6 +14,22 @@ const cuentasPorCobrarAPI = {
     })
   },
 
+  listarPendientes: (token) => {
+    return instance.get(`/${model}/listar/pendientes`, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
+
+  listarCobradas: (token) => {
+    return instance.get(`/${model}/listar/cobradas`, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
+
   /**
    * Obtiene una cuenta específica por su ID o por VentaId
    */

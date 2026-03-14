@@ -12,6 +12,21 @@ const cuentasPorPagarAPI = {
     })
   },
 
+  listarPendientes: (token) => {
+    return instance.get(`/${model}/listar/pendientes`, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
+  listarPagadas: (token) => {
+    return instance.get(`/${model}/listar/pagadas`, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
+
   // Registrar un abono a una liquidación específica
   registrarAbono: (id, data, token) => {
     return instance.patch(`/${model}/abonar/${id}`, data, {

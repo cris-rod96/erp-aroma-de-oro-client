@@ -10,6 +10,8 @@ import cuentasPorCobrarAPI from './cuentas-por-cobrar/cuentasPorCobrar.api'
 import cuentasPorPagarAPI from './cuentas-por-pagar/cuentas-por-pagar.api'
 import ticketAPI from './ticket/ticket.api'
 import liquidacionAPI from './liquidacion/liquidacion.api'
+import ventaAPI from './venta/venta.api'
+import movimientoAPI from './movimiento/movimiento.api'
 export {
   authAPI,
   usuarioAPI,
@@ -23,4 +25,6 @@ export {
   cuentasPorPagarAPI,
   ticketAPI,
   liquidacionAPI,
+  ventaAPI,
+  movimientoAPI,
 }

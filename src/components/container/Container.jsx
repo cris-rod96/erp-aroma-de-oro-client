@@ -3,26 +3,23 @@ import { useOutletContext } from 'react-router-dom'
 const Container = ({ children, fullWidth = false }) => {
   const { hiddenMenu } = useOutletContext()
 
-  // Clases base para el fondo y layout
+  // 1. Quitamos los paddings redundantes y usamos margen izquierdo exacto
+  // Si el menú NO está oculto, desplazamos 320px (w-80). Si está oculto, dejamos un margen de seguridad.
   const baseStyles = 'flex-1 bg-[#F5F9FF] min-h-screen transition-all duration-300'
-
-  // Padding dinámico basado en si el menú está oculto
-  const paddingStyles = hiddenMenu ? 'pl-10' : 'pl-40'
+  const marginStyles = hiddenMenu ? 'ml-0' : 'ml-80'
 
   return (
-    <section className={`${baseStyles} ${paddingStyles} pr-10 py-28`}>
+    // Agregamos pt-20 para que el contenido no quede debajo del header fixed
+    <section className={`${baseStyles} ${marginStyles} pt-24 pb-10`}>
       {fullWidth ? (
-        // Si es para tablas, usamos un div simple sin Grid rígida
-        <div className={`w-full mx-auto ${!hiddenMenu === true ? 'pl-40' : 'px-10'}`}>
-          {children}
-        </div>
+        // Simplificamos: solo un padding horizontal para que no pegue a los bordes
+        <div className="w-full px-10">{children}</div>
       ) : (
-        // Tu diseño original de Grid para otros componentes
         <div
-          className={`grid gap-10 mx-auto ${
+          className={`grid gap-10 mx-auto transition-all ${
             hiddenMenu
               ? 'w-[95%] lg:grid-cols-4 md:grid-cols-2'
-              : 'w-[80%] lg:grid-cols-3 md:grid-cols-2'
+              : 'w-[90%] lg:grid-cols-3 md:grid-cols-2'
           }`}
         >
           {children}

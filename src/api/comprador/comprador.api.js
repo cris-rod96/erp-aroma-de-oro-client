@@ -4,7 +4,7 @@ const model = 'personas'
 
 const compradorAPI = {
   listarTodos: (token) => {
-    return instance.get(`/${model}/compradores/todos`, {
+    return instance.get(`/${model}/listar/compradores`, {
       headers: {
         'x-token': token,
       },
