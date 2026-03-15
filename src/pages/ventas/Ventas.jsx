@@ -14,10 +14,14 @@ import Swal from 'sweetalert2'
 import { Container } from '../../components/index.components'
 import { compradorAPI, empresaAPI, productoAPI, ventaAPI } from '../../api/index.api'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useCajaStore } from '../../store/useCajaStore'
 
 const Ventas = () => {
   const token = useAuthStore((store) => store.token)
   const usuarioLogueado = useAuthStore((store) => store.user)
+  const caja = useCajaStore((store) => store.caja) // Obtención de la caja desde el store
+
+  console.log(caja)
 
   // --- ESTADOS DE DATOS ---
   const [empresa, setEmpresa] = useState({ nombre: '', ruc: '', direccion: '' })
@@ -45,6 +49,7 @@ const Ventas = () => {
     abonoManual: '',
     esCredito: false,
     ivaPorcentaje: 15,
+    unidadVenta: 'Quintales', // Nueva propiedad para manejar unidades
   })
 
   // --- CARGA INICIAL ---
@@ -80,6 +85,14 @@ const Ventas = () => {
     [formData.ProductoId, productos]
   )
 
+  // Función de conversión para validación visual de stock
+  const convertirAQuintales = (cantidad, unidad) => {
+    const cant = parseFloat(cantidad) || 0
+    if (unidad === 'Kilogramos') return cant / 45.36
+    if (unidad === 'Libras') return cant / 100
+    return cant
+  }
+
   const calculos = useMemo(() => {
     const cant = parseFloat(formData.cantidad) || 0
     const prec = parseFloat(formData.precio) || 0
@@ -89,10 +102,13 @@ const Ventas = () => {
     const abonado = formData.esCredito ? parseFloat(formData.abonoManual) || 0 : totalFactura
     const saldo = Math.max(0, totalFactura - abonado)
 
-    // Validación de stock
-    const stockExcedido = productoActual ? cant > parseFloat(productoActual.stock) : false
+    // Validación de stock normalizada a Quintales
+    const cantidadEnQuintales = convertirAQuintales(cant, formData.unidadVenta)
+    const stockExcedido = productoActual
+      ? cantidadEnQuintales > parseFloat(productoActual.stock)
+      : false
 
-    return { subtotal, iva, totalFactura, abonado, saldo, stockExcedido }
+    return { subtotal, iva, totalFactura, abonado, saldo, stockExcedido, cantidadEnQuintales }
   }, [formData, productoActual])
 
   const ventasFiltradas = useMemo(() => {
@@ -125,6 +141,13 @@ const Ventas = () => {
   }
 
   const handleFinalizarVenta = async () => {
+    if (!caja || caja.estado !== 'Abierta') {
+      return Swal.fire(
+        'Caja Cerrada',
+        'Debe tener una caja abierta para registrar ventas',
+        'warning'
+      )
+    }
     if (!compradorInfo?.id) return Swal.fire('Error', 'Seleccione un comprador', 'error')
     if (calculos.stockExcedido) return Swal.fire('Error', 'No hay stock suficiente', 'error')
     if (calculos.totalFactura <= 0) return Swal.fire('Error', 'Valores inválidos', 'error')
@@ -141,35 +164,48 @@ const Ventas = () => {
     if (isConfirmed) {
       setLoading(true)
       try {
+        // Reestructuración del Payload para el Backend
         const payload = {
-          numeroFactura: `FAC-${Date.now().toString().slice(-6)}`,
-          cantidadQuintales: formData.cantidad,
-          precioUnitario: formData.precio,
-          subtotal: calculos.subtotal,
-          porcentajeIVA: formData.ivaPorcentaje,
-          totalIva: calculos.iva,
-          totalFactura: calculos.totalFactura,
-          estado: calculos.saldo > 0 ? 'Crédito' : 'Cobrado',
-          montoAbonado: calculos.abonado,
-          montoPendiente: calculos.saldo,
-          CompradorId: compradorInfo.id,
-          ProductoId: formData.ProductoId,
-          UsuarioId: usuarioLogueado.id,
+          venta: {
+            numeroFactura: `FAC-${Date.now().toString().slice(-6)}`,
+            cantidadQuintales: formData.cantidad, // Enviamos el valor original, el backend lo convierte si es necesario
+            unidadVenta: formData.unidadVenta,
+            precioUnitario: formData.precio,
+            subtotal: calculos.subtotal,
+            porcentajeIVA: formData.ivaPorcentaje,
+            totalIva: calculos.iva,
+            totalFactura: calculos.totalFactura,
+            estado: calculos.saldo > 0 ? 'Crédito' : 'Cobrado',
+            montoAbonado: calculos.abonado,
+            montoPendiente: calculos.saldo,
+            CompradorId: compradorInfo.id,
+            ProductoId: formData.ProductoId,
+            UsuarioId: usuarioLogueado.id,
+          },
+          CajaId: caja.id, // Inyección del ID de caja
         }
+
         await ventaAPI.crearVenta(payload, token)
-        Swal.fire('Venta Exitosa', 'La factura ha sido registrada', 'success')
+
+        Swal.fire(
+          'Venta Exitosa',
+          'La factura ha sido registrada y el stock actualizado',
+          'success'
+        )
+
         setFormData((prev) => ({
           ...prev,
           cantidad: '',
           precio: '',
           abonoManual: '',
           esCredito: false,
+          unidadVenta: 'Quintales',
         }))
         setCompradorInfo(null)
         setCedulaBusqueda('')
         fetchInicial()
       } catch (error) {
-        Swal.fire('Error', 'No se pudo procesar la venta', 'error')
+        Swal.fire('Error', error.response?.data?.message || 'No se pudo procesar la venta', 'error')
       } finally {
         setLoading(false)
       }
@@ -197,8 +233,8 @@ const Ventas = () => {
               <h2 className="text-lg font-black uppercase border-b-2 border-gray-800 px-2">
                 Factura de Venta
               </h2>
-              <p className="font-mono font-bold text-sm mt-1">
-                {loading ? 'PROCESANDO...' : 'BORRADOR'}
+              <p className="font-mono font-bold text-sm mt-1 text-emerald-600">
+                {loading ? 'PROCESANDO...' : caja?.id ? `CAJA: ${caja.montoApertura}` : 'SIN CAJA'}
               </p>
             </div>
           </div>
@@ -308,7 +344,8 @@ const Ventas = () => {
               <thead className="bg-gray-800 text-white text-[9px] font-black uppercase">
                 <tr>
                   <th className="p-2 border-r border-gray-600 text-left">Producto</th>
-                  <th className="p-2 border-r border-gray-600 text-center w-32">Cant. (QQ)</th>
+                  <th className="p-2 border-r border-gray-600 text-center w-32">Unidad</th>
+                  <th className="p-2 border-r border-gray-600 text-center w-32">Cant.</th>
                   <th className="p-2 border-r border-gray-600 text-center w-32">Precio ($)</th>
                   <th className="p-2 text-right w-40">Total ($)</th>
                 </tr>
@@ -328,6 +365,17 @@ const Ventas = () => {
                           {p.nombre}
                         </option>
                       ))}
+                    </select>
+                  </td>
+                  <td className="p-3 border-r border-gray-800">
+                    <select
+                      value={formData.unidadVenta}
+                      onChange={(e) => setFormData({ ...formData, unidadVenta: e.target.value })}
+                      className="w-full bg-transparent outline-none text-center font-bold text-xs"
+                    >
+                      <option value="Quintales">QQ</option>
+                      <option value="Kilogramos">KG</option>
+                      <option value="Libras">LBS</option>
                     </select>
                   </td>
                   <td className="p-3 border-r border-gray-800">

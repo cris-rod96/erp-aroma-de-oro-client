@@ -559,6 +559,7 @@ import {
 } from 'react-icons/md'
 import { Container } from '../../components/index.components'
 import { useAuthStore } from '../../store/useAuthStore'
+import { useCajaStore } from '../../store/useCajaStore' // Importado
 import Swal from 'sweetalert2'
 import { empresaAPI, liquidacionAPI, productorAPI, productoAPI } from '../../api/index.api'
 
@@ -580,7 +581,7 @@ const Compras = () => {
   // Datos de la Transacción
   const [productoSeleccionado, setProductoSeleccionado] = useState('')
   const [calificacion, setCalificacion] = useState('')
-  const [unidad, setUnidad] = useState('QUINTAL')
+  const [unidad, setUnidad] = useState('Quintales') // Valor inicial normalizado
   const [cantidad, setCantidad] = useState(0)
   const [precio, setPrecio] = useState(0)
   const [prima, setPrima] = useState(0)
@@ -600,7 +601,8 @@ const Compras = () => {
   })
 
   const token = useAuthStore((store) => store.token)
-  const user = useAuthStore((store) => store.adminData)
+  const user = useAuthStore((store) => store.user) // Cambiado a store.user según tu sistema
+  const caja = useCajaStore((store) => store.caja) // Obtener caja activa
 
   const fetchInicial = async () => {
     try {
@@ -661,6 +663,13 @@ const Compras = () => {
   const saldoADeber = totalAPagar - montoAbonado
 
   const handleGuardar = async () => {
+    if (!caja || caja.estado !== 'Abierta') {
+      return Swal.fire(
+        'Caja Cerrada',
+        'Debe tener una caja abierta para registrar compras',
+        'warning'
+      )
+    }
     if (!productorInfo) return Swal.fire('Error', 'Identifique un productor', 'error')
     if (totalAPagar <= 0) return Swal.fire('Error', 'Monto inválido', 'error')
 
@@ -700,18 +709,24 @@ const Compras = () => {
               valorRetenido: valorRetenido,
             }
           : null,
+      CajaId: caja.id, // Inyección de la caja
     }
 
     try {
+      setLoading(true)
       await liquidacionAPI.crearLiquidacion(token, data)
-      Swal.fire('Éxito', 'Compra guardada', 'success')
+      Swal.fire('Éxito', 'Compra guardada y stock actualizado', 'success')
       fetchInicial()
+      // Limpiar formulario
       setProductorInfo(null)
       setCedulaBusqueda('')
       setCantidad(0)
       setPrecio(0)
+      setPagos({ efectivo: 0, cheque: 0, transferencia: 0 })
     } catch (error) {
-      Swal.fire('Error', 'Fallo en guardado', 'error')
+      Swal.fire('Error', error.response?.data?.message || 'Fallo en guardado', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -735,6 +750,9 @@ const Compras = () => {
             <h2 className="text-sm md:text-lg font-black uppercase px-4">
               Liquidación de Compra Directa
             </h2>
+            <p className="text-[10px] font-black text-emerald-600">
+              {caja ? `CAJA ACTIVA: ${caja.id.slice(0, 8)}` : 'SIN CAJA'}
+            </p>
           </div>
         </div>
 
@@ -747,7 +765,7 @@ const Compras = () => {
             <div className="flex border-2 border-gray-800">
               <input
                 type="text"
-                className="w-full p-3 font-bold outline-none"
+                className="w-full p-3 font-bold outline-none uppercase"
                 placeholder="BUSCAR..."
                 value={cedulaBusqueda}
                 onChange={(e) => setCedulaBusqueda(e.target.value)}
@@ -808,13 +826,13 @@ const Compras = () => {
         )}
 
         {/* TABLA DE INGRESO PRODUCTO */}
-        <div className="overflow-x-auto mb-8 border-2 border-gray-800">
-          <table className="w-full border-collapse min-w-[800px]">
+        <div className="overflow-x-auto mb-8 border-2 border-gray-800 shadow-sm">
+          <table className="w-full border-collapse min-w-[900px]">
             <thead className="bg-gray-800 text-white text-[10px] font-black uppercase">
               <tr>
                 <th className="p-2 text-left">Producto</th>
                 <th className="p-2 w-24 text-center">Calif.</th>
-                <th className="p-2 w-32 text-center">Unidad</th>
+                <th className="p-2 w-40 text-center">Unidad de Medida</th> {/* Ancho aumentado */}
                 <th className="p-2 w-28 text-center">Cantidad</th>
                 <th className="p-2 w-28 text-center">Precio U.</th>
                 <th className="p-2 w-24 text-center">Prima</th>
@@ -843,7 +861,7 @@ const Compras = () => {
                     type="text"
                     value={calificacion}
                     onChange={(e) => setCalificacion(e.target.value.toUpperCase())}
-                    className="w-full text-center outline-none bg-gray-50 p-2"
+                    className="w-full text-center outline-none bg-gray-50 p-2 text-xs"
                     placeholder="---"
                   />
                 </td>
@@ -851,11 +869,12 @@ const Compras = () => {
                   <select
                     value={unidad}
                     onChange={(e) => setUnidad(e.target.value)}
-                    className="w-full p-2 text-center outline-none bg-white font-black"
+                    className="w-full p-2 text-center outline-none bg-white font-black text-xs"
                   >
-                    <option value="QUINTAL">QUINTAL</option>
-                    <option value="ARROBA">ARROBA</option>
-                    <option value="KILO">KILO</option>
+                    <option value="Quintales">QUINTALES (QQ)</option>
+                    <option value="Kilogramos">KILOGRAMOS (KG)</option>
+                    <option value="Libras">LIBRAS (LB)</option>
+                    <option value="Unidades">UNIDADES (U)</option>
                   </select>
                 </td>
                 <td className="p-2 border-r border-gray-800">
@@ -898,9 +917,10 @@ const Compras = () => {
           </table>
         </div>
 
+        {/* ... (Resto del código de Retenciones y Pagos se mantiene igual) ... */}
+
         {/* RETENCIONES Y PAGOS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          {/* BLOQUE RETENCIÓN (CORREGIDO) */}
           <div className="border-2 border-gray-800 p-5 space-y-4 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 left-0 w-1.5 h-full bg-red-600"></div>
             <p className="text-[11px] font-black uppercase border-b-2 border-gray-800 pb-2 flex items-center gap-2">
@@ -908,7 +928,6 @@ const Compras = () => {
             </p>
 
             <div className="flex flex-col gap-4">
-              {/* FILA 1: CONCEPTO (ANCHO COMPLETO) */}
               <div className="flex flex-col gap-1">
                 <label className="text-[10px] font-black uppercase text-gray-500">
                   Concepto de Retención
@@ -922,7 +941,6 @@ const Compras = () => {
                 />
               </div>
 
-              {/* FILA 2: PORCENTAJE */}
               <div className="flex items-end justify-between gap-4">
                 <div className="flex flex-col gap-1 w-1/3">
                   <label className="text-[10px] font-black uppercase text-gray-500">
@@ -950,7 +968,6 @@ const Compras = () => {
             </div>
           </div>
 
-          {/* BLOQUE TOTALES Y PAGOS */}
           <div className="border-4 border-gray-800 p-5 bg-gray-50 shadow-md">
             <div className="flex justify-between font-black text-3xl uppercase border-b-4 border-gray-800 mb-6 pb-2 italic">
               <span>Total a Pagar:</span>
@@ -1014,27 +1031,27 @@ const Compras = () => {
             </div>
 
             <button
+              disabled={loading}
               onClick={handleGuardar}
-              className="w-full bg-gray-900 text-white font-black py-5 uppercase text-sm hover:bg-black transition-all flex items-center justify-center gap-2"
+              className={`w-full bg-gray-900 text-white font-black py-5 uppercase text-sm hover:bg-black transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-              <MdPayments size={20} /> Guardar Liquidación de Compra
+              <MdPayments size={20} /> {loading ? 'PROCESANDO...' : 'Guardar Liquidación de Compra'}
             </button>
           </div>
         </div>
+
+        {/* ... (Historial de Liquidaciones se mantiene igual) ... */}
 
         {/* SECCIÓN DE HISTORIAL Y FILTROS */}
         <div className="mt-12 border-t-4 border-gray-800 pt-8">
           <div className="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
             <div>
-              <h3 className="text-xl font-black uppercase italic italic">
-                Historial de Liquidaciones
-              </h3>
+              <h3 className="text-xl font-black uppercase italic">Historial de Liquidaciones</h3>
               <p className="text-[10px] font-bold text-gray-500 uppercase">
                 Consulta y gestión de compras realizadas
               </p>
             </div>
 
-            {/* FILTROS RÁPIDOS */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full md:w-auto">
               <div className="flex flex-col">
                 <label className="text-[9px] font-black uppercase ml-1">Fecha Inicio</label>
@@ -1064,7 +1081,6 @@ const Compras = () => {
             </div>
           </div>
 
-          {/* TABLA DE RESULTADOS */}
           <div className="overflow-x-auto border-2 border-gray-800 shadow-sm">
             <table className="w-full border-collapse min-w-[1000px]">
               <thead className="bg-gray-100 border-b-2 border-gray-800 text-[10px] font-black uppercase">

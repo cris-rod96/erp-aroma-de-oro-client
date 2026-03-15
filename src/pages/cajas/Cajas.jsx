@@ -84,10 +84,7 @@ const Cajas = () => {
 
       setIsModalOpen(false)
       setMontoApertura('')
-      setCaja({
-        caja: resp.data.caja,
-        isCajaAbierta: true,
-      })
+      setCaja(resp.data.caja)
       fetchCajas()
       Swal.fire({
         icon: 'success',
