@@ -8,6 +8,7 @@ import {
   MdClose,
   MdSearch,
   MdErrorOutline,
+  MdLock,
 } from 'react-icons/md'
 import { FaBoxesStacked } from 'react-icons/fa6'
 import Swal from 'sweetalert2'
@@ -15,16 +16,18 @@ import { Container } from '../../components/index.components'
 import { compradorAPI, empresaAPI, productoAPI, ventaAPI } from '../../api/index.api'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useCajaStore } from '../../store/useCajaStore'
+import { useEmpresaStore } from '../../store/useEmpresaStore'
 
 const Ventas = () => {
   const token = useAuthStore((store) => store.token)
   const usuarioLogueado = useAuthStore((store) => store.user)
-  const caja = useCajaStore((store) => store.caja) // Obtención de la caja desde el store
+  const caja = useCajaStore((store) => store.caja)
+  const empresa = useEmpresaStore((store) => store.empresa)
+  const setEmpresa = useEmpresaStore((store) => store.setEmpresa)
 
-  console.log(caja)
+  const isFormDisabled = !empresa?.id || !caja || caja.estado !== 'Abierta'
 
   // --- ESTADOS DE DATOS ---
-  const [empresa, setEmpresa] = useState({ nombre: '', ruc: '', direccion: '' })
   const [compradores, setCompradores] = useState([])
   const [productos, setProductos] = useState([])
   const [ventas, setVentas] = useState([])
@@ -46,10 +49,14 @@ const Ventas = () => {
     ProductoId: '',
     cantidad: '',
     precio: '',
-    abonoManual: '',
+    unidadVenta: 'Quintales',
+    ivaPorcentaje: 0, // MANUAL
+    descuento: 0,
+    conceptoRetencion: '', // MANUAL
+    porcentajeRetencion: 0, // MANUAL
+    prima: 0,
     esCredito: false,
-    ivaPorcentaje: 15,
-    unidadVenta: 'Quintales', // Nueva propiedad para manejar unidades
+    abonoManual: '',
   })
 
   // --- CARGA INICIAL ---
@@ -61,12 +68,10 @@ const Ventas = () => {
         productoAPI.listarProductos(token),
         ventaAPI.listarVentas(token),
       ])
-
-      setEmpresa(respEmp.data.empresa || {})
+      setEmpresa(respEmp.data.empresa || null)
       setCompradores(respComp.data.compradores || [])
       setProductos(respProd.data.productos || [])
       setVentas(respVent.data.ventas || [])
-
       if (respProd.data.productos?.length > 0) {
         setFormData((prev) => ({ ...prev, ProductoId: respProd.data.productos[0].id }))
       }
@@ -77,7 +82,7 @@ const Ventas = () => {
 
   useEffect(() => {
     fetchInicial()
-  }, [])
+  }, [token])
 
   // --- LÓGICA DE NEGOCIO ---
   const productoActual = useMemo(
@@ -85,30 +90,41 @@ const Ventas = () => {
     [formData.ProductoId, productos]
   )
 
-  // Función de conversión para validación visual de stock
-  const convertirAQuintales = (cantidad, unidad) => {
-    const cant = parseFloat(cantidad) || 0
-    if (unidad === 'Kilogramos') return cant / 45.36
-    if (unidad === 'Libras') return cant / 100
-    return cant
-  }
-
   const calculos = useMemo(() => {
     const cant = parseFloat(formData.cantidad) || 0
     const prec = parseFloat(formData.precio) || 0
-    const subtotal = cant * prec
-    const iva = subtotal * (formData.ivaPorcentaje / 100)
-    const totalFactura = subtotal + iva
+    const desc = parseFloat(formData.descuento) || 0
+    const pri = parseFloat(formData.prima) || 0
+    const pRet = parseFloat(formData.porcentajeRetencion) || 0
+    const pIva = parseFloat(formData.ivaPorcentaje) || 0
+
+    const subtotalBruto = cant * prec
+    const baseImponible = subtotalBruto - desc + pri
+    const valorIva = baseImponible * (pIva / 100)
+    const valorRetencion = baseImponible * (pRet / 100)
+    const totalFactura = baseImponible + valorIva - valorRetencion
+
     const abonado = formData.esCredito ? parseFloat(formData.abonoManual) || 0 : totalFactura
     const saldo = Math.max(0, totalFactura - abonado)
 
-    // Validación de stock normalizada a Quintales
-    const cantidadEnQuintales = convertirAQuintales(cant, formData.unidadVenta)
-    const stockExcedido = productoActual
-      ? cantidadEnQuintales > parseFloat(productoActual.stock)
-      : false
+    const cantQQ =
+      formData.unidadVenta === 'Kilogramos'
+        ? cant / 45.36
+        : formData.unidadVenta === 'Libras'
+          ? cant / 100
+          : cant
+    const stockExcedido = productoActual ? cantQQ > parseFloat(productoActual.stock) : false
 
-    return { subtotal, iva, totalFactura, abonado, saldo, stockExcedido, cantidadEnQuintales }
+    return {
+      subtotalBruto,
+      baseImponible,
+      valorIva,
+      valorRetencion,
+      totalFactura,
+      abonado,
+      saldo,
+      stockExcedido,
+    }
   }, [formData, productoActual])
 
   const ventasFiltradas = useMemo(() => {
@@ -121,19 +137,11 @@ const Ventas = () => {
 
   // --- ACCIONES ---
   const handleBuscarComprador = () => {
-    if (!cedulaBusqueda) return
+    if (isFormDisabled || !cedulaBusqueda) return
     const encontrado = compradores.find((c) => c.numeroIdentificacion === cedulaBusqueda)
     if (encontrado) {
       setCompradorInfo(encontrado)
       setMostrarRegistroComprador(false)
-      Swal.fire({
-        icon: 'success',
-        title: 'Cliente identificado',
-        timer: 1500,
-        showConfirmButton: false,
-        toast: true,
-        position: 'top-end',
-      })
     } else {
       setCompradorInfo({ numeroIdentificacion: cedulaBusqueda, nombreCompleto: 'NO REGISTRADO' })
       setMostrarRegistroComprador(true)
@@ -141,20 +149,12 @@ const Ventas = () => {
   }
 
   const handleFinalizarVenta = async () => {
-    if (!caja || caja.estado !== 'Abierta') {
-      return Swal.fire(
-        'Caja Cerrada',
-        'Debe tener una caja abierta para registrar ventas',
-        'warning'
-      )
-    }
+    if (isFormDisabled) return
     if (!compradorInfo?.id) return Swal.fire('Error', 'Seleccione un comprador', 'error')
-    if (calculos.stockExcedido) return Swal.fire('Error', 'No hay stock suficiente', 'error')
-    if (calculos.totalFactura <= 0) return Swal.fire('Error', 'Valores inválidos', 'error')
 
     const { isConfirmed } = await Swal.fire({
-      title: '¿Confirmar Factura?',
-      text: `Total a cobrar: $${calculos.totalFactura.toFixed(2)}`,
+      title: '¿Confirmar Registro?',
+      text: `Total Factura: $${calculos.totalFactura.toFixed(2)}`,
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Confirmar Registro',
@@ -164,48 +164,39 @@ const Ventas = () => {
     if (isConfirmed) {
       setLoading(true)
       try {
-        // Reestructuración del Payload para el Backend
         const payload = {
           venta: {
+            ...formData,
             numeroFactura: `FAC-${Date.now().toString().slice(-6)}`,
-            cantidadQuintales: formData.cantidad, // Enviamos el valor original, el backend lo convierte si es necesario
-            unidadVenta: formData.unidadVenta,
-            precioUnitario: formData.precio,
-            subtotal: calculos.subtotal,
-            porcentajeIVA: formData.ivaPorcentaje,
-            totalIva: calculos.iva,
             totalFactura: calculos.totalFactura,
-            estado: calculos.saldo > 0 ? 'Crédito' : 'Cobrado',
+            valorIva: calculos.valorIva,
+            valorRetencion: calculos.valorRetencion,
             montoAbonado: calculos.abonado,
             montoPendiente: calculos.saldo,
             CompradorId: compradorInfo.id,
-            ProductoId: formData.ProductoId,
             UsuarioId: usuarioLogueado.id,
           },
-          CajaId: caja.id, // Inyección del ID de caja
+          CajaId: caja.id,
         }
-
         await ventaAPI.crearVenta(payload, token)
-
-        Swal.fire(
-          'Venta Exitosa',
-          'La factura ha sido registrada y el stock actualizado',
-          'success'
-        )
-
-        setFormData((prev) => ({
-          ...prev,
+        Swal.fire('Éxito', 'Venta registrada con éxito', 'success')
+        setFormData({
+          ...formData,
           cantidad: '',
           precio: '',
           abonoManual: '',
           esCredito: false,
-          unidadVenta: 'Quintales',
-        }))
+          descuento: 0,
+          prima: 0,
+          ivaPorcentaje: 0,
+          porcentajeRetencion: 0,
+          conceptoRetencion: '',
+        })
         setCompradorInfo(null)
         setCedulaBusqueda('')
         fetchInicial()
       } catch (error) {
-        Swal.fire('Error', error.response?.data?.message || 'No se pudo procesar la venta', 'error')
+        Swal.fire('Error', 'Fallo al procesar', 'error')
       } finally {
         setLoading(false)
       }
@@ -216,16 +207,16 @@ const Ventas = () => {
     <Container fullWidth={true}>
       {productos.length > 0 ? (
         <div className="w-full px-6 py-4 text-gray-800 bg-white font-sans">
-          {/* CABECERA */}
+          {/* CABECERA (DISEÑO ORIGINAL) */}
           <div className="flex justify-between items-start border-b-2 border-gray-800 pb-4 mb-6">
             <div className="flex items-center gap-4">
               <MdBusiness size={45} className="text-gray-800" />
               <div>
                 <h1 className="text-2xl font-black uppercase tracking-tighter leading-none">
-                  {empresa.nombre}
+                  {empresa?.nombre || 'SIN NOMBRE'}
                 </h1>
                 <p className="text-[10px] font-bold text-gray-500 uppercase mt-1">
-                  RUC: {empresa.ruc} | Ventas Aroma de Oro
+                  RUC: {empresa?.ruc || 'SIN RUC'} | Ventas Aroma de Oro
                 </p>
               </div>
             </div>
@@ -233,8 +224,10 @@ const Ventas = () => {
               <h2 className="text-lg font-black uppercase border-b-2 border-gray-800 px-2">
                 Factura de Venta
               </h2>
-              <p className="font-mono font-bold text-sm mt-1 text-emerald-600">
-                {loading ? 'PROCESANDO...' : caja?.id ? `CAJA: ${caja.montoApertura}` : 'SIN CAJA'}
+              <p
+                className={`font-mono font-bold text-sm mt-1 ${isFormDisabled ? 'text-red-600' : 'text-emerald-600'}`}
+              >
+                {isFormDisabled ? 'BLOQUEADO' : `CAJA ACTIVA: ${caja?.id.slice(0, 8)}`}
               </p>
             </div>
           </div>
@@ -247,13 +240,15 @@ const Ventas = () => {
               </label>
               <div className="flex gap-2">
                 <input
+                  disabled={isFormDisabled}
                   type="text"
                   value={cedulaBusqueda}
                   onChange={(e) => setCedulaBusqueda(e.target.value)}
-                  className="flex-1 border border-gray-800 p-2 text-sm font-bold uppercase outline-none focus:bg-gray-50"
+                  className="flex-1 border-2 border-gray-800 p-2 text-sm font-bold uppercase outline-none focus:bg-gray-50"
                   placeholder="Buscar Comprador..."
                 />
                 <button
+                  disabled={isFormDisabled}
                   onClick={handleBuscarComprador}
                   className="bg-gray-800 text-white px-6 flex items-center gap-2 text-[10px] font-black uppercase hover:bg-black transition-colors"
                 >
@@ -266,7 +261,7 @@ const Ventas = () => {
                 Razón Social
               </label>
               <div
-                className={`border border-gray-800 p-2 text-sm font-black uppercase h-[40px] flex items-center justify-between ${mostrarRegistroComprador ? 'bg-red-50 text-red-600 border-red-600' : 'bg-gray-50'}`}
+                className={`border-2 p-2 text-sm font-black uppercase h-[44px] flex items-center justify-between ${mostrarRegistroComprador ? 'bg-red-50 text-red-600 border-red-600' : 'bg-gray-50 border-gray-800'}`}
               >
                 {compradorInfo?.nombreCompleto || '---'}
                 {mostrarRegistroComprador && <MdPersonAdd size={18} className="animate-pulse" />}
@@ -317,17 +312,16 @@ const Ventas = () => {
                   }
                 />
               </div>
-              <button
-                onClick={handleFinalizarVenta}
-                className="mt-3 bg-gray-900 text-white font-black text-[10px] uppercase p-3 px-10 hover:bg-black"
-              >
+              <button className="mt-3 bg-gray-900 text-white font-black text-[10px] uppercase p-3 px-10 hover:bg-black">
                 Registrar e Importar
               </button>
             </div>
           )}
 
-          {/* TABLA DE PRODUCTO */}
-          <div className="mb-8">
+          {/* TABLA DE PRODUCTO (CON IVA MANUAL) */}
+          <div
+            className={`mb-8 ${isFormDisabled ? 'opacity-50 grayscale pointer-events-none' : ''}`}
+          >
             <div className="flex justify-between items-end mb-2">
               <p className="text-[10px] font-black uppercase text-gray-400 italic">
                 {productoActual
@@ -344,17 +338,18 @@ const Ventas = () => {
               <thead className="bg-gray-800 text-white text-[9px] font-black uppercase">
                 <tr>
                   <th className="p-2 border-r border-gray-600 text-left">Producto</th>
-                  <th className="p-2 border-r border-gray-600 text-center w-32">Unidad</th>
-                  <th className="p-2 border-r border-gray-600 text-center w-32">Cant.</th>
-                  <th className="p-2 border-r border-gray-600 text-center w-32">Precio ($)</th>
-                  <th className="p-2 text-right w-40">Total ($)</th>
+                  <th className="p-2 border-r border-gray-600 text-center w-28">Unidad</th>
+                  <th className="p-2 border-r border-gray-600 text-center w-28">Cant.</th>
+                  <th className="p-2 border-r border-gray-600 text-center w-28">Precio ($)</th>
+                  <th className="p-2 border-r border-gray-600 text-center w-20">IVA %</th>
+                  <th className="p-2 text-right w-40">Subtotal ($)</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
-                  className={`border-b border-gray-800 font-bold ${calculos.stockExcedido ? 'bg-red-50' : ''}`}
+                  className={`border-b-2 border-gray-800 font-bold ${calculos.stockExcedido ? 'bg-red-50' : ''}`}
                 >
-                  <td className="p-3 border-r border-gray-800 font-black text-sm uppercase">
+                  <td className="p-3 border-r-2 border-gray-800 font-black text-sm uppercase">
                     <select
                       className="bg-transparent outline-none w-full"
                       value={formData.ProductoId}
@@ -367,7 +362,7 @@ const Ventas = () => {
                       ))}
                     </select>
                   </td>
-                  <td className="p-3 border-r border-gray-800">
+                  <td className="p-3 border-r-2 border-gray-800">
                     <select
                       value={formData.unidadVenta}
                       onChange={(e) => setFormData({ ...formData, unidadVenta: e.target.value })}
@@ -378,16 +373,16 @@ const Ventas = () => {
                       <option value="Libras">LBS</option>
                     </select>
                   </td>
-                  <td className="p-3 border-r border-gray-800">
+                  <td className="p-3 border-r-2 border-gray-800">
                     <input
                       type="number"
                       value={formData.cantidad}
                       onChange={(e) => setFormData({ ...formData, cantidad: e.target.value })}
-                      className={`w-full text-center font-mono text-xl outline-none bg-transparent ${calculos.stockExcedido ? 'text-red-600' : ''}`}
+                      className="w-full text-center font-mono text-xl outline-none bg-transparent"
                       placeholder="0.00"
                     />
                   </td>
-                  <td className="p-3 border-r border-gray-800">
+                  <td className="p-3 border-r-2 border-gray-800">
                     <input
                       type="number"
                       value={formData.precio}
@@ -396,91 +391,156 @@ const Ventas = () => {
                       placeholder="0.00"
                     />
                   </td>
+                  <td className="p-3 border-r-2 border-gray-800">
+                    <input
+                      type="number"
+                      value={formData.ivaPorcentaje}
+                      onChange={(e) => setFormData({ ...formData, ivaPorcentaje: e.target.value })}
+                      className="w-full text-center font-black text-lg outline-none bg-transparent"
+                    />
+                  </td>
                   <td className="p-3 text-right font-mono text-xl bg-gray-50">
-                    ${calculos.subtotal.toFixed(2)}
+                    ${calculos.subtotalBruto.toFixed(2)}
                   </td>
                 </tr>
               </tbody>
             </table>
+
+            {/* RETENCIÓN SEPARADA Y AJUSTES */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-4">
+              <div className="md:col-span-2 border-2 border-gray-800 p-3 bg-gray-50">
+                <label className="text-[9px] font-black text-gray-500 uppercase block mb-1">
+                  Concepto de Retención Aplicado
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={formData.conceptoRetencion}
+                    onChange={(e) =>
+                      setFormData({ ...formData, conceptoRetencion: e.target.value.toUpperCase() })
+                    }
+                    className="flex-1 bg-transparent font-bold text-xs uppercase outline-none border-b border-gray-300"
+                    placeholder="Escriba el concepto..."
+                  />
+                  <div className="w-20 border-l pl-2">
+                    <label className="text-[8px] font-black block">% Ret.</label>
+                    <input
+                      type="number"
+                      value={formData.porcentajeRetencion}
+                      onChange={(e) =>
+                        setFormData({ ...formData, porcentajeRetencion: e.target.value })
+                      }
+                      className="w-full bg-transparent font-mono font-black text-red-600 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="border-2 border-gray-800 p-3">
+                <label className="text-[9px] font-black text-gray-500 uppercase block mb-1">
+                  Descuento (-)
+                </label>
+                <input
+                  type="number"
+                  value={formData.descuento}
+                  onChange={(e) => setFormData({ ...formData, descuento: e.target.value })}
+                  className="w-full bg-transparent font-mono font-black outline-none"
+                />
+              </div>
+              <div className="border-2 border-gray-800 p-3">
+                <label className="text-[9px] font-black text-gray-500 uppercase block mb-1">
+                  Prima / Bonus (+)
+                </label>
+                <input
+                  type="number"
+                  value={formData.prima}
+                  onChange={(e) => setFormData({ ...formData, prima: e.target.value })}
+                  className="w-full bg-transparent font-mono font-black outline-none"
+                />
+              </div>
+            </div>
           </div>
 
-          {/* TOTALES */}
+          {/* TOTALES DESGLOSADOS */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            <div className="border border-gray-800 p-4 space-y-4">
+            <div
+              className={`border-2 p-4 space-y-4 ${isFormDisabled ? 'border-gray-100 opacity-50' : 'border-gray-800'}`}
+            >
               <p className="text-[10px] font-black uppercase border-b border-gray-800 pb-1 text-gray-400">
                 Forma de Cobro
               </p>
               <div className="flex gap-2">
                 <button
+                  disabled={isFormDisabled}
                   onClick={() => setFormData({ ...formData, esCredito: false })}
-                  className={`flex-1 p-3 text-[10px] font-black border border-gray-800 transition-all ${!formData.esCredito ? 'bg-gray-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
+                  className={`flex-1 p-3 text-[10px] font-black border-2 border-gray-800 transition-all ${!formData.esCredito ? 'bg-gray-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
                 >
                   CONTADO
                 </button>
                 <button
+                  disabled={isFormDisabled}
                   onClick={() => setFormData({ ...formData, esCredito: true })}
-                  className={`flex-1 p-3 text-[10px] font-black border border-gray-800 transition-all ${formData.esCredito ? 'bg-gray-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
+                  className={`flex-1 p-3 text-[10px] font-black border-2 border-gray-800 transition-all ${formData.esCredito ? 'bg-gray-800 text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'}`}
                 >
                   CRÉDITO
                 </button>
               </div>
               {formData.esCredito && (
                 <div className="animate-in slide-in-from-top-1">
-                  <label className="text-[9px] font-black uppercase mb-1 block text-gray-500 italic">
-                    Monto de Abono Inicial
+                  <label className="text-[9px] font-black uppercase mb-1 block text-gray-500">
+                    Abono Inicial
                   </label>
                   <input
+                    disabled={isFormDisabled}
                     type="number"
                     value={formData.abonoManual}
                     onChange={(e) => setFormData({ ...formData, abonoManual: e.target.value })}
-                    className="w-full border border-gray-800 p-2 font-mono font-black text-lg outline-none focus:bg-emerald-50"
-                    placeholder="0.00"
+                    className="w-full border-2 border-gray-800 p-2 font-mono font-black text-lg outline-none"
                   />
                 </div>
               )}
             </div>
 
-            <div className="border-2 border-gray-800 p-4 bg-gray-50 shadow-inner">
-              <div className="text-[11px] font-black uppercase space-y-2 mb-4 border-b border-gray-300 pb-2">
+            <div
+              className={`border-4 p-4 bg-gray-50 shadow-inner ${isFormDisabled ? 'border-gray-200' : 'border-gray-800'}`}
+            >
+              <div className="text-[11px] font-black uppercase space-y-2 mb-4 border-b-2 border-gray-300 pb-2">
                 <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>${calculos.subtotal.toFixed(2)}</span>
+                  <span>Base Imponible:</span>
+                  <span>$ {calculos.baseImponible.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-gray-400">
+                <div className="flex justify-between">
                   <span>IVA ({formData.ivaPorcentaje}%):</span>
-                  <span>${calculos.iva.toFixed(2)}</span>
+                  <span>+ $ {calculos.valorIva.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-2xl font-black pt-2 text-gray-900">
-                  <span>TOTAL A COBRAR:</span>
-                  <span>${calculos.totalFactura.toFixed(2)}</span>
+                <div className="flex justify-between text-red-600">
+                  <span>Retención ({formData.porcentajeRetencion}%):</span>
+                  <span>- $ {calculos.valorRetencion.toFixed(2)}</span>
                 </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-center">
-                <div className="bg-white border border-gray-800 p-2">
-                  <p className="text-[9px] font-black text-gray-500 uppercase">Abonado</p>
-                  <p className="text-xl font-mono font-black text-emerald-700">
-                    ${calculos.abonado.toFixed(2)}
-                  </p>
+                <div className="flex justify-between text-2xl font-black pt-2 text-gray-900 border-t border-gray-800">
+                  <span>TOTAL COBRADO:</span>
+                  <span>$ {calculos.totalFactura.toFixed(2)}</span>
                 </div>
-                <div
-                  className={`border p-2 ${calculos.saldo > 0 ? 'bg-gray-800 text-white shadow-lg' : 'bg-white text-gray-300 border-gray-300'}`}
-                >
-                  <p className="text-[9px] font-black uppercase">Saldo Pendiente</p>
-                  <p className="text-xl font-mono font-black">${calculos.saldo.toFixed(2)}</p>
+                <div className="flex justify-between text-xs pt-2 border-t border-dashed border-gray-400 text-emerald-600">
+                  <span>SALDO COBRADO (CAJA):</span>
+                  <span>$ {calculos.abonado.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-xs text-red-500">
+                  <span>SALDO POR COBRAR:</span>
+                  <span>$ {calculos.saldo.toFixed(2)}</span>
                 </div>
               </div>
               <button
-                disabled={loading || calculos.stockExcedido}
+                disabled={loading || isFormDisabled || calculos.stockExcedido}
                 onClick={handleFinalizarVenta}
-                className={`w-full font-black py-4 uppercase text-xs mt-4 transition-all ${loading || calculos.stockExcedido ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-gray-900 text-white hover:bg-black active:scale-[0.98]'}`}
+                className={`w-full font-black py-4 uppercase text-xs mt-4 transition-all ${loading || isFormDisabled ? 'bg-gray-300 text-gray-500' : 'bg-gray-900 text-white hover:bg-black active:scale-[0.98]'}`}
               >
-                {loading ? 'Registrando...' : 'Emitir Factura de Venta'}
+                {loading ? 'REGISTRANDO...' : 'Emitir Factura de Venta'}
               </button>
             </div>
           </div>
 
-          {/* HISTORIAL */}
-          <div className="mt-10">
+          {/* HISTORIAL (DISEÑO ORIGINAL) */}
+          <div className="mt-10 border-t-2 border-gray-800 pt-8">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 border-b border-gray-800 pb-2">
               <div className="flex items-center gap-2">
                 <MdReceipt size={20} />
@@ -492,42 +552,31 @@ const Ventas = () => {
                 <MdSearch className="absolute left-2 top-2.5 text-gray-400" size={16} />
                 <input
                   type="text"
-                  placeholder="BUSCAR FACTURA O CLIENTE..."
+                  placeholder="BUSCAR FACTURA..."
                   value={filtroHistorial}
                   onChange={(e) => setFiltroHistorial(e.target.value)}
-                  className="w-full border border-gray-300 p-2 pl-8 text-[10px] font-bold uppercase outline-none focus:border-gray-800"
+                  className="w-full border-2 border-gray-800 p-2 pl-8 text-[10px] font-bold uppercase outline-none"
                 />
               </div>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse border border-gray-300">
-                <thead className="bg-gray-100 text-[10px] font-black uppercase text-gray-600">
+            <div className="overflow-x-auto border-2 border-gray-800">
+              <table className="w-full border-collapse">
+                <thead className="bg-gray-100 text-[10px] font-black uppercase">
                   <tr>
-                    <th className="p-3 border border-gray-300 text-left">Factura Nº</th>
-                    <th className="p-3 border border-gray-300 text-left">Cliente / Comprador</th>
-                    <th className="p-3 border border-gray-300 text-left">Producto</th>
-                    <th className="p-3 border border-gray-300 text-right">Total</th>
-                    <th className="p-3 border border-gray-300 text-right">Saldo</th>
-                    <th className="p-3 border border-gray-300 text-center">Acciones</th>
+                    <th className="p-3 border-b-2 border-gray-800 text-left">Factura Nº</th>
+                    <th className="p-3 border-b-2 border-gray-800 text-left">Cliente</th>
+                    <th className="p-3 border-b-2 border-gray-800 text-right">Total</th>
+                    <th className="p-3 border-b-2 border-gray-800 text-center">Acciones</th>
                   </tr>
                 </thead>
                 <tbody className="text-[11px] font-bold uppercase">
                   {ventasFiltradas.length > 0 ? (
                     ventasFiltradas.map((v) => (
-                      <tr
-                        key={v.id}
-                        className="hover:bg-gray-50 transition-colors border-b border-gray-200"
-                      >
-                        <td className="p-3 font-black text-gray-900">{v.numeroFactura}</td>
+                      <tr key={v.id} className="hover:bg-gray-50 border-b border-gray-200">
+                        <td className="p-3 font-black">{v.numeroFactura}</td>
                         <td className="p-3">{v.Persona?.nombreCompleto}</td>
-                        <td className="p-3 text-gray-500">{v.Producto?.nombre}</td>
                         <td className="p-3 text-right font-mono">
                           ${parseFloat(v.totalFactura).toFixed(2)}
-                        </td>
-                        <td
-                          className={`p-3 text-right font-mono ${v.montoPendiente > 0 ? 'text-red-600' : 'text-emerald-600'}`}
-                        >
-                          ${parseFloat(v.montoPendiente).toFixed(2)}
                         </td>
                         <td className="p-3 text-center flex justify-center gap-5 text-gray-400">
                           <MdPrint
@@ -543,8 +592,11 @@ const Ventas = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="p-10 text-center text-gray-400 italic">
-                        No se encontraron registros de ventas
+                      <td
+                        colSpan="4"
+                        className="p-10 text-center text-gray-400 italic font-medium uppercase"
+                      >
+                        No se encontraron registros
                       </td>
                     </tr>
                   )}
@@ -554,17 +606,9 @@ const Ventas = () => {
           </div>
         </div>
       ) : (
-        <div className="w-full px-6 py-4 bg-white font-sans flex flex-col gap-5 justify-center items-center h-[500px] border-2 border-dashed border-gray-200">
-          <div className="bg-gray-50 p-8 rounded-full shadow-inner">
-            <FaBoxesStacked size={60} className="text-gray-300" />
-          </div>
-          <div className="text-center">
-            <h3 className="text-xl font-black uppercase text-gray-800">Bodega Vacía</h3>
-            <p className="text-sm text-gray-400 max-w-xs mx-auto">
-              No hay productos registrados o con stock disponible para realizar ventas en este
-              momento.
-            </p>
-          </div>
+        <div className="w-full h-[500px] flex flex-col items-center justify-center border-4 border-dashed border-gray-200">
+          <FaBoxesStacked size={60} className="text-gray-200 mb-4 animate-pulse" />
+          <h3 className="text-xl font-black uppercase text-gray-400">Cargando Sistema...</h3>
         </div>
       )}
     </Container>

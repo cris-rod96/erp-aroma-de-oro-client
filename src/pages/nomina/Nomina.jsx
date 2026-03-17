@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaUserEdit, FaPlus, FaIdCard, FaUserTie, FaPassport, FaHistory } from 'react-icons/fa'
+import { FaUserEdit, FaPlus, FaIdCard, FaUserTie, FaHistory, FaUsers } from 'react-icons/fa'
 import { Container, Modal } from '../../components/index.components'
 import {
   MdDelete,
@@ -8,37 +8,72 @@ import {
   MdInbox,
   MdListAlt,
   MdPayments,
-  MdBadge,
+  MdAttachMoney,
+  MdEventNote,
+  MdReceiptLong,
+  MdPerson,
 } from 'react-icons/md'
 import { useAuthStore } from '../../store/useAuthStore'
-import { trabajadorAPI } from '../../api/index.api'
+import { useCajaStore } from '../../store/useCajaStore'
+import { trabajadorAPI, nominaAPI } from '../../api/index.api'
 import Swal from 'sweetalert2'
 
 const Nomina = () => {
+  // Tabs: 'empleados' | 'historial'
+  const [activeTab, setActiveTab] = useState('empleados')
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPagoModalOpen, setIsPagoModalOpen] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
+  const [selectedTrabajador, setSelectedTrabajador] = useState(null)
   const [trabajadores, setTrabajadores] = useState([])
+  const [pagos, setPagos] = useState([])
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
 
-  const [formData, setFormData] = useState({
+  // ESTADOS INICIALES
+  const initialFormState = {
     nombreCompleto: '',
     tipoIdentificacion: 'Cédula',
     numeroIdentificacion: '',
     telefono: '',
     direccion: '',
-    tipo: 'Trabajador', // Diferenciador clave
+    tipo: 'Trabajador',
     estaActivo: true,
-  })
+  }
+
+  const initialPagoState = {
+    dias: 1,
+    valorJornal: 15,
+    bono: 0,
+    descuento: 0,
+  }
+
+  const [formData, setFormData] = useState(initialFormState)
+  const [pagoData, setPagoData] = useState(initialPagoState)
 
   const token = useAuthStore((state) => state.token)
+  const user = useAuthStore((state) => state.adminData)
+  const caja = useCajaStore((state) => state.caja)
+  const setCaja = useCajaStore((state) => state.setCaja)
+
+  const totalPagar =
+    pagoData.dias * pagoData.valorJornal +
+    parseFloat(pagoData.bono || 0) -
+    parseFloat(pagoData.descuento || 0)
+
+  const resetFormularios = () => {
+    setFormData(initialFormState)
+    setPagoData(initialPagoState)
+    setSelectedTrabajador(null)
+    setSelectedId(null)
+    setIsEdit(false)
+  }
 
   const fetchTrabajadores = async () => {
     setFetching(true)
     try {
       const resp = await trabajadorAPI.listarTodos(token)
-      // Filtramos para asegurar que solo vemos trabajadores en este módulo
       const data = resp.data.trabajadores || resp.data || []
       setTrabajadores(data.filter((t) => t.tipo === 'Trabajador'))
     } catch (error) {
@@ -48,13 +83,27 @@ const Nomina = () => {
     }
   }
 
-  useEffect(() => {
-    fetchTrabajadores()
-  }, [])
+  const fetchPagos = async () => {
+    setFetching(true)
+    try {
+      const resp = await nominaAPI.listarPagos(token)
+      setPagos(resp.data.pagos || [])
+    } catch (error) {
+      console.log('Error al listar historial', error)
+    } finally {
+      setFetching(false)
+    }
+  }
 
+  useEffect(() => {
+    if (activeTab === 'empleados') fetchTrabajadores()
+    if (activeTab === 'historial') fetchPagos()
+  }, [activeTab])
+
+  // Lógica CRUD Empleados
   const handleOpenModal = (edit = false, trabajador = null) => {
-    setIsEdit(edit)
     if (edit && trabajador) {
+      setIsEdit(true)
       setSelectedId(trabajador.id)
       setFormData({
         nombreCompleto: trabajador.nombreCompleto || '',
@@ -66,47 +115,29 @@ const Nomina = () => {
         estaActivo: trabajador.estaActivo ?? true,
       })
     } else {
-      setSelectedId(null)
-      setFormData({
-        nombreCompleto: '',
-        tipoIdentificacion: 'Cédula',
-        numeroIdentificacion: '',
-        telefono: '',
-        direccion: '',
-        tipo: 'Trabajador',
-        estaActivo: true,
-      })
+      resetFormularios()
     }
     setIsModalOpen(true)
   }
 
-  const validateForm = () => {
-    const { tipoIdentificacion, numeroIdentificacion } = formData
-    if (tipoIdentificacion === 'Cédula' && numeroIdentificacion.length !== 10) {
-      Swal.fire('Atención', 'La cédula debe tener 10 dígitos', 'warning')
-      return false
-    }
-    return true
-  }
-
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!validateForm()) return
     setLoading(true)
     try {
       if (isEdit) {
         await trabajadorAPI.actualizarTrabajador(selectedId, formData, token)
-        Swal.fire('Éxito', 'Datos del empleado actualizados', 'success')
+        Swal.fire('Éxito', 'Datos actualizados', 'success')
       } else {
         await trabajadorAPI.agregarTrabajador(formData, token)
-        Swal.fire('Éxito', 'Empleado registrado en nómina', 'success')
+        Swal.fire('Éxito', 'Empleado registrado', 'success')
       }
       setIsModalOpen(false)
+      resetFormularios()
       fetchTrabajadores()
     } catch (error) {
-      Swal.fire('Error', error.response?.data?.message || 'Error en la operación', 'error')
-    } finally {
       setIsModalOpen(false)
+      Swal.fire('Error', error.response?.data?.message || 'Error', 'error')
+    } finally {
       setLoading(false)
     }
   }
@@ -114,12 +145,10 @@ const Nomina = () => {
   const handleDelete = async (id) => {
     const confirm = await Swal.fire({
       title: '¿Eliminar empleado?',
-      text: 'Esta acción desactivará al trabajador del sistema',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#111827',
       confirmButtonText: 'Sí, eliminar',
-      cancelButtonText: 'No',
     })
     if (confirm.isConfirmed) {
       try {
@@ -129,6 +158,46 @@ const Nomina = () => {
       } catch (error) {
         Swal.fire('Error', 'No se pudo eliminar', 'error')
       }
+    }
+  }
+
+  // Lógica de Pagos
+  const handleOpenPago = (trabajador) => {
+    if (!caja || caja.estado !== 'Abierta') {
+      return Swal.fire('Caja Cerrada', 'Debe abrir caja para realizar pagos', 'warning')
+    }
+    resetFormularios()
+    setSelectedTrabajador(trabajador)
+    setIsPagoModalOpen(true)
+  }
+
+  const handleConfirmarPago = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+    try {
+      const payload = {
+        PersonaId: selectedTrabajador.id,
+        diasTrabajados: pagoData.dias,
+        valorJornal: pagoData.valorJornal,
+        bono: pagoData.bono,
+        descuento: pagoData.descuento,
+        CajaId: caja.id,
+        UsuarioId: user.id,
+      }
+
+      const resp = await nominaAPI.pagarJornal(payload, token)
+      if (resp.status === 200) {
+        setCaja(resp.data.caja)
+        setIsPagoModalOpen(false)
+        Swal.fire('¡Pago Exitoso!', resp.data.message, 'success')
+        resetFormularios()
+        fetchTrabajadores()
+      }
+    } catch (error) {
+      setIsPagoModalOpen(false)
+      Swal.fire('Error', error.response?.data?.message || 'Error', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -145,28 +214,40 @@ const Nomina = () => {
               Registro de Personal Aroma de Oro
             </p>
           </div>
+          {activeTab === 'empleados' && (
+            <button
+              onClick={() => handleOpenModal(false)}
+              className="bg-gray-900 hover:bg-gray-800 text-amber-400 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center gap-2 justify-center"
+            >
+              <FaPlus size={14} /> Nuevo Empleado
+            </button>
+          )}
+        </div>
+
+        {/* TABS */}
+        <div className="flex gap-8 mb-8 border-b border-gray-100">
           <button
-            onClick={() => handleOpenModal(false)}
-            className="bg-gray-900 hover:bg-gray-800 text-amber-400 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center gap-2 justify-center"
+            onClick={() => setActiveTab('empleados')}
+            className={`pb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'empleados' ? 'border-b-2 border-amber-500 text-gray-900' : 'text-gray-400'}`}
           >
-            <FaPlus size={14} /> Nuevo Empleado
+            <FaUsers size={16} /> Lista de Personal
+          </button>
+          <button
+            onClick={() => setActiveTab('historial')}
+            className={`pb-4 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'historial' ? 'border-b-2 border-amber-500 text-gray-900' : 'text-gray-400'}`}
+          >
+            <FaHistory size={14} /> Historial de Pagos
           </button>
         </div>
 
-        {/* TABLA PRINCIPAL */}
+        {/* TABLA CONTENEDOR */}
         <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
           {fetching ? (
             <div className="px-6 py-20 text-center animate-pulse text-gray-300 font-black uppercase text-xs tracking-widest">
-              Sincronizando nómina...
+              Sincronizando información...
             </div>
-          ) : trabajadores.length === 0 ? (
-            <div className="px-6 py-20 text-center">
-              <MdInbox size={60} className="mx-auto text-gray-100 mb-4" />
-              <p className="text-gray-400 font-black uppercase text-xs tracking-widest">
-                No hay empleados registrados
-              </p>
-            </div>
-          ) : (
+          ) : activeTab === 'empleados' ? (
+            /* TABLA EMPLEADOS */
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-100">
                 <thead className="bg-gray-50/50">
@@ -186,64 +267,166 @@ const Nomina = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50 bg-white">
-                  {trabajadores.map((t) => (
-                    <tr key={t.id} className="hover:bg-amber-50/20 transition-colors group">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-11 w-11 rounded-2xl bg-gray-900 text-amber-400 flex items-center justify-center font-black text-sm">
-                            {t.nombreCompleto.charAt(0)}
-                          </div>
-                          <div className="ml-4">
-                            <div className="text-sm font-black text-gray-800 uppercase tracking-tighter leading-none">
-                              {t.nombreCompleto}
-                            </div>
-                            <span
-                              className={`text-[9px] font-black uppercase tracking-widest flex items-center mt-1 ${t.estaActivo ? 'text-emerald-600' : 'text-red-400'}`}
-                            >
-                              <span
-                                className={`h-1.5 w-1.5 rounded-full mr-1.5 ${t.estaActivo ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'}`}
-                              ></span>
-                              {t.estaActivo ? 'Activo' : 'Inactivo'}
-                            </span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">
-                          {t.tipoIdentificacion}
-                        </div>
-                        <div className="text-sm text-gray-700 font-mono font-bold">
-                          {t.numeroIdentificacion}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex justify-center gap-2">
-                          <button className="flex items-center gap-2 bg-amber-400/10 text-amber-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-400 hover:text-amber-950 transition-all border border-amber-200/50">
-                            <MdPayments size={16} /> Pagar Jornal
-                          </button>
-                          <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
-                            <FaHistory size={14} />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleOpenModal(true, t)}
-                            className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
-                          >
-                            <FaUserEdit size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(t.id)}
-                            className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                          >
-                            <MdDelete size={20} />
-                          </button>
-                        </div>
+                  {trabajadores.length === 0 ? (
+                    <tr>
+                      <td colSpan="4" className="py-20 text-center">
+                        <MdInbox size={60} className="mx-auto text-gray-100 mb-4" />
+                        <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest">
+                          No hay empleados registrados
+                        </p>
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    trabajadores.map((t) => (
+                      <tr key={t.id} className="hover:bg-amber-50/20 transition-colors group">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div
+                              className={`h-11 w-11 rounded-2xl flex items-center justify-center font-black text-sm ${t.estaActivo ? 'bg-gray-900 text-amber-400' : 'bg-gray-200 text-gray-400'}`}
+                            >
+                              {t.nombreCompleto.charAt(0)}
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-black text-gray-800 uppercase tracking-tighter leading-none">
+                                {t.nombreCompleto}
+                              </div>
+                              <span
+                                className={`text-[9px] font-black uppercase tracking-widest flex items-center mt-1 ${t.estaActivo ? 'text-emerald-600' : 'text-red-400'}`}
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full mr-1.5 ${t.estaActivo ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'}`}
+                                ></span>
+                                {t.estaActivo ? 'Activo' : 'Inactivo'}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-[10px] text-amber-600 font-black uppercase tracking-tighter">
+                            {t.tipoIdentificacion}
+                          </div>
+                          <div className="text-sm text-gray-700 font-mono font-bold">
+                            {t.numeroIdentificacion}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <button
+                            onClick={() => handleOpenPago(t)}
+                            disabled={!t.estaActivo}
+                            className="flex items-center mx-auto gap-2 bg-amber-400/10 text-amber-700 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-amber-400 hover:text-amber-950 transition-all border border-amber-200/50 disabled:opacity-30"
+                          >
+                            <MdPayments size={16} /> Pagar Jornal
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <div className="flex justify-end gap-2 text-gray-400">
+                            <button
+                              onClick={() => handleOpenModal(true, t)}
+                              className="p-2.5 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+                            >
+                              <FaUserEdit size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(t.id)}
+                              className="p-2.5 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
+                            >
+                              <MdDelete size={20} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            /* TABLA HISTORIAL PAGOS (CORREGIDA) */
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-100">
+                <thead className="bg-gray-50/50">
+                  <tr>
+                    <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Fecha
+                    </th>
+                    <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Beneficiario
+                    </th>
+                    <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Cajero
+                    </th>
+                    <th className="px-6 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Días
+                    </th>
+                    <th className="px-6 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Jornal
+                    </th>
+                    <th className="px-6 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Bono
+                    </th>
+                    <th className="px-6 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Desc.
+                    </th>
+                    <th className="px-6 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Total
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 bg-white">
+                  {pagos.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="py-20 text-center">
+                        <MdReceiptLong size={60} className="mx-auto text-gray-100 mb-4" />
+                        <p className="text-gray-400 font-black uppercase text-[10px] tracking-widest">
+                          No se han registrado pagos todavía
+                        </p>
+                      </td>
+                    </tr>
+                  ) : (
+                    pagos.map((p) => (
+                      <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-[11px] text-gray-500 font-bold uppercase italic">
+                          {new Date(p.fechaPago || p.createdAt).toLocaleDateString('es-EC', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-black text-gray-800 uppercase tracking-tighter leading-none">
+                            {p.Persona?.nombreCompleto || 'S/N'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <MdPerson className="text-amber-500" size={14} />
+                            <div className="text-[11px] text-gray-600 uppercase font-bold leading-none">
+                              {p.Usuario?.nombresCompletos || 'S/N'}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          <div className="text-[13px] text-gray-800 font-black">
+                            {p.diasTrabajados || 0}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-[13px] text-gray-800 font-bold">
+                          ${parseFloat(p.valorJornal).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-[13px] text-emerald-600 font-bold">
+                          ${parseFloat(p.bono || 0).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center text-[13px] text-red-500 font-bold">
+                          ${parseFloat(p.descuento || 0).toFixed(2)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <span className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-xl font-mono font-black text-sm border border-emerald-100/50">
+                            ${parseFloat(p.totalPago || p.total).toFixed(2)}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
@@ -251,38 +434,107 @@ const Nomina = () => {
         </div>
       </div>
 
-      {/* MODAL DE EMPLEADO */}
+      {/* MODAL PAGO JORNAL */}
       <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title={isEdit ? 'Actualizar Empleado' : 'Nuevo Registro de Personal'}
+        isOpen={isPagoModalOpen}
+        onClose={() => {
+          setIsPagoModalOpen(false)
+          resetFormularios()
+        }}
+        title={`Jornal: ${selectedTrabajador?.nombreCompleto || '...'}`}
       >
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border border-gray-100">
+        <form onSubmit={handleConfirmarPago} className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+                Días Trabajados
+              </label>
+              <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4 focus-within:border-amber-400 transition-all">
+                <MdEventNote className="text-amber-500 mr-2" size={18} />
+                <input
+                  type="number"
+                  min="1"
+                  className="bg-transparent w-full outline-none font-black text-sm text-gray-700"
+                  value={pagoData.dias}
+                  onChange={(e) => setPagoData({ ...pagoData, dias: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+                Valor Jornal ($)
+              </label>
+              <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4 focus-within:border-amber-400 transition-all">
+                <MdAttachMoney className="text-emerald-500 mr-2" size={20} />
+                <input
+                  type="number"
+                  step="0.01"
+                  className="bg-transparent w-full outline-none font-black text-sm text-gray-700"
+                  value={pagoData.valorJornal}
+                  onChange={(e) => setPagoData({ ...pagoData, valorJornal: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Extras</label>
+              <input
+                type="number"
+                step="0.01"
+                className="h-14 bg-emerald-50/30 rounded-2xl border border-emerald-100 px-4 outline-none font-bold text-sm text-emerald-600"
+                value={pagoData.bono}
+                onChange={(e) => setPagoData({ ...pagoData, bono: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                Descuentos
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                className="h-14 bg-red-50/30 rounded-2xl border border-red-100 px-4 outline-none font-bold text-sm text-red-600"
+                value={pagoData.descuento}
+                onChange={(e) => setPagoData({ ...pagoData, descuento: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="bg-gray-900 rounded-[2rem] p-8 flex justify-between items-center shadow-2xl relative overflow-hidden mt-4">
             <div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                Estatus Laboral
+              <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-[0.2em] mb-1">
+                Total Neto
               </p>
-              <p className="text-xs font-bold text-gray-600 uppercase">
-                ¿El empleado está en funciones?
+              <p className="text-4xl font-black text-white font-mono italic">
+                ${totalPagar.toFixed(2)}
               </p>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={formData.estaActivo}
-                onChange={(e) => setFormData({ ...formData, estaActivo: e.target.checked })}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
-            </label>
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-amber-400 hover:bg-amber-500 text-amber-950 px-8 py-4 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg active:scale-95 transition-all z-10 italic"
+            >
+              {loading ? 'Procesando...' : 'Confirmar Pago'}
+            </button>
           </div>
+        </form>
+      </Modal>
 
+      {/* MODAL EMPLEADO */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          resetFormularios()
+        }}
+        title={isEdit ? 'Actualizar Empleado' : 'Nuevo Registro'}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
               Nombre Completo
             </label>
-            <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 focus-within:border-amber-400 px-4 transition-all">
+            <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4">
               <FaUserTie className="text-amber-500 mr-3" size={18} />
               <input
                 type="text"
@@ -292,109 +544,82 @@ const Nomina = () => {
                   setFormData({ ...formData, nombreCompleto: e.target.value.toUpperCase() })
                 }
                 className="bg-transparent w-full outline-none text-sm font-bold text-gray-700 uppercase"
-                placeholder="EJ. CARLOS ARMANDO MENDOZA"
+                placeholder="NOMBRE DEL TRABAJADOR"
               />
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-5">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
-                Tipo de Doc.
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                Tipo Doc.
               </label>
-              <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4 transition-all">
-                <MdListAlt className="text-amber-500 mr-3" size={20} />
-                <select
-                  value={formData.tipoIdentificacion}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      tipoIdentificacion: e.target.value,
-                      numeroIdentificacion: '',
-                    })
-                  }
-                  className="bg-transparent w-full outline-none text-sm font-bold text-gray-700 cursor-pointer"
-                >
-                  <option value="Cédula">Cédula</option>
-                  <option value="RUC">RUC</option>
-                  <option value="Pasaporte">Pasaporte</option>
-                </select>
-              </div>
+              <select
+                value={formData.tipoIdentificacion}
+                onChange={(e) => setFormData({ ...formData, tipoIdentificacion: e.target.value })}
+                className="h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4 w-full text-sm font-bold text-gray-700 outline-none"
+              >
+                <option value="Cédula">Cédula</option>
+                <option value="RUC">RUC</option>
+              </select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
-                Número de Doc.
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                Número Doc.
               </label>
-              <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4 transition-all">
-                {formData.tipoIdentificacion === 'Pasaporte' ? (
-                  <FaPassport className="text-amber-500 mr-3" />
-                ) : (
-                  <FaIdCard className="text-amber-500 mr-3" />
-                )}
-                <input
-                  type="text"
-                  required
-                  maxLength={formData.tipoIdentificacion === 'RUC' ? 13 : 10}
-                  value={formData.numeroIdentificacion}
-                  onChange={(e) =>
-                    setFormData({ ...formData, numeroIdentificacion: e.target.value })
-                  }
-                  className="bg-transparent w-full outline-none text-sm font-bold text-gray-700 font-mono"
-                  placeholder="10 DÍGITOS"
-                />
-              </div>
+              <input
+                type="text"
+                required
+                value={formData.numeroIdentificacion}
+                onChange={(e) => setFormData({ ...formData, numeroIdentificacion: e.target.value })}
+                className="h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4 w-full text-sm font-bold text-gray-700 font-mono outline-none"
+                placeholder="DIGITOS"
+              />
             </div>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div className="grid grid-cols-2 gap-5">
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
                 Teléfono
               </label>
-              <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4">
-                <MdPhone className="text-amber-500 mr-3" />
-                <input
-                  type="text"
-                  required
-                  maxLength={10}
-                  value={formData.telefono}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  className="bg-transparent w-full outline-none text-sm font-bold text-gray-700"
-                  placeholder="09XXXXXXXX"
-                />
-              </div>
+              <input
+                type="text"
+                required
+                value={formData.telefono}
+                onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                className="h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4 w-full text-sm font-bold text-gray-700 outline-none"
+                placeholder="09XXXXXXXX"
+              />
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
-                Dirección / Sector
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                Dirección
               </label>
-              <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4">
-                <MdLocationOn className="text-amber-500 mr-3" />
-                <input
-                  type="text"
-                  value={formData.direccion}
-                  onChange={(e) =>
-                    setFormData({ ...formData, direccion: e.target.value.toUpperCase() })
-                  }
-                  className="bg-transparent w-full outline-none text-sm font-bold text-gray-700 uppercase"
-                  placeholder="LOCALIDAD"
-                />
-              </div>
+              <input
+                type="text"
+                value={formData.direccion}
+                onChange={(e) =>
+                  setFormData({ ...formData, direccion: e.target.value.toUpperCase() })
+                }
+                className="h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4 w-full text-sm font-bold text-gray-700 uppercase outline-none"
+                placeholder="CIUDAD/SECTOR"
+              />
             </div>
           </div>
-
           <div className="flex gap-3 pt-4">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black uppercase text-[10px] tracking-widest"
+              onClick={() => {
+                setIsModalOpen(false)
+                resetFormularios()
+              }}
+              className="flex-1 py-4 bg-gray-100 text-gray-500 rounded-2xl font-black uppercase text-[10px]"
             >
               Cerrar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 py-4 bg-gray-900 text-amber-400 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-gray-800 shadow-xl transition-all italic"
+              className="flex-1 py-4 bg-gray-900 text-amber-400 rounded-2xl font-black uppercase text-[10px] italic"
             >
               {loading ? 'Procesando...' : isEdit ? 'Actualizar' : 'Guardar'}
             </button>

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react' // Añadimos useState
+import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { MENU_DATA } from '../../data'
-import { MdLogout, MdChevronRight, MdLock, MdRefresh } from 'react-icons/md' // Añadimos MdRefresh para el loader
+import { MdLogout, MdChevronRight, MdRefresh, MdLock } from 'react-icons/md'
 import { cajaAPI, empresaAPI } from '../../api/index.api'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useCajaStore } from '../../store/useCajaStore'
@@ -14,6 +14,7 @@ const Aside = ({ hiddenMenu }) => {
 
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.adminData)
+  const isAdmin = useAuthStore((state) => state.isAdmin)
   const logout = useAuthStore((state) => state.logout)
   const clearCaja = useCajaStore((state) => state.clearCaja)
   const clearEmpresa = useEmpresaStore((state) => state.clearEmpresa)
@@ -21,13 +22,9 @@ const Aside = ({ hiddenMenu }) => {
   const navigate = useNavigate()
 
   const setCaja = useCajaStore((state) => state.setCaja)
-  const cerrarCajaStore = useCajaStore((state) => state.cerrarCaja)
-  const isCajaAbierta = useCajaStore((state) => state.isCajaAbierta)
-
-  const empresa = useEmpresaStore((state) => state.empresa)
   const setEmpresa = useEmpresaStore((state) => state.setEmpresa)
 
-  // Efecto para la validación inicial
+  // Validación inicial de requisitos
   useEffect(() => {
     let isMounted = true
     const verificarRequisitos = async () => {
@@ -38,7 +35,6 @@ const Aside = ({ hiddenMenu }) => {
         ])
         if (!isMounted) return
         if (respCaja.data?.caja) setCaja(respCaja.data.caja)
-        else cerrarCajaStore()
         if (respEmp.data?.empresa) setEmpresa(respEmp.data.empresa)
       } catch (error) {
         console.error('Error en validación de requisitos:', error)
@@ -48,9 +44,9 @@ const Aside = ({ hiddenMenu }) => {
     return () => {
       isMounted = false
     }
-  }, [token, user?.id, setCaja, setEmpresa, cerrarCajaStore])
+  }, [token, user?.id, setCaja, setEmpresa])
 
-  // --- LÓGICA DE LA CUENTA REGRESIVA ---
+  // Lógica de cuenta regresiva para Logout
   useEffect(() => {
     let timer
     if (isLoggingOut && countdown > 0) {
@@ -58,7 +54,6 @@ const Aside = ({ hiddenMenu }) => {
         setCountdown((prev) => prev - 1)
       }, 1000)
     } else if (countdown === 0) {
-      // Cuando llega a cero, ejecutamos el logout real
       logout()
       clearCaja()
       clearEmpresa()
@@ -67,25 +62,15 @@ const Aside = ({ hiddenMenu }) => {
     return () => clearInterval(timer)
   }, [isLoggingOut, countdown, logout, clearCaja, clearEmpresa, navigate])
 
-  const isItemDisabled = (label) => {
-    const ruta = label.toLowerCase()
-    const modulosCriticos = ['compras', 'ventas', 'caja', 'arqueos', 'egresos', 'gastos']
-    if (modulosCriticos.includes(ruta)) {
-      if (!empresa) return true
-      if (ruta !== 'caja' && !isCajaAbierta) return true
-    }
-    return false
-  }
-
   const handleLogoutClick = () => {
     setIsLoggingOut(true)
   }
 
   return (
     <>
-      {/* LOADER DE CIERRE DE SESIÓN (OVERLAY) */}
+      {/* LOADER DE CIERRE DE SESIÓN */}
       {isLoggingOut && (
-        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center animate-in fade-in duration-500">
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center">
           <div className="relative flex items-center justify-center">
             <MdRefresh className="text-amber-500 animate-spin" size={80} />
             <span className="absolute text-2xl font-black text-white">{countdown}</span>
@@ -93,21 +78,11 @@ const Aside = ({ hiddenMenu }) => {
           <h2 className="mt-6 text-white font-black uppercase tracking-[0.3em] text-sm italic">
             Cerrando Sesión Segura
           </h2>
-          <p className="text-gray-500 text-[10px] font-bold uppercase mt-2 tracking-widest">
-            Limpiando datos de acceso en {countdown}s...
-          </p>
-
-          <button
-            onClick={() => setIsLoggingOut(false)}
-            className="mt-10 text-gray-500 hover:text-white text-[9px] font-black uppercase tracking-widest border border-white/10 px-4 py-2 rounded-full transition-all"
-          >
-            Cancelar
-          </button>
         </div>
       )}
 
       <aside
-        className={`fixed h-screen w-80 flex flex-col z-50 transition-all duration-500 ease-in-out shadow-2xl overflow-hidden ${
+        className={`fixed h-screen w-80 flex flex-col z-50 transition-all duration-500 shadow-2xl overflow-hidden ${
           !hiddenMenu ? 'left-0' : '-left-full'
         }`}
       >
@@ -119,68 +94,88 @@ const Aside = ({ hiddenMenu }) => {
         {/* PERFIL */}
         <section className="p-8 flex flex-col gap-4 items-center border-b border-white/10 backdrop-blur-md">
           <div className="relative">
-            <div className="w-24 h-24 rounded-full border-4 border-amber-500/50 p-1">
+            <div
+              className={`w-24 h-24 rounded-full border-4 ${isAdmin ? 'border-amber-500/50' : 'border-emerald-500/50'} p-1`}
+            >
               <img
-                src={`https://ui-avatars.com/api/?name=${user?.nombresCompletos || 'Admin'}&background=fbbf24&color=000&bold=true`}
+                src={`https://ui-avatars.com/api/?name=${user?.nombresCompletos || 'Admin'}&background=${isAdmin ? 'fbbf24' : '10b981'}&color=000&bold=true`}
                 className="w-full h-full rounded-full object-cover bg-amber-500"
                 alt="Profile"
               />
             </div>
-            <div className="absolute bottom-1 right-1 w-6 h-6 bg-emerald-500 border-4 border-[#1a2529] rounded-full"></div>
+            <div
+              className={`absolute bottom-1 right-1 w-6 h-6 ${isAdmin ? 'bg-emerald-500' : 'bg-amber-500'} border-4 border-[#1a2529] rounded-full`}
+            ></div>
           </div>
-
           <div className="text-center">
             <h3 className="text-xl font-black text-white uppercase tracking-tighter">
               {user?.nombresCompletos || 'Usuario'}
             </h3>
-            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-[0.3em]">
-              {user?.rol || 'Administrador'}
+            <p
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] ${isAdmin ? 'text-amber-500' : 'text-emerald-500'}`}
+            >
+              {isAdmin ? 'Administrador' : 'Contabilidad'}
             </p>
           </div>
         </section>
 
-        {/* MENÚ */}
+        {/* MENÚ CON INHABILITACIÓN VISUAL MEJORADA */}
         <section className="flex flex-col overflow-y-auto flex-1 py-4 custom-scrollbar">
           {MENU_DATA.map((item, index) => {
-            const disabled = isItemDisabled(item.label)
+            const isBlocked = item.onlyAdmin && !isAdmin
+
             return (
               <NavLink
                 end
                 key={index}
-                to={disabled ? '#' : item.path}
-                onClick={(e) => disabled && e.preventDefault()}
+                to={isBlocked ? '#' : item.path}
+                onClick={(e) => isBlocked && e.preventDefault()}
                 className={({ isActive }) =>
                   `relative px-8 py-5 flex flex-row items-center justify-between w-full transition-all duration-300 ${
-                    disabled
-                      ? 'opacity-40 cursor-not-allowed bg-black/40'
+                    isBlocked
+                      ? 'cursor-not-allowed'
                       : isActive
                         ? 'bg-amber-500/10 border-r-4 border-amber-500 text-amber-500'
                         : 'text-gray-400 hover:bg-white/5 hover:text-white'
                   }`
                 }
               >
-                <div className="flex items-center gap-4">
-                  <item.icon size={24} className={disabled ? 'text-gray-600' : ''} />
-                  <div className="flex flex-col">
-                    <span
-                      className={`text-sm font-black uppercase italic tracking-tight ${disabled ? 'text-gray-600' : ''}`}
-                    >
-                      {item.label}
-                    </span>
-                    {disabled && (
-                      <div className="flex items-center gap-1 mt-1 bg-amber-500 px-2 py-0.5 rounded-sm w-fit">
-                        <MdLock size={10} className="text-black" />
-                        <span className="text-[9px] font-black text-black uppercase leading-none">
-                          {!empresa ? 'FALTA INFO EMPRESA' : 'REQUIERE ABRIR CAJA'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                <div
+                  className={`flex items-center gap-4 transition-colors ${isBlocked ? 'text-white/40' : ''}`}
+                >
+                  <item.icon size={24} className={`${isBlocked ? 'text-amber-900/40' : ''}`} />
+                  <span
+                    className={`text-sm font-black uppercase italic tracking-tight ${isBlocked ? 'text-white/30' : ''}`}
+                  >
+                    {item.label}
+                  </span>
                 </div>
-                {!disabled && <MdChevronRight size={20} className="opacity-50" />}
+
+                {isBlocked ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-[7px] font-black text-rose-500/60 uppercase tracking-tighter">
+                      Bloqueado
+                    </span>
+                    <MdLock size={18} className="text-rose-500/40" />
+                  </div>
+                ) : (
+                  <MdChevronRight size={20} className="opacity-50" />
+                )}
               </NavLink>
             )
           })}
+
+          {/* MENSAJE DE RESTRICCIÓN AL FINAL */}
+          {!isAdmin && (
+            <div className="px-8 py-4 mt-auto">
+              <div className="flex items-center gap-2 text-rose-400 bg-rose-500/10 p-3 rounded-lg border border-rose-500/20">
+                <MdLock size={18} />
+                <span className="text-[9px] font-black uppercase tracking-tighter leading-tight">
+                  Acceso restringido: Solo reportes habilitados
+                </span>
+              </div>
+            </div>
+          )}
         </section>
 
         {/* FOOTER */}

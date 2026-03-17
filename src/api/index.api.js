@@ -12,6 +12,8 @@ import ticketAPI from './ticket/ticket.api'
 import liquidacionAPI from './liquidacion/liquidacion.api'
 import ventaAPI from './venta/venta.api'
 import movimientoAPI from './movimiento/movimiento.api'
+import reporteAPI from './reporte/reporte.api'
+import nominaAPI from './nomina/nomina.api'
 export {
   authAPI,
   usuarioAPI,
@@ -27,4 +29,6 @@ export {
   liquidacionAPI,
   ventaAPI,
   movimientoAPI,
+  reporteAPI,
+  nominaAPI,
 }

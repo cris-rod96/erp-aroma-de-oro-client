@@ -556,22 +556,21 @@ import {
   MdPersonAdd,
   MdPayments,
   MdMoneyOff,
+  MdLock,
 } from 'react-icons/md'
 import { Container } from '../../components/index.components'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useCajaStore } from '../../store/useCajaStore' // Importado
 import Swal from 'sweetalert2'
 import { empresaAPI, liquidacionAPI, productorAPI, productoAPI } from '../../api/index.api'
+import { useEmpresaStore } from '../../store/useEmpresaStore'
 
 const Compras = () => {
-  const empresaData = { nombre: 'Cargando', ruc: '......', direccion: '.......', telefono: '' }
-
   // Estados de datos
   const [liquidaciones, setLiquidaciones] = useState([])
   const [loading, setLoading] = useState(false)
   const [productores, setProductores] = useState([])
   const [productos, setProductos] = useState([])
-  const [empresa, setEmpresa] = useState(empresaData)
 
   // Estados de Formulario
   const [cedulaBusqueda, setCedulaBusqueda] = useState('')
@@ -603,6 +602,8 @@ const Compras = () => {
   const token = useAuthStore((store) => store.token)
   const user = useAuthStore((store) => store.user) // Cambiado a store.user según tu sistema
   const caja = useCajaStore((store) => store.caja) // Obtener caja activa
+  const empresa = useEmpresaStore((store) => store.empresa)
+  const setEmpresa = useEmpresaStore((store) => store.setEmpresa)
 
   const fetchInicial = async () => {
     try {
@@ -613,7 +614,7 @@ const Compras = () => {
         productoAPI.listarProductos(token),
       ])
       setProductores(respProd.data.productores || [])
-      setEmpresa(respEmpresa.data.empresa || empresaData)
+      setEmpresa(respEmpresa.data.empresa || null)
       setLiquidaciones(respLiq.data.liquidaciones || [])
       setProductos(respItems.data.productos || [])
     } catch (error) {
@@ -730,6 +731,8 @@ const Compras = () => {
     }
   }
 
+  const isFormDisabled = !empresa?.id || !caja || caja.estado !== 'Abierta'
+
   return (
     <Container fullWidth={true}>
       <div className="w-full px-2 md:px-6 py-4 text-gray-800 bg-white font-sans">
@@ -739,10 +742,10 @@ const Compras = () => {
             <MdBusiness size={45} />
             <div>
               <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter">
-                {empresa.nombre}
+                {empresa?.nombre || 'SIN NOMBRE'}
               </h1>
               <p className="text-[10px] font-bold text-gray-600 uppercase">
-                {empresa.ruc} | {empresa.direccion}
+                {empresa?.ruc || 'SIN RUC'} | {empresa?.direccion || 'SIN DIRECCIÓN'}
               </p>
             </div>
           </div>
@@ -751,40 +754,61 @@ const Compras = () => {
               Liquidación de Compra Directa
             </h2>
             <p className="text-[10px] font-black text-emerald-600">
-              {caja ? `CAJA ACTIVA: ${caja.id.slice(0, 8)}` : 'SIN CAJA'}
+              {caja ? `CAJA ACTIVA: ${caja.id.slice(0, 8)}` : 'REQUIERE ABIR CAJA'}
             </p>
           </div>
         </div>
 
         {/* BUSCADOR PRODUCTOR */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          {/* COLUMNA DE BÚSQUEDA (Ocupa 2 espacios en desktop) */}
           <div className="md:col-span-2">
-            <label className="text-[10px] font-black uppercase mb-1 block">
-              Identificación del Productor (Cédula/RUC)
+            <label
+              className={`text-[10px] font-black uppercase mb-1 block transition-colors duration-300 ${isFormDisabled ? 'text-red-600' : 'text-gray-800'}`}
+            >
+              {isFormDisabled
+                ? '⚠️ Búsqueda deshabilitada (Requiere Caja/Empresa)'
+                : 'Identificación del Productor (Cédula/RUC)'}
             </label>
-            <div className="flex border-2 border-gray-800">
+
+            <div
+              className={`flex border-2 transition-all duration-300 shadow-sm ${isFormDisabled ? 'border-gray-200 bg-gray-50' : 'border-gray-800 bg-white'}`}
+            >
               <input
+                disabled={isFormDisabled}
                 type="text"
-                className="w-full p-3 font-bold outline-none uppercase"
-                placeholder="BUSCAR..."
+                className={`w-full p-3 font-bold outline-none uppercase bg-transparent ${isFormDisabled ? 'cursor-not-allowed text-gray-400 placeholder-gray-300' : 'text-gray-900'}`}
+                placeholder={isFormDisabled ? 'MÓDULO BLOQUEADO...' : 'BUSCAR POR CÉDULA O RUC...'}
                 value={cedulaBusqueda}
                 onChange={(e) => setCedulaBusqueda(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && buscarProductor()}
+                onKeyPress={(e) => e.key === 'Enter' && !isFormDisabled && buscarProductor()}
               />
               <button
+                disabled={isFormDisabled}
                 onClick={buscarProductor}
-                className="bg-gray-800 text-white px-6 hover:bg-black"
+                className={`px-6 transition-all flex items-center justify-center
+          ${
+            isFormDisabled
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              : 'bg-gray-800 text-white hover:bg-black active:scale-95'
+          }`}
               >
                 <MdSearch size={22} />
               </button>
             </div>
           </div>
+
+          {/* COLUMNA DE BENEFICIARIO (Ocupa 1 espacio) */}
           <div>
-            <label className="text-[10px] font-black uppercase mb-1 block">Beneficiario</label>
-            <div className="border-2 border-gray-300 p-3 font-black text-sm bg-gray-50 min-h-[52px] flex items-center uppercase">
+            <label className="text-[10px] font-black uppercase mb-1 block text-gray-500">
+              Beneficiario / Productor
+            </label>
+            <div
+              className={`border-2 p-3 font-black text-sm min-h-[56px] flex items-center uppercase transition-all duration-300 ${isFormDisabled ? 'border-gray-200 bg-gray-50 text-gray-300' : 'border-gray-300 bg-gray-50 text-gray-700'}`}
+            >
               {productorInfo?.nombreCompleto || (
-                <span className="text-gray-400 italic font-normal text-xs text-center w-full">
-                  No identificado
+                <span className="text-[10px] italic font-normal text-center w-full opacity-60">
+                  Esperando identificación...
                 </span>
               )}
             </div>
@@ -1031,12 +1055,48 @@ const Compras = () => {
             </div>
 
             <button
-              disabled={loading}
+              disabled={loading || isFormDisabled}
               onClick={handleGuardar}
-              className={`w-full bg-gray-900 text-white font-black py-5 uppercase text-sm hover:bg-black transition-all flex items-center justify-center gap-2 ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              className={`
+    w-full py-5 flex items-center justify-center gap-3 
+    transition-all duration-300 transform font-black uppercase text-sm tracking-widest
+    border-b-4 active:border-b-0 active:translate-y-1
+    ${
+      loading || isFormDisabled
+        ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed opacity-70 grayscale'
+        : 'bg-amber-500 text-black border-amber-700 hover:bg-amber-400 hover:scale-[1.01] shadow-lg'
+    }
+  `}
             >
-              <MdPayments size={20} /> {loading ? 'PROCESANDO...' : 'Guardar Liquidación de Compra'}
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-4 border-black/20 border-t-black rounded-full animate-spin" />
+                  <span>Procesando Transacción...</span>
+                </>
+              ) : isFormDisabled ? (
+                <>
+                  <MdLock size={20} />
+                  <span>Acceso Restringido</span>
+                </>
+              ) : (
+                <>
+                  <MdPayments size={22} />
+                  <span>Finalizar y Guardar Liquidación</span>
+                </>
+              )}
             </button>
+
+            {/* Mensaje de estado dinámico debajo del botón */}
+            {isFormDisabled && (
+              <div className="mt-3 flex items-center justify-center gap-2 bg-red-50 border border-red-200 py-2 rounded-sm">
+                <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse" />
+                <span className="text-[10px] font-black text-red-700 uppercase tracking-tighter">
+                  {!empresa
+                    ? 'Error: Datos de empresa no cargados'
+                    : 'Operación bloqueada: Requiere apertura de caja'}
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
