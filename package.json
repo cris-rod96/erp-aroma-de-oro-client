@@ -14,6 +14,10 @@
     "@tailwindcss/vite": "4.2.1",
     "axios": "1.13.6",
     "dayjs": "1.11.20",
+    "exceljs": "4.4.0",
+    "file-saver": "2.0.5",
+    "jspdf": "4.2.1",
+    "jspdf-autotable": "5.0.7",
     "react": "^19.2.0",
     "react-countup": "6.5.3",
     "react-dom": "^19.2.0",
@@ -22,6 +26,8 @@
     "sonner": "2.0.7",
     "sweetalert2": "11.26.21",
     "tailwindcss": "4.2.1",
+    "xlsx": "0.18.5",
+    "xlsx-js-style": "1.2.0",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
