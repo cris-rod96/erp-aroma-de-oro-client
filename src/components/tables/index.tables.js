@@ -1,3 +1,4 @@
 import KardexTable from './KardexTable'
 import UsuariosTable from './UsuariosTable'
-export { KardexTable, UsuariosTable }
+import CajasTable from './CajasTable'
+export { KardexTable, UsuariosTable, CajasTable }
