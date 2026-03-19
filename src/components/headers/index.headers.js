@@ -1,3 +1,3 @@
 import KardexHeader from './KardexHeader'
-
-export { KardexHeader }
+import UsuariosHeader from './UsuariosHeader'
+export { KardexHeader, UsuariosHeader }
