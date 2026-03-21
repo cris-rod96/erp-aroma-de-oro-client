@@ -2,12 +2,19 @@ import Aside from './aside/Aside'
 import Container from './container/Container'
 import Loading from './loading/Loading'
 import Modal from './modal/Modal'
-import { KardexTable, UsuariosTable, CajasTable, ProductoresTable } from './tables/index.tables'
+import {
+  KardexTable,
+  UsuariosTable,
+  CajasTable,
+  ProductoresTable,
+  ComprasTable,
+} from './tables/index.tables'
 import {
   KardexHeader,
   UsuariosHeader,
   CajasHeader,
   ProductoresHeader,
+  ComprasHeader,
 } from './headers/index.headers'
 
 export {
@@ -23,4 +30,6 @@ export {
   CajasHeader,
   ProductoresTable,
   ProductoresHeader,
+  ComprasTable,
+  ComprasHeader,
 }

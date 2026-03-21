@@ -11,16 +11,12 @@ const cajaAPI = {
     })
   },
 
-  cerrarCaja: (id, token) => {
-    return instance.patch(
-      `/${model}/cerrar-caja/${id}`,
-      {},
-      {
-        headers: {
-          'x-token': token,
-        },
-      }
-    )
+  cerrarCaja: (id, token, data) => {
+    return instance.patch(`/${model}/cerrar-caja/${id}`, data, {
+      headers: {
+        'x-token': token,
+      },
+    })
   },
 
   listarTodas: (token) => {

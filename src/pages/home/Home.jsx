@@ -84,9 +84,7 @@ const Home = () => {
         const cajaData = respCajaActiva.data.caja
         const dineroEnCaja = cajaData
           ? parseFloat(
-              parseFloat(cajaData.montoEsperado) > 0
-                ? cajaData.montoEsperado
-                : cajaData.montoApertura
+              parseFloat(cajaData.saldoActual) > 0 ? cajaData.saldoActual : cajaData.saldoActual
             )
           : 0
 

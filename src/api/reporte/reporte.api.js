@@ -10,6 +10,14 @@ const reporteAPI = {
       },
     })
   },
+
+  subirReporte: (token, formData) => {
+    return instance.post(`/${model}/subir-reporte`, formData, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
 }
 
 export default reporteAPI
