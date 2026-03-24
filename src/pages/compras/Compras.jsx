@@ -72,6 +72,10 @@ const Compras = () => {
     handleGuardar,
     selectedLiq,
     showModal,
+    setMostrarSugerencias,
+    mostrarSugerencias,
+    productoresFiltrados,
+    seleccionarProductor,
   } = useLiquidacion()
 
   // Función para procesar registro y limpiar la vista
@@ -581,17 +585,23 @@ const Compras = () => {
         </div>
 
         {/* BUSCADOR DE PRODUCTOR */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 uppercase font-black ">
-          <div className="md:col-span-2">
-            <div className="flex border-2 border-gray-800  group">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 uppercase font-black">
+          <div className="md:col-span-2 relative">
+            {' '}
+            {/* RELATIVE es clave aquí */}
+            <div className="flex border-2 border-gray-800 group">
               <input
                 disabled={isFormDisabled}
                 type="text"
                 className="w-full p-3 font-bold outline-none group-focus-within:bg-gray-50"
                 value={cedulaBusqueda}
-                onChange={(e) => setCedulaBusqueda(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && buscarProductor()}
-                placeholder="BUSCAR CÉDULA O RUC..."
+                onChange={(e) => {
+                  setCedulaBusqueda(e.target.value)
+                  setMostrarSugerencias(true)
+                }}
+                onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)} // Delay para permitir el click
+                onFocus={() => setMostrarSugerencias(true)}
+                placeholder="ESCRIBA NOMBRE, CÉDULA O RUC..."
               />
               <button
                 onClick={buscarProductor}
@@ -600,9 +610,30 @@ const Compras = () => {
                 <MdSearch size={24} />
               </button>
             </div>
+            {/* LISTA DE SUGERENCIAS */}
+            {mostrarSugerencias && productoresFiltrados.length > 0 && (
+              <div className="absolute z-50 w-full bg-white border-2 border-black mt-1 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-h-60 overflow-y-auto">
+                {productoresFiltrados.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => seleccionarProductor(p)}
+                    className="p-3 border-b border-gray-100 hover:bg-emerald-50 cursor-pointer flex justify-between items-center transition-colors"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-black">{p.nombreCompleto}</span>
+                      <span className="text-[10px] text-gray-500">{p.numeroIdentificacion}</span>
+                    </div>
+                    <span className="text-[10px] bg-gray-100 px-2 py-1 border border-black">
+                      SELECCIONAR
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
           <div
-            className={`border-2 p-3 flex items-center justify-between transition-all ${productorInfo ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ' : 'bg-gray-50 opacity-50  border-gray-300'}`}
+            className={`border-2 p-3 flex items-center justify-between transition-all ${productorInfo ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ' : 'bg-gray-50 opacity-50 border-gray-300'}`}
           >
             <span className={productorInfo ? 'text-sm font-black' : 'text-[10px]'}>
               {productorInfo?.nombreCompleto || 'Esperando identificación...'}

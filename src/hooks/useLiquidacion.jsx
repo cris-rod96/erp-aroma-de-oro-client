@@ -24,6 +24,9 @@ export const useLiquidacion = () => {
   const [showModal, setShowModal] = useState(false)
   const [mostrarFormProductor, setMostrarFormProductor] = useState(false)
 
+  // NUEVO: Estado para controlar el dropdown de sugerencias
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
+
   const [cedulaBusqueda, setCedulaBusqueda] = useState('')
   const [productorInfo, setProductorInfo] = useState(null)
   const [nuevoProductor, setNuevoProductor] = useState({
@@ -58,7 +61,6 @@ export const useLiquidacion = () => {
         liquidacionAPI.listarTodas(token),
         productoAPI.listarProductos(token),
       ])
-      console.log(respLiq.data)
       setProductores(respProd.data.productores || [])
       setEmpresa(respEmpresa.data.empresa || null)
       setLiquidaciones(respLiq.data.liquidaciones || [])
@@ -72,7 +74,59 @@ export const useLiquidacion = () => {
     if (token) fetchInicial()
   }, [token])
 
-  // --- MOTOR DE CÁLCULOS ACTUALIZADO ---
+  // --- NUEVO: MOTOR DE BÚSQUEDA REACTIVA (Autocomplete) ---
+  const productoresFiltrados = useMemo(() => {
+    const termino = cedulaBusqueda.trim().toLowerCase()
+    if (termino.length < 2) return []
+
+    return productores
+      .filter((p) => {
+        const cedula = (p.numeroIdentificacion || '').toLowerCase()
+        const nombre = (p.nombreCompleto || '').toLowerCase()
+        return cedula.includes(termino) || nombre.includes(termino)
+      })
+      .slice(0, 8) // Limitamos a 8 resultados para la lista
+  }, [cedulaBusqueda, productores])
+
+  // --- NUEVA: FUNCIÓN PARA SELECCIONAR PRODUCTOR ---
+  const seleccionarProductor = async (productor) => {
+    setProductorInfo(productor)
+    setCedulaBusqueda(productor.numeroIdentificacion)
+    setMostrarSugerencias(false)
+    setMostrarFormProductor(false)
+
+    try {
+      const respAnt = await anticipoAPI.obtenerPendientesPorPersona(productor.id, token)
+      setAnticiposPendientes(respAnt.data.anticipos || [])
+      setMontoAplicarAnticipo(0)
+    } catch (error) {
+      console.error('Error al traer anticipos:', error)
+      setAnticiposPendientes([])
+    }
+  }
+
+  // Modificado para manejar el flujo de "No encontrado -> Nuevo registro"
+  const buscarProductor = () => {
+    // Si hay una coincidencia exacta o el usuario elige buscar con el botón
+    if (productoresFiltrados.length === 1) {
+      seleccionarProductor(productoresFiltrados[0])
+    } else if (productoresFiltrados.length === 0) {
+      setProductorInfo(null)
+      setAnticiposPendientes([])
+      setMostrarFormProductor(true)
+      setMostrarSugerencias(false)
+
+      // Si parece una cédula/RUC lo precargamos en el form
+      setNuevoProductor({
+        ...nuevoProductor,
+        numeroIdentificacion: /^\d+$/.test(cedulaBusqueda) ? cedulaBusqueda : '',
+        nombreCompleto: !/^\d+$/.test(cedulaBusqueda) ? cedulaBusqueda.toUpperCase() : '',
+        telefono: '',
+      })
+    }
+  }
+
+  // --- MOTOR DE CÁLCULOS ---
   const calculos = useMemo(() => {
     const q = parseFloat(cantidad) || 0
     const h = parseFloat(calificacion) || 0
@@ -88,8 +142,6 @@ export const useLiquidacion = () => {
 
     const valBruto = pNeto * pUnit
     const valRetenido = valBruto * (rPorc / 100)
-
-    // Valor neto que el productor debería recibir legalmente
     const netoAPagar = valBruto - valRetenido
 
     const montoPagosHoy = Object.values(pagos).reduce(
@@ -97,10 +149,7 @@ export const useLiquidacion = () => {
       0
     )
 
-    // El abono total es lo que YA NO se le debe (pagos hoy + deuda cruzada)
     const abonadoTotal = montoPagosHoy + antic
-
-    // El saldo real es el neto legal menos lo abonado/cruzado
     const saldo = netoAPagar - abonadoTotal
 
     return {
@@ -111,38 +160,11 @@ export const useLiquidacion = () => {
       pesoNeto: pNeto,
       bruto: valBruto,
       valorRetenido: valRetenido,
-      totalAPagar: netoAPagar, // Total antes de cruces y pagos
-      montoAbonadoTotal: montoPagosHoy, // Solo efectivo/banco para la vista
-      saldoADeber: saldo, // Saldo final real
+      totalAPagar: netoAPagar,
+      montoAbonadoTotal: montoPagosHoy,
+      saldoADeber: saldo,
     }
   }, [cantidad, calificacion, impurezas, precio, retencionPorcentaje, pagos, montoAplicarAnticipo])
-
-  const buscarProductor = async () => {
-    if (!cedulaBusqueda) return
-    const encontrado = productores.find((p) => p.numeroIdentificacion === cedulaBusqueda)
-    if (encontrado) {
-      setProductorInfo(encontrado)
-      setMostrarFormProductor(false)
-      try {
-        const respAnt = await anticipoAPI.obtenerPendientesPorPersona(encontrado.id, token)
-        console.log(respAnt.data)
-        setAnticiposPendientes(respAnt.data.anticipos || [])
-        setMontoAplicarAnticipo(0)
-      } catch (error) {
-        setAnticiposPendientes([])
-      }
-    } else {
-      setProductorInfo(null)
-      setAnticiposPendientes([])
-      setMostrarFormProductor(true)
-      setNuevoProductor({
-        ...nuevoProductor,
-        numeroIdentificacion: cedulaBusqueda,
-        nombreCompleto: '',
-        telefono: '',
-      })
-    }
-  }
 
   const handleRegistrarProductor = async () => {
     if (!nuevoProductor.nombreCompleto || !nuevoProductor.telefono) {
@@ -152,8 +174,12 @@ export const useLiquidacion = () => {
       setLoading(true)
       await productorAPI.agregarProductor(nuevoProductor, token)
       await fetchInicial()
+
+      // Buscamos al recién creado para seleccionarlo
+      // const recienCreado = { ...nuevoProductor, id: 'temp' } // El fetch inicial actualizará la lista real
       setCedulaBusqueda(nuevoProductor.numeroIdentificacion)
       buscarProductor()
+
       Swal.fire('Éxito', 'Productor registrado', 'success')
     } catch (error) {
       Swal.fire('Error', 'No se pudo crear el productor', 'error')
@@ -163,7 +189,6 @@ export const useLiquidacion = () => {
   }
 
   const handleGuardar = async () => {
-    // 1. VALIDACIONES DE SEGURIDAD
     if (!caja || caja.estado !== 'Abierta') {
       return Swal.fire('Caja Cerrada', 'Debe abrir la caja para realizar transacciones', 'warning')
     }
@@ -176,74 +201,45 @@ export const useLiquidacion = () => {
     if (!productoSeleccionado) {
       return Swal.fire('Falta Producto', 'Seleccione un producto de la lista', 'warning')
     }
-
-    // Validación: El anticipo no puede exceder el valor neto de la carga
     if (parseFloat(montoAplicarAnticipo || 0) > calculos.totalAPagar) {
-      return Swal.fire(
-        'Error en Anticipo',
-        'El cruce de anticipo no puede ser mayor al Total Neto a Pagar',
-        'error'
-      )
+      return Swal.fire('Error en Anticipo', 'El cruce excede el total a pagar', 'error')
     }
 
-    // Función interna para asegurar 2 decimales y tipo Number (Evita el .9999998)
     const toNum = (val) => Number(Number(val || 0).toFixed(2))
 
-    // 2. CONSTRUCCIÓN DEL OBJETO PARA EL BACKEND
     const data = {
       CajaId: caja.id,
-
       liquidacion: {
         ProductorId: productorInfo.id,
         UsuarioId: user.id,
-
-        // Valores de la transacción
-        totalLiquidacion: toNum(calculos.bruto), // Subtotal bruto
-        totalRetencion: toNum(calculos.valorRetenido), // Monto retenido
-        totalAPagar: toNum(calculos.totalAPagar), // Neto final
-
-        // Desglose de pagos realizados hoy
-        abonoAnticipo: toNum(montoAplicarAnticipo), // Lo que se descuenta del anticipo
+        totalLiquidacion: toNum(calculos.bruto),
+        totalRetencion: toNum(calculos.valorRetenido),
+        totalAPagar: toNum(calculos.totalAPagar),
+        abonoAnticipo: toNum(montoAplicarAnticipo),
         pagoEfectivo: toNum(pagos.efectivo),
         pagoCheque: toNum(pagos.cheque),
         pagoTransferencia: toNum(pagos.transferencia),
-
-        // Monto total que sale de la operación (Pagos hoy + Cruce)
         montoAbonado: toNum(calculos.montoAbonadoTotal + (parseFloat(montoAplicarAnticipo) || 0)),
-
-        // Saldo que queda pendiente por pagar al productor (Crédito)
         montoPorPagar: toNum(calculos.saldoADeber),
       },
-
       detalle: {
         ProductoId: productoSeleccionado,
         descripcionProducto:
           productos.find((p) => p.id === productoSeleccionado)?.nombre || 'PRODUCTO',
-
         calificacion: calificacion,
-
         unidad: unidad || 'Quintales',
         cantidad: toNum(calculos.pesoBruto),
         cantidadNeta: toNum(calculos.pesoNeto),
         precio: toNum(precio),
         parcial: toNum(calculos.bruto),
-
-        // Mermas y descuentos
-        humedad: 0, // Eliminado/Seteado en 0 porque ya va en calificación
+        humedad: 0,
         impurezas: toNum(impurezas),
         descuentoMerma: toNum(calculos.totalMerma),
       },
-
-      // Si hay anticipo seleccionado y monto, enviamos el objeto, si no null
       anticipo:
         anticiposPendientes.length > 0 && parseFloat(montoAplicarAnticipo) > 0
-          ? {
-              id: anticiposPendientes[0].id,
-              montoAplicado: toNum(montoAplicarAnticipo),
-            }
+          ? { id: anticiposPendientes[0].id, montoAplicado: toNum(montoAplicarAnticipo) }
           : null,
-
-      // Datos de la retención si aplica
       retencion:
         parseFloat(retencionPorcentaje) > 0
           ? {
@@ -254,32 +250,20 @@ export const useLiquidacion = () => {
           : null,
     }
 
-    // 3. ENVÍO DE DATOS
     try {
       setLoading(true)
-      console.log('Objeto Aroma de Oro listo para enviar:', data)
-
-      // Descomenta esto cuando estés listo para conectar
       const resp = await liquidacionAPI.crearLiquidacion(token, data)
-
       await Swal.fire({
         title: '¡Liquidación Guardada!',
         text: 'El registro se ha procesado con éxito',
         icon: 'success',
-        confirmButtonColor: '#10b981', // Verde esmeralda para que combine
+        confirmButtonColor: '#10b981',
       })
-
-      // Limpieza de formulario y actualización de datos
       resetForm()
       fetchInicial()
-      setCaja(resp.data.caja) // Si el backend te devuelve la caja actualizada
+      setCaja(resp.data.caja)
     } catch (error) {
-      console.error('Error al guardar liquidación:', error)
-      Swal.fire(
-        'Error de Guardado',
-        error.response?.data?.message || 'No se pudo conectar con el servidor',
-        'error'
-      )
+      Swal.fire('Error', error.response?.data?.message || 'Error de servidor', 'error')
     } finally {
       setLoading(false)
     }
@@ -296,6 +280,7 @@ export const useLiquidacion = () => {
     setMontoAplicarAnticipo(0)
     setPagos({ efectivo: 0, cheque: 0, transferencia: 0 })
     setAnticiposPendientes([])
+    setMostrarSugerencias(false)
   }
 
   return {
@@ -310,6 +295,10 @@ export const useLiquidacion = () => {
     cedulaBusqueda,
     setCedulaBusqueda,
     productorInfo,
+    productoresFiltrados, // Exportamos esto para la vista
+    mostrarSugerencias, // Exportamos esto para la vista
+    setMostrarSugerencias,
+    seleccionarProductor, // Exportamos esto para la vista
     anticiposPendientes,
     montoAplicarAnticipo,
     setMontoAplicarAnticipo,
