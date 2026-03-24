@@ -76,6 +76,8 @@ const Compras = () => {
     mostrarSugerencias,
     productoresFiltrados,
     seleccionarProductor,
+    unidad,
+    setUnidad,
   } = useLiquidacion()
 
   // Función para procesar registro y limpiar la vista
@@ -736,11 +738,13 @@ const Compras = () => {
 
         {/* TABLA DE PRODUCTO (ANCHOS ESTÁTICOS) */}
         <div className="overflow-x-auto mb-8 border-2 border-gray-800 ">
-          <table className="w-full min-w-[1100px] border-collapse font-black uppercase text-sm ">
+          <table className="w-full min-w-[1200px] border-collapse font-black uppercase text-sm ">
             <thead className="bg-gray-800 text-white text-[10px] tracking-widest">
               <tr>
-                <th className="p-3 text-left w-[250px]">Producto</th>
-                <th className="p-3 w-[120px] bg-gray-700">Cant. Bruta</th>
+                <th className="p-3 text-left w-[220px]">Producto</th>
+                <th className="p-3 w-[120px] bg-gray-700 text-center">Cant. Bruta</th>
+                {/* NUEVA COLUMNA */}
+                <th className="p-3 w-[130px] bg-gray-600 text-center">Unidad</th>
                 <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Calif % (H)</th>
                 <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Imp %</th>
                 <th className="p-3 w-[120px] bg-emerald-700 text-emerald-100 font-black">
@@ -752,7 +756,7 @@ const Compras = () => {
             </thead>
             <tbody className="bg-white">
               <tr className="border-b-2 border-gray-100">
-                <td className="p-2 border-r border-gray-800 w-[250px]">
+                <td className="p-2 border-r border-gray-800 w-[220px]">
                   <select
                     value={productoSeleccionado}
                     onChange={(e) => setProductoSeleccionado(e.target.value)}
@@ -773,6 +777,19 @@ const Compras = () => {
                     onChange={(e) => setCantidad(e.target.value)}
                     className="w-full text-center font-mono text-xl outline-none bg-transparent"
                   />
+                </td>
+                {/* CELDA DE UNIDAD */}
+                <td className="p-2 border-r border-gray-800 bg-gray-100 w-[130px]">
+                  <select
+                    value={unidad}
+                    onChange={(e) => setUnidad(e.target.value)}
+                    className="w-full p-2 outline-none text-xs font-black cursor-pointer bg-transparent text-center"
+                  >
+                    <option value="Quintales">Quintales</option>
+                    <option value="Kilogramos">Kilogramos</option>
+                    <option value="Libras">Libras</option>
+                    <option value="Unidades">Unidades</option>
+                  </select>
                 </td>
                 <td className="p-2 border-r border-gray-800 bg-blue-50 w-[100px]">
                   <input
@@ -807,6 +824,7 @@ const Compras = () => {
               </tr>
             </tbody>
           </table>
+
           <div className="bg-gray-800 text-white p-2 text-[9px] flex justify-end gap-6  px-6 uppercase font-black">
             <span className="opacity-70">
               Merma Calidad: -{Number(mermaCalificacion || 0).toFixed(2)}
