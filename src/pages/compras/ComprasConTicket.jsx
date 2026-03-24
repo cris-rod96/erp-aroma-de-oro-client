@@ -38,7 +38,7 @@ const Compras = () => {
   const [filtroValor, setFiltroValor] = useState('')
 
   const token = useAuthStore((store) => store.token)
-  const user = useAuthStore((store) => store.adminData)
+  const user = useAuthStore((store) => store.data)
 
   const fetchDatos = async () => {
     setLoading(true)

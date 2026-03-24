@@ -5,13 +5,13 @@ import { GiCash, GiGears, GiPayMoney, GiReceiveMoney } from 'react-icons/gi'
 import { GrUserWorker } from 'react-icons/gr'
 import { TbCashRegister } from 'react-icons/tb'
 import { HiOutlineTicket } from 'react-icons/hi'
+import { MdPriceCheck, MdOutlinePayments, MdOutlineRequestQuote } from 'react-icons/md' // Importado MdOutlineRequestQuote
 
 export const MENU_DATA = [
   {
     path: '/inicio',
     label: 'Panel principal',
     icon: TbLayoutDashboardFilled,
-    // Se deja disponible para ambos para que tengan un dashboard inicial
   },
 
   {
@@ -56,17 +56,39 @@ export const MENU_DATA = [
     onlyAdmin: true,
   },
 
-  {
-    path: '/inicio/tickets',
-    label: 'Tickets',
-    icon: HiOutlineTicket,
-    onlyAdmin: true,
-  },
+  // {
+  //   path: '/inicio/tickets',
+  //   label: 'Tickets',
+  //   icon: HiOutlineTicket,
+  //   onlyAdmin: true,
+  // },
 
   {
     path: '/inicio/compras',
     label: 'Compras',
     icon: FaShoppingBasket,
+    onlyAdmin: true,
+  },
+
+  {
+    path: '/inicio/anticipos',
+    label: 'Anticipos',
+    icon: MdPriceCheck,
+    onlyAdmin: true,
+  },
+
+  {
+    path: '/inicio/prestamos',
+    label: 'Préstamos',
+    icon: MdOutlinePayments,
+    onlyAdmin: true,
+  },
+
+  // --- AGREGADO: GASTOS ---
+  {
+    path: '/inicio/gastos',
+    label: 'Gastos',
+    icon: MdOutlineRequestQuote,
     onlyAdmin: true,
   },
 
@@ -81,7 +103,6 @@ export const MENU_DATA = [
     path: '/inicio/reportes',
     label: 'Reportes',
     icon: FaFilePdf,
-    // Única opción habilitada para Contabilidad junto al Panel Principal
   },
 
   {

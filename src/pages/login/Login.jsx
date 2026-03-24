@@ -45,7 +45,6 @@ const Login = () => {
     try {
       const response = await authAPI.loginWithCredentials(credentials)
       console.log(response.data)
-
       loginStore(response.data)
 
       toastAroma

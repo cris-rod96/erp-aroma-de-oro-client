@@ -77,15 +77,17 @@ const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete }) =>
                     </td>
 
                     {/* ROL */}
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-6 py-4 whitespace-nowrap text-left">
                       <span
-                        className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border ${
-                          u.esAdministrador
+                        className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors ${
+                          u.rol.toUpperCase() === 'ADMINISTRADOR'
                             ? 'bg-amber-100 text-amber-700 border-amber-200'
-                            : 'bg-blue-50 text-blue-600 border-blue-100'
+                            : u.rol.toUpperCase() === 'CONTADOR'
+                              ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+                              : 'bg-blue-50 text-blue-600 border-blue-100'
                         }`}
                       >
-                        {u.esAdministrador ? 'Administrador' : 'Estándar'}
+                        {u.rol || 'ESTÁNDAR'}
                       </span>
                     </td>
 

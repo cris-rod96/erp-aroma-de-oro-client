@@ -4,11 +4,18 @@ import {
   MdPersonAdd,
   MdPayments,
   MdMoneyOff,
-  MdLock,
+  MdAccountBalanceWallet,
+  MdAttachMoney,
+  MdAccountBalance,
+  MdConfirmationNumber,
+  MdReceipt,
   MdClose,
+  MdLocationOn,
+  MdEmail,
+  MdPhone,
 } from 'react-icons/md'
 import { ComprasHeader, ComprasTable, Container } from '../../components/index.components'
-import { useLiquidacion } from '../../hooks/useCompras'
+import { useLiquidacion } from '../../hooks/useLiquidacion'
 
 const Compras = () => {
   const {
@@ -18,75 +25,71 @@ const Compras = () => {
     loading,
     empresa,
     caja,
-    selectedLiq,
-    setSelectedLiq,
-    showModal,
-    setShowModal,
     cedulaBusqueda,
     setCedulaBusqueda,
     productorInfo,
     mostrarFormProductor,
+    setMostrarFormProductor,
     nuevoProductor,
     setNuevoProductor,
     productoSeleccionado,
     setProductoSeleccionado,
-    calificacion,
-    setCalificacion,
-    unidad,
-    setUnidad,
     cantidad,
     setCantidad,
     precio,
     setPrecio,
-    prima,
-    setPrima,
-    ivaPorcentaje,
-    setIvaPorcentaje,
-    humedad,
-    setHumedad,
+    calificacion,
+    setCalificacion,
     impurezas,
     setImpurezas,
     retencionConcepto,
     setRetencionConcepto,
     retencionPorcentaje,
     setRetencionPorcentaje,
-    descuento,
-    setDescuento,
     pagos,
     setPagos,
+    setSelectedLiq,
+    setShowModal,
 
-    // Valores Calculados (Derivados)
-    pesoBruto,
+    // Valores Calculados
     pesoNeto,
     totalMerma,
-    mermaHumedad,
+    mermaCalificacion,
     mermaImpurezas,
     bruto,
-    parcial,
-    valorIVA,
     valorRetenido,
     totalAPagar,
-    montoAbonado,
+    montoAbonadoTotal,
     saldoADeber,
     isFormDisabled,
+    anticiposPendientes,
+    montoAplicarAnticipo,
 
-    // Funciones de Acción
+    // Funciones
+    setMontoAplicarAnticipo,
     buscarProductor,
     handleRegistrarProductor,
     handleGuardar,
+    selectedLiq,
+    showModal,
   } = useLiquidacion()
+
+  // Función para procesar registro y limpiar la vista
+  const ejecutarRegistro = async () => {
+    await handleRegistrarProductor()
+    setMostrarFormProductor(false)
+  }
 
   return (
     <Container fullWidth={true}>
       <div className="w-full px-2 md:px-6 py-4 text-gray-800 bg-white font-sans relative">
-        {/* MODAL DE DETALLE COMPLETO */}
         {showModal && selectedLiq && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
             <div className="bg-white border-[3px] border-black w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-[15px_15px_0px_0px_rgba(0,0,0,1)]">
               {/* HEADER MODAL */}
-              <div className="bg-black text-white p-4 flex justify-between items-center sticky top-0">
+              <div className="bg-black text-white p-4 flex justify-between items-center sticky top-0 z-10">
                 <div className="flex flex-col">
-                  <h2 className="text-xl font-black italic tracking-tighter uppercase">
+                  <h2 className="text-xl font-black tracking-tighter uppercase">
                     Expediente de Liquidación
                   </h2>
                   <span className="text-[10px] text-amber-400 font-bold">{selectedLiq.id}</span>
@@ -119,7 +122,11 @@ const Compras = () => {
                       ESTADO DE PAGO
                     </label>
                     <span
-                      className={`text-xs font-black px-4 py-1 border-2 ${parseFloat(selectedLiq.montoPorPagar) > 0 ? 'border-orange-500 text-orange-600' : 'border-emerald-500 text-emerald-600'}`}
+                      className={`text-xs font-black px-4 py-1 border-2 ${
+                        parseFloat(selectedLiq.montoPorPagar) > 0
+                          ? 'border-orange-500 text-orange-600'
+                          : 'border-emerald-500 text-emerald-600'
+                      }`}
                     >
                       {parseFloat(selectedLiq.montoPorPagar) > 0
                         ? 'SALDO PENDIENTE'
@@ -130,107 +137,129 @@ const Compras = () => {
 
                 {/* SECCION 2: TABLA TÉCNICA DE PRODUCTO (CÁLCULOS DE MERMA) */}
                 <div>
-                  <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 italic">
+                  <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
                     01. Análisis de Calidad y Peso
                   </h3>
-                  <table className="w-full border-2 border-black">
-                    <thead className="bg-gray-100 border-b-2 border-black text-[10px] font-black">
-                      <tr>
-                        <th className="p-2 text-left border-r border-black">PRODUCTO</th>
-                        <th className="p-2 text-center border-r border-black">CALIFICACIÓN</th>
-                        <th className="p-2 text-center border-r border-black">PESO BRUTO</th>
-                        <th className="p-2 text-center border-r border-black text-blue-700">
-                          HUMEDAD (%)
-                        </th>
-                        <th className="p-2 text-center border-r border-black text-blue-700">
-                          IMPUREZA (%)
-                        </th>
-                        <th className="p-2 text-right text-red-600">DESC. MERMA</th>
-                      </tr>
-                    </thead>
-                    <tbody className="text-sm font-bold">
-                      <tr>
-                        <td className="p-3 border-r border-black">
-                          {selectedLiq.DetalleLiquidacion?.descripcionProducto}
-                        </td>
-                        <td className="p-3 border-r border-black text-center">
-                          {selectedLiq.DetalleLiquidacion?.calificacion || '---'}
-                        </td>
-                        <td className="p-3 border-r border-black text-center font-mono">
-                          {selectedLiq.DetalleLiquidacion?.cantidad}{' '}
-                          {selectedLiq.DetalleLiquidacion?.unidad}
-                        </td>
-                        <td className="p-3 border-r border-black text-center font-mono">
-                          {selectedLiq.DetalleLiquidacion?.humedad}%
-                        </td>
-                        <td className="p-3 border-r border-black text-center font-mono">
-                          {selectedLiq.DetalleLiquidacion?.impurezas}%
-                        </td>
-                        <td className="p-3 text-right text-red-600 font-mono">
-                          -{parseFloat(selectedLiq.DetalleLiquidacion?.descuentoMerma).toFixed(2)}
-                        </td>
-                      </tr>
-                      <tr className="bg-emerald-50 border-t-2 border-black">
-                        <td
-                          colSpan="5"
-                          className="p-2 text-right font-black text-xs border-r border-black"
-                        >
-                          PESO NETO A LIQUIDAR:
-                        </td>
-                        <td className="p-2 text-right font-black text-emerald-700 font-mono">
-                          {parseFloat(selectedLiq.DetalleLiquidacion?.cantidadNeta).toFixed(2)}{' '}
-                          {selectedLiq.DetalleLiquidacion?.unidad}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                  <div className="overflow-hidden border-2 border-black">
+                    <table className="w-full border-collapse">
+                      <thead className="bg-white border-b-2 border-black text-[10px] font-black uppercase">
+                        <tr>
+                          <th className="p-2 text-left border-r border-black w-[25%]">PRODUCTO</th>
+                          <th className="p-2 text-center border-r border-black w-[15%]">
+                            CALIFICACIÓN (%)
+                          </th>
+                          <th className="p-2 text-center border-r border-black w-[20%]">
+                            PESO BRUTO
+                          </th>
+                          <th className="p-2 text-center border-r border-black w-[20%] text-blue-800">
+                            IMPUREZA (%)
+                          </th>
+                          <th className="p-2 text-center text-red-600 w-[20%]">DESC. MERMA</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm font-bold uppercase">
+                        <tr className="border-b border-black">
+                          <td className="p-3 border-r border-black">
+                            {selectedLiq.DetalleLiquidacion?.descripcionProducto || 'CACAO SECO'}
+                          </td>
+                          <td className="p-3 border-r border-black text-center">
+                            {selectedLiq.DetalleLiquidacion?.calificacion}%
+                          </td>
+                          <td className="p-3 border-r border-black text-center font-mono">
+                            {selectedLiq.DetalleLiquidacion?.cantidad}{' '}
+                            {selectedLiq.DetalleLiquidacion?.unidad}
+                          </td>
+                          <td className="p-3 border-r border-black text-center font-mono text-blue-800">
+                            {selectedLiq.DetalleLiquidacion?.impurezas}%
+                          </td>
+                          <td className="p-3 text-center text-red-600 font-mono">
+                            -
+                            {parseFloat(
+                              selectedLiq.DetalleLiquidacion?.descuentoMerma || 0
+                            ).toFixed(2)}
+                          </td>
+                        </tr>
+                        <tr className="bg-emerald-50">
+                          <td
+                            colSpan="3"
+                            className="p-2 text-right font-black text-xs border-r border-black"
+                          >
+                            PESO NETO A LIQUIDAR:
+                          </td>
+                          <td
+                            colSpan="2"
+                            className="p-2 text-center font-black text-emerald-700 font-mono text-lg bg-emerald-100/50"
+                          >
+                            {parseFloat(selectedLiq.DetalleLiquidacion?.cantidadNeta || 0).toFixed(
+                              2
+                            )}{' '}
+                            {selectedLiq.DetalleLiquidacion?.unidad}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 {/* SECCION 3: DESGLOSE FINANCIERO */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 italic">
+                    <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
                       02. Información del Productor
                     </h3>
                     <div className="border-2 border-black p-4 space-y-2">
                       <p className="font-black text-lg">{selectedLiq.Persona?.nombreCompleto}</p>
-                      <p className="text-xs font-bold text-gray-500 italic">
+                      <p className="text-xs font-bold text-gray-500">
                         Identificación: {selectedLiq.Persona?.numeroIdentificacion}
                       </p>
-                      <p className="text-xs font-bold text-gray-500 italic">
+                      <p className="text-xs font-bold text-gray-500">
                         Contacto: {selectedLiq.Persona?.telefono || 'N/A'}
                       </p>
-                      <p className="text-xs font-bold text-gray-500 italic">
+                      <p className="text-xs font-bold text-gray-500">
                         Dirección: {selectedLiq.Persona?.direccion || 'S/D'}
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 italic">
+                    <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
                       03. Resumen de Valores
                     </h3>
                     <div className="border-2 border-black">
                       <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold">
-                        <span>Subtotal:</span>{' '}
+                        <span>SUBTOTAL PRODUCTO:</span>
                         <span className="font-mono">
                           ${parseFloat(selectedLiq.totalLiquidacion).toFixed(2)}
                         </span>
                       </div>
+
                       <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold text-red-600">
-                        <span>(-) Retención Fuente:</span>{' '}
+                        <span>(-) RETENCIÓN FUENTE:</span>
                         <span className="font-mono">
                           -${parseFloat(selectedLiq.totalRetencion).toFixed(2)}
                         </span>
                       </div>
-                      <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold text-emerald-600">
-                        <span>(+) Prima/Bonificación:</span>{' '}
-                        <span className="font-mono">
-                          ${parseFloat(selectedLiq.DetalleLiquidacion?.prima || 0).toFixed(2)}
-                        </span>
-                      </div>
+
+                      {/* DESGLOSE DE ANTICIPOS APLICADOS */}
+                      {selectedLiq.Anticipos && selectedLiq.Anticipos.length > 0 && (
+                        <div className="bg-gray-50 border-b border-gray-200">
+                          {selectedLiq.Anticipos.map((ant, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between p-2 text-[10px] font-black text-amber-700 italic border-t border-gray-100"
+                            >
+                              <span>(-) ANTICIPO APLICADO :</span>
+                              <span className="font-mono">
+                                -$
+                                {parseFloat(ant.LiquidacionAnticipo?.montoAplicado || 0).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       <div className="flex justify-between p-3 bg-gray-100 font-black text-lg">
-                        <span>TOTAL NETO:</span>
+                        <span className="italic">TOTAL NETO:</span>
                         <span className="font-mono">
                           ${parseFloat(selectedLiq.totalAPagar).toFixed(2)}
                         </span>
@@ -240,41 +269,270 @@ const Compras = () => {
                 </div>
 
                 {/* SECCION 4: HISTORIAL DE PAGOS */}
-                <div>
-                  <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 italic">
-                    04. Flujo de Caja
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 border-2 border-black divide-x-2 divide-black">
-                    <div className="p-3 text-center">
-                      <label className="text-[9px] font-black block text-gray-400">EFECTIVO</label>
-                      <p className="font-mono font-bold">
-                        ${parseFloat(selectedLiq.pagoEfectivo).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="p-3 text-center">
-                      <label className="text-[9px] font-black block text-gray-400">CHEQUES</label>
-                      <p className="font-mono font-bold">
-                        ${parseFloat(selectedLiq.pagoCheque).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="p-3 text-center">
-                      <label className="text-[9px] font-black block text-gray-400">
-                        TRANSFERENCIA
-                      </label>
-                      <p className="font-mono font-bold">
-                        ${parseFloat(selectedLiq.pagoTransferencia).toFixed(2)}
-                      </p>
-                    </div>
-                    <div className="p-3 text-center bg-yellow-400">
-                      <label className="text-[9px] font-black block text-black">
-                        SALDO PENDIENTE
-                      </label>
-                      <p className="font-mono font-black">
-                        ${parseFloat(selectedLiq.montoPorPagar).toFixed(2)}
-                      </p>
+                {showModal && selectedLiq && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
+                    <div className="bg-white border-[3px] border-black w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-[15px_15px_0px_0px_rgba(0,0,0,1)]">
+                      {/* HEADER MODAL */}
+                      <div className="bg-black text-white p-4 flex justify-between items-center sticky top-0 z-10">
+                        <div className="flex flex-col">
+                          <h2 className="text-xl font-black tracking-tighter uppercase">
+                            Expediente de Liquidación
+                          </h2>
+                          <span className="text-[10px] text-amber-400 font-bold">
+                            {selectedLiq.id}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => setShowModal(false)}
+                          className="hover:rotate-90 transition-transform duration-300"
+                        >
+                          <MdClose size={32} />
+                        </button>
+                      </div>
+
+                      <div className="p-8 space-y-8 uppercase font-sans">
+                        {/* SECCION 1: DATOS GENERALES */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b-2 border-gray-100 pb-6">
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 block mb-1">
+                              CÓDIGO INTERNO
+                            </label>
+                            <p className="text-lg font-black">{selectedLiq.codigo}</p>
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-black text-gray-400 block mb-1">
+                              FECHA DE REGISTRO
+                            </label>
+                            <p className="font-bold">
+                              {new Date(selectedLiq.createdAt).toLocaleString()}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <label className="text-[10px] font-black text-gray-400 block mb-1">
+                              ESTADO DE PAGO
+                            </label>
+                            <span
+                              className={`text-xs font-black px-4 py-1 border-2 ${
+                                parseFloat(selectedLiq.montoPorPagar) > 0
+                                  ? 'border-orange-500 text-orange-600'
+                                  : 'border-emerald-500 text-emerald-600'
+                              }`}
+                            >
+                              {parseFloat(selectedLiq.montoPorPagar) > 0
+                                ? 'SALDO PENDIENTE'
+                                : 'CANCELADO TOTAL'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* SECCION 2: TABLA TÉCNICA DE PRODUCTO */}
+                        <div>
+                          <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
+                            01. Análisis de Calidad y Peso
+                          </h3>
+                          <div className="overflow-hidden border-2 border-black">
+                            <table className="w-full border-collapse">
+                              <thead className="bg-white border-b-2 border-black text-[10px] font-black uppercase">
+                                <tr>
+                                  <th className="p-2 text-left border-r border-black w-[25%]">
+                                    PRODUCTO
+                                  </th>
+                                  <th className="p-2 text-center border-r border-black w-[15%]">
+                                    CALIFICACIÓN (%)
+                                  </th>
+                                  <th className="p-2 text-center border-r border-black w-[20%]">
+                                    PESO BRUTO
+                                  </th>
+                                  <th className="p-2 text-center border-r border-black w-[20%] text-blue-800">
+                                    IMPUREZA (%)
+                                  </th>
+                                  <th className="p-2 text-center text-red-600 w-[20%]">
+                                    DESC. MERMA
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody className="text-sm font-bold uppercase">
+                                <tr className="border-b border-black">
+                                  <td className="p-3 border-r border-black">
+                                    {selectedLiq.DetalleLiquidacion?.descripcionProducto ||
+                                      'CACAO SECO'}
+                                  </td>
+                                  <td className="p-3 border-r border-black text-center">
+                                    {selectedLiq.DetalleLiquidacion?.calificacion}%
+                                  </td>
+                                  <td className="p-3 border-r border-black text-center font-mono">
+                                    {selectedLiq.DetalleLiquidacion?.cantidad}{' '}
+                                    {selectedLiq.DetalleLiquidacion?.unidad}
+                                  </td>
+                                  <td className="p-3 border-r border-black text-center font-mono text-blue-800">
+                                    {selectedLiq.DetalleLiquidacion?.impurezas}%
+                                  </td>
+                                  <td className="p-3 text-center text-red-600 font-mono">
+                                    -
+                                    {parseFloat(
+                                      selectedLiq.DetalleLiquidacion?.descuentoMerma || 0
+                                    ).toFixed(2)}
+                                  </td>
+                                </tr>
+                                <tr className="bg-emerald-50">
+                                  <td
+                                    colSpan="3"
+                                    className="p-2 text-right font-black text-xs border-r border-black"
+                                  >
+                                    PESO NETO A LIQUIDAR:
+                                  </td>
+                                  <td
+                                    colSpan="2"
+                                    className="p-2 text-center font-black text-emerald-700 font-mono text-lg bg-emerald-100/50"
+                                  >
+                                    {parseFloat(
+                                      selectedLiq.DetalleLiquidacion?.cantidadNeta || 0
+                                    ).toFixed(2)}{' '}
+                                    {selectedLiq.DetalleLiquidacion?.unidad}
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+
+                        {/* SECCION 3: DESGLOSE FINANCIERO */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                          <div>
+                            <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
+                              02. Información del Productor
+                            </h3>
+                            <div className="border-2 border-black p-4 space-y-2">
+                              <p className="font-black text-lg">
+                                {selectedLiq.Persona?.nombreCompleto}
+                              </p>
+                              <p className="text-xs font-bold text-gray-500">
+                                Identificación: {selectedLiq.Persona?.numeroIdentificacion}
+                              </p>
+                              <p className="text-xs font-bold text-gray-500">
+                                Contacto: {selectedLiq.Persona?.telefono || 'N/A'}
+                              </p>
+                              <p className="text-xs font-bold text-gray-500">
+                                Dirección: {selectedLiq.Persona?.direccion || 'S/D'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div>
+                            <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
+                              03. Resumen de Valores
+                            </h3>
+                            <div className="border-2 border-black">
+                              <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold">
+                                <span>SUBTOTAL PRODUCTO:</span>
+                                <span className="font-mono">
+                                  ${parseFloat(selectedLiq.totalLiquidacion).toFixed(2)}
+                                </span>
+                              </div>
+
+                              <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold text-red-600">
+                                <span>(-) RETENCIÓN FUENTE:</span>
+                                <span className="font-mono">
+                                  -${parseFloat(selectedLiq.totalRetencion).toFixed(2)}
+                                </span>
+                              </div>
+
+                              {/* DESGLOSE DE ANTICIPOS APLICADOS */}
+                              {selectedLiq.Anticipos && selectedLiq.Anticipos.length > 0 && (
+                                <div className="bg-gray-50 border-b border-gray-200">
+                                  {selectedLiq.Anticipos.map((ant, index) => (
+                                    <div
+                                      key={index}
+                                      className="flex justify-between p-2 text-[10px] font-black text-amber-700 italic border-t border-gray-100"
+                                    >
+                                      <span>(-) ANTICIPO APLICADO :</span>
+                                      <span className="font-mono">
+                                        -$
+                                        {parseFloat(
+                                          ant.LiquidacionAnticipo?.montoAplicado || 0
+                                        ).toFixed(2)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              <div className="flex justify-between p-3 bg-gray-100 font-black text-lg">
+                                <span className="italic">TOTAL NETO:</span>
+                                <span className="font-mono">
+                                  ${parseFloat(selectedLiq.totalAPagar).toFixed(2)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* SECCION 4: FLUJO DE CAJA ACTUALIZADO CON ABONO ANTICIPO */}
+                        <div>
+                          <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
+                            04. Flujo de Caja
+                          </h3>
+                          {/* Se cambió a grid-cols-5 para incluir el Abono Ant. */}
+                          <div className="grid grid-cols-2 md:grid-cols-5 border-2 border-black divide-x-2 divide-black">
+                            <div className="p-3 text-center">
+                              <label className="text-[9px] font-black block text-gray-400">
+                                EFECTIVO
+                              </label>
+                              <p className="font-mono font-bold">
+                                ${parseFloat(selectedLiq.pagoEfectivo).toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="p-3 text-center">
+                              <label className="text-[9px] font-black block text-gray-400">
+                                CHEQUES
+                              </label>
+                              <p className="font-mono font-bold">
+                                ${parseFloat(selectedLiq.pagoCheque).toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="p-3 text-center">
+                              <label className="text-[9px] font-black block text-gray-400">
+                                TRANSFERENCIA
+                              </label>
+                              <p className="font-mono font-bold">
+                                ${parseFloat(selectedLiq.pagoTransferencia).toFixed(2)}
+                              </p>
+                            </div>
+                            {/* NUEVA COLUMNA DE ABONO ANTICIPO */}
+                            <div className="p-3 text-center bg-gray-50">
+                              <label className="text-[9px] font-black block text-amber-600 uppercase">
+                                ABONO ANT.
+                              </label>
+                              <p className="font-mono font-bold text-amber-700">
+                                ${parseFloat(selectedLiq.abonoAnticipo || 0).toFixed(2)}
+                              </p>
+                            </div>
+                            <div className="p-3 text-center bg-yellow-400">
+                              <label className="text-[9px] font-black block text-black">
+                                SALDO PENDIENTE
+                              </label>
+                              <p className="font-mono font-black">
+                                ${parseFloat(selectedLiq.montoPorPagar).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-gray-50 p-6 border-t-2 border-black flex justify-between items-center">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase">
+                          Aroma de Oro ERP - Registro de Auditoría Interna
+                        </p>
+                        <button
+                          onClick={() => setShowModal(false)}
+                          className="bg-black text-white px-10 py-3 font-black uppercase hover:bg-gray-800 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)]"
+                        >
+                          Cerrar Expediente
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </div>
 
               <div className="bg-gray-50 p-6 border-t-2 border-black flex justify-between items-center">
@@ -292,136 +550,182 @@ const Compras = () => {
           </div>
         )}
 
-        {/* CABECERA */}
-        <div className="flex flex-col md:flex-row justify-between items-center border-b-2 border-gray-800 pb-4 mb-6 gap-4">
+        {/* CABECERA PRINCIPAL */}
+        <div className="flex flex-col md:flex-row justify-between items-center border-b-2 border-gray-800 pb-4 mb-6 gap-4 font-black ">
           <div className="flex items-center gap-4">
-            <MdBusiness size={45} />
+            <div className="bg-gray-800 text-white p-2 rounded ">
+              <MdBusiness size={40} />
+            </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-black uppercase tracking-tighter">
-                {empresa?.nombre || 'SIN NOMBRE'}
+              <h1 className="text-xl md:text-2xl uppercase tracking-tighter">
+                {empresa?.nombre || 'AROMA DE ORO'}
               </h1>
-              <p className="text-[10px] font-bold text-gray-600 uppercase">
-                {empresa?.ruc || 'SIN RUC'} | {empresa?.direccion || 'SIN DIRECCIÓN'}
+              <p className="text-[10px] text-gray-500 font-mono tracking-widest">
+                {empresa?.ruc || '0999999999001'}
               </p>
             </div>
           </div>
-          <div className="bg-white border-2 border-gray-800 p-2 text-center w-full md:w-auto">
-            <h2 className="text-sm md:text-lg font-black uppercase px-4">
-              Liquidación de Compra Directa
+          <div className="border-2 border-gray-800 p-3 bg-gray-50 text-center uppercase min-w-[200px] ">
+            <h2 className="text-xs text-gray-400 mb-1 font-black underline">
+              Liquidación de Compra
             </h2>
-            <p className="text-[10px] font-black text-emerald-600">
-              {caja ? `CAJA ACTIVA: ${caja.id.slice(0, 8)}` : 'REQUIERE ABIR CAJA'}
-            </p>
+            <div className="flex items-center justify-center gap-2">
+              <span
+                className={`w-2 h-2 rounded-full ${caja ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}
+              ></span>
+              <p className="text-[10px] text-emerald-700 font-black ">
+                {caja ? `ID CAJA: ${caja.id.slice(0, 8)}` : 'CAJA CERRADA'}
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* BUSCADOR */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 uppercase">
+        {/* BUSCADOR DE PRODUCTOR */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 uppercase font-black ">
           <div className="md:col-span-2">
-            <label
-              className={`text-[10px] font-black mb-1 block ${isFormDisabled ? 'text-red-600' : 'text-gray-800'}`}
-            >
-              Identificación del Productor
-            </label>
-            <div
-              className={`flex border-2 ${isFormDisabled ? 'border-gray-200 bg-gray-50' : 'border-gray-800 bg-white'}`}
-            >
+            <div className="flex border-2 border-gray-800  group">
               <input
                 disabled={isFormDisabled}
                 type="text"
-                className="w-full p-3 font-bold outline-none bg-transparent"
+                className="w-full p-3 font-bold outline-none group-focus-within:bg-gray-50"
                 value={cedulaBusqueda}
-                onChange={(e) => {
-                  setCedulaBusqueda(e.target.value)
-                  if (productorInfo) setProductorInfo(null)
-                }}
-                onKeyPress={(e) => e.key === 'Enter' && !isFormDisabled && buscarProductor()}
-                placeholder="CÉDULA O RUC..."
+                onChange={(e) => setCedulaBusqueda(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && buscarProductor()}
+                placeholder="BUSCAR CÉDULA O RUC..."
               />
               <button
-                disabled={isFormDisabled}
                 onClick={buscarProductor}
-                className={`px-6 transition-all ${isFormDisabled ? 'bg-gray-200 text-gray-400' : 'bg-gray-800 text-white hover:bg-black'}`}
+                className="px-8 bg-gray-800 text-white hover:bg-black transition-colors"
               >
-                <MdSearch size={22} />
+                <MdSearch size={24} />
               </button>
             </div>
           </div>
-          <div>
-            <label className="text-[10px] font-black text-gray-500 mb-1 block">
-              Beneficiario / Productor
-            </label>
-            <div
-              className={`border-2 p-3 font-black text-sm min-h-[56px] flex items-center ${productorInfo ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-gray-300 bg-gray-50 text-gray-700'}`}
-            >
-              {productorInfo?.nombreCompleto || (
-                <span className="text-[10px] italic font-normal opacity-60">
-                  Esperando identificación...
-                </span>
-              )}
-            </div>
+          <div
+            className={`border-2 p-3 flex items-center justify-between transition-all ${productorInfo ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ' : 'bg-gray-50 opacity-50  border-gray-300'}`}
+          >
+            <span className={productorInfo ? 'text-sm font-black' : 'text-[10px]'}>
+              {productorInfo?.nombreCompleto || 'Esperando identificación...'}
+            </span>
+            {productorInfo && <MdReceipt className="text-emerald-600" size={20} />}
           </div>
         </div>
 
-        {/* REGISTRO RÁPIDO */}
+        {/* FORMULARIO DE NUEVO PRODUCTOR (INTEGRADO ARRIBA DE LA TABLA) */}
         {mostrarFormProductor && (
-          <div className="mb-6 p-6 border-2 border-amber-500 bg-amber-50 rounded-2xl grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="md:col-span-4 flex items-center gap-2 text-amber-800 font-black text-xs uppercase border-b border-amber-200 pb-2">
-              <MdPersonAdd size={20} /> Nuevo Productor
+          <div className="mb-8 border-4 border-gray-800 bg-white p-6  animate-in fade-in slide-in-from-top-4 duration-300">
+            <div className="flex justify-between items-center border-b-2 border-gray-800 pb-3 mb-6">
+              <div className="flex items-center gap-2 text-gray-800 font-black uppercase  text-lg">
+                <MdPersonAdd size={24} className="text-emerald-600" />
+                <span>Registrar Datos del Productor</span>
+              </div>
+              <button
+                onClick={() => setMostrarFormProductor(false)}
+                className="hover:rotate-90 transition-transform p-1"
+              >
+                <MdClose size={28} />
+              </button>
             </div>
-            <input
-              className="p-3 border-2 border-amber-200 rounded-xl text-xs font-bold uppercase outline-none"
-              placeholder="Nombre"
-              value={nuevoProductor.nombreCompleto}
-              onChange={(e) =>
-                setNuevoProductor({
-                  ...nuevoProductor,
-                  nombreCompleto: e.target.value.toUpperCase(),
-                })
-              }
-            />
-            <input
-              className="p-3 border-2 border-amber-200 rounded-xl text-xs font-bold outline-none"
-              placeholder="Teléfono"
-              value={nuevoProductor.telefono}
-              onChange={(e) => setNuevoProductor({ ...nuevoProductor, telefono: e.target.value })}
-            />
-            <button
-              onClick={handleRegistrarProductor}
-              className="bg-amber-500 text-white font-black text-xs py-3 rounded-xl uppercase hover:bg-amber-600 self-end"
-            >
-              Guardar
-            </button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 font-black uppercase ">
+              <div className="space-y-1">
+                <label className="text-[10px] text-gray-500 ml-1 flex items-center gap-1">
+                  <MdPersonAdd size={12} /> Nombre Completo *
+                </label>
+                <input
+                  type="text"
+                  className="w-full border-2 border-gray-800 p-3 text-sm outline-none focus:bg-emerald-50"
+                  value={nuevoProductor.nombreCompleto}
+                  onChange={(e) =>
+                    setNuevoProductor({
+                      ...nuevoProductor,
+                      nombreCompleto: e.target.value.toUpperCase(),
+                    })
+                  }
+                  placeholder="NOMBRE / RAZÓN SOCIAL"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-gray-500 ml-1 flex items-center gap-1">
+                  <MdPhone size={12} /> Teléfono *
+                </label>
+                <input
+                  type="text"
+                  className="w-full border-2 border-gray-800 p-3 text-sm outline-none focus:bg-emerald-50"
+                  value={nuevoProductor.telefono}
+                  onChange={(e) =>
+                    setNuevoProductor({ ...nuevoProductor, telefono: e.target.value })
+                  }
+                  placeholder="09XXXXXXXX"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-gray-500 ml-1 flex items-center gap-1">
+                  <MdEmail size={12} /> Email (Opcional)
+                </label>
+                <input
+                  type="email"
+                  className="w-full border-2 border-gray-800 p-3 text-sm outline-none focus:bg-emerald-50"
+                  value={nuevoProductor.email || ''}
+                  onChange={(e) =>
+                    setNuevoProductor({ ...nuevoProductor, email: e.target.value.toLowerCase() })
+                  }
+                  placeholder="CORREO@EJEMPLO.COM"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-gray-500 ml-1 flex items-center gap-1">
+                  <MdLocationOn size={12} /> Dirección (Opcional)
+                </label>
+                <input
+                  type="text"
+                  className="w-full border-2 border-gray-800 p-3 text-sm outline-none focus:bg-emerald-50"
+                  value={nuevoProductor.direccion || ''}
+                  onChange={(e) =>
+                    setNuevoProductor({
+                      ...nuevoProductor,
+                      direccion: e.target.value.toUpperCase(),
+                    })
+                  }
+                  placeholder="UBICACIÓN / SECTOR"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={ejecutarRegistro}
+                className="bg-emerald-600 text-white px-10 py-3 font-black uppercase  border-2 border-gray-800  hover:bg-emerald-700 active:translate-y-1 active:shadow-none transition-all"
+              >
+                Confirmar y Registrar
+              </button>
+            </div>
           </div>
         )}
 
-        {/* TABLA INGRESO */}
-        {/* TABLA INGRESO */}
-        <div className="overflow-x-auto mb-8 border-2 border-gray-800 shadow-sm">
-          <table className="w-full border-collapse min-w-[1100px]">
-            <thead className="bg-gray-800 text-white text-[10px] font-black uppercase">
+        {/* TABLA DE PRODUCTO (ANCHOS ESTÁTICOS) */}
+        <div className="overflow-x-auto mb-8 border-2 border-gray-800 ">
+          <table className="w-full min-w-[1100px] border-collapse font-black uppercase text-sm ">
+            <thead className="bg-gray-800 text-white text-[10px] tracking-widest">
               <tr>
-                <th className="p-2 text-left w-44">Producto</th> {/* Ancho reducido aquí */}
-                <th className="p-2 w-20">Calif.</th>
-                <th className="p-2 w-32 text-center">Unidad</th>
-                <th className="p-2 w-28 text-center bg-gray-700">Cant. Bruta</th>
-                <th className="p-2 w-20 text-center bg-blue-900">Hum %</th>
-                <th className="p-2 w-20 text-center bg-blue-900">Imp %</th>
-                <th className="p-2 w-28 text-center bg-emerald-700">Cant. Neta</th>
-                <th className="p-2 w-28 text-center">Precio U.</th>
-                {/* COLUMNA PRIMA AÑADIDA */}
-                <th className="p-2 w-24 text-center bg-amber-600">Prima</th>
-                <th className="p-2 w-20 text-center">IVA %</th>
-                <th className="p-2 text-right w-36">Subtotal</th>
+                <th className="p-3 text-left w-[250px]">Producto</th>
+                <th className="p-3 w-[120px] bg-gray-700">Cant. Bruta</th>
+                <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Calif % (H)</th>
+                <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Imp %</th>
+                <th className="p-3 w-[120px] bg-emerald-700 text-emerald-100 font-black">
+                  Cant. Neta
+                </th>
+                <th className="p-3 w-[120px]">Precio U.</th>
+                <th className="p-4 text-right w-[180px] bg-gray-900">Subtotal</th>
               </tr>
             </thead>
-            <tbody className="text-black font-black uppercase">
-              <tr className="border-b border-gray-800">
-                <td className="p-2 border-r border-gray-800">
+            <tbody className="bg-white">
+              <tr className="border-b-2 border-gray-100">
+                <td className="p-2 border-r border-gray-800 w-[250px]">
                   <select
                     value={productoSeleccionado}
                     onChange={(e) => setProductoSeleccionado(e.target.value)}
-                    className="w-full p-2 outline-none text-xs font-black"
+                    className="w-full p-2 outline-none text-xs font-black cursor-pointer bg-transparent"
                   >
                     <option value="">-- SELECCIONAR --</option>
                     {productos.map((p) => (
@@ -431,188 +735,248 @@ const Compras = () => {
                     ))}
                   </select>
                 </td>
-                <td className="p-2 border-r border-gray-800">
-                  <input
-                    type="text"
-                    value={calificacion}
-                    onChange={(e) => setCalificacion(e.target.value.toUpperCase())}
-                    className="w-full text-center outline-none bg-gray-50 p-2 text-xs"
-                  />
-                </td>
-                <td className="p-2 border-r border-gray-800">
-                  <select
-                    value={unidad}
-                    onChange={(e) => setUnidad(e.target.value)}
-                    className="w-full p-2 text-center outline-none bg-white font-black text-xs"
-                  >
-                    <option value="Quintales">QUINTALES (QQ)</option>
-                    <option value="Kilogramos">KILOGRAMOS (KG)</option>
-                    <option value="Libras">Libras (LB)</option>
-                    <option value="Unidades">Unidades (UD)</option>
-                  </select>
-                </td>
-                <td className="p-2 border-r border-gray-800 bg-yellow-50">
+                <td className="p-2 border-r border-gray-800 bg-gray-50 w-[120px]">
                   <input
                     type="number"
                     value={cantidad}
                     onChange={(e) => setCantidad(e.target.value)}
-                    className="w-full text-center font-mono text-xl outline-none p-2 bg-transparent"
+                    className="w-full text-center font-mono text-xl outline-none bg-transparent"
                   />
                 </td>
-                <td className="p-2 border-r border-gray-800 bg-blue-50">
+                <td className="p-2 border-r border-gray-800 bg-blue-50 w-[100px]">
                   <input
                     type="number"
-                    value={humedad}
-                    onChange={(e) => setHumedad(e.target.value)}
-                    className="w-full text-center font-mono text-xl outline-none p-2 bg-transparent text-blue-800"
+                    value={calificacion}
+                    onChange={(e) => setCalificacion(e.target.value)}
+                    className="w-full text-center font-mono text-xl outline-none bg-transparent text-blue-800"
                   />
                 </td>
-                <td className="p-2 border-r border-gray-800 bg-blue-50">
+                <td className="p-2 border-r border-gray-800 bg-blue-50 w-[100px]">
                   <input
                     type="number"
                     value={impurezas}
                     onChange={(e) => setImpurezas(e.target.value)}
-                    className="w-full text-center font-mono text-xl outline-none p-2 bg-transparent text-blue-800"
+                    className="w-full text-center font-mono text-xl outline-none bg-transparent text-blue-800"
                   />
                 </td>
-                <td className="p-2 border-r border-gray-800 bg-emerald-50 text-center font-mono text-xl text-emerald-800">
-                  {pesoNeto.toFixed(2)}
+                <td className="p-2 border-r border-gray-800 bg-emerald-50 text-center font-mono text-xl text-emerald-800 font-black w-[120px]">
+                  {Number(pesoNeto || 0).toFixed(2)}
                 </td>
-                <td className="p-2 border-r border-gray-800 bg-gray-50">
+                <td className="p-2 border-r border-gray-800 bg-gray-50 w-[120px]">
                   <input
                     type="number"
                     value={precio}
                     onChange={(e) => setPrecio(e.target.value)}
-                    className="w-full text-center font-mono text-xl outline-none p-2 bg-transparent"
+                    className="w-full text-center font-mono text-xl outline-none bg-transparent"
                   />
                 </td>
-                {/* INPUT DE PRIMA */}
-                <td className="p-2 border-r border-gray-800 bg-amber-50">
-                  <input
-                    type="number"
-                    value={prima}
-                    onChange={(e) => setPrima(e.target.value)}
-                    className="w-full text-center font-mono text-xl outline-none p-2 bg-transparent text-amber-800"
-                  />
-                </td>
-                <td className="p-2 border-r border-gray-800">
-                  <input
-                    type="number"
-                    value={ivaPorcentaje}
-                    onChange={(e) => setIvaPorcentaje(e.target.value)}
-                    className="w-full text-center font-mono text-xl outline-none p-2"
-                  />
-                </td>
-                <td className="p-4 text-right font-mono text-2xl bg-gray-100">
-                  ${bruto.toFixed(2)}
+                <td className="p-4 text-right font-mono text-2xl bg-gray-100 text-gray-900 font-black w-[180px]">
+                  ${Number(bruto || 0).toFixed(2)}
                 </td>
               </tr>
             </tbody>
           </table>
-          <div className="bg-gray-800 text-white p-2 text-[9px] flex justify-end gap-4 italic px-4">
-            <span>MERMA HUMEDAD: -{mermaHumedad.toFixed(2)}</span>
-            <span>MERMA IMPUREZAS: -{mermaImpurezas.toFixed(2)}</span>
-            <span className="font-black text-yellow-400">
-              DESCUENTO TOTAL: -{totalMerma.toFixed(2)} {unidad.toUpperCase()}
+          <div className="bg-gray-800 text-white p-2 text-[9px] flex justify-end gap-6  px-6 uppercase font-black">
+            <span className="opacity-70">
+              Merma Calidad: -{Number(mermaCalificacion || 0).toFixed(2)}
+            </span>
+            <span className="opacity-70">
+              Merma Impurezas: -{Number(mermaImpurezas || 0).toFixed(2)}
+            </span>
+            <span className="text-amber-400">
+              Total Merma Aplicada: -{Number(totalMerma || 0).toFixed(2)}
             </span>
           </div>
         </div>
 
-        {/* PAGOS Y RETENCIONES */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 uppercase">
-          <div className="border-2 border-gray-800 p-5 space-y-4 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-1.5 h-full bg-red-600"></div>
-            <p className="text-[11px] font-black border-b-2 border-gray-800 pb-2 flex items-center gap-2">
-              <MdMoneyOff size={18} className="text-red-600" /> Retención en la Fuente
-            </p>
-            <div className="flex flex-col gap-4">
-              <input
-                type="text"
-                value={retencionConcepto}
-                onChange={(e) => setRetencionConcepto(e.target.value.toUpperCase())}
-                className="w-full border-2 border-gray-800 p-2.5 text-xs font-bold outline-none"
-                placeholder="CONCEPTO..."
-              />
-              <div className="flex items-end justify-between gap-4">
-                <div className="w-1/3">
-                  <label className="text-[10px] font-black text-gray-500">%</label>
+        {/* SECCIÓN DE ANTICIPOS */}
+        {anticiposPendientes && anticiposPendientes.length > 0 && (
+          <div className="mb-8 border-2 border-gray-800 bg-gray-50  overflow-hidden font-black uppercase ">
+            <div className="bg-gray-800 p-2 flex items-center gap-2 text-white">
+              <MdAccountBalanceWallet size={18} className="text-emerald-400" />
+              <span className="text-[10px] tracking-widest">Cruce de Anticipos Pendientes</span>
+            </div>
+            <div className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <span className="text-[10px] text-gray-400 block mb-1 underline font-black">
+                  Deuda Total del Productor
+                </span>
+                <span className="text-xl font-mono text-red-600 bg-white px-3 py-1 border-2 border-gray-300">
+                  $
+                  {anticiposPendientes
+                    .reduce((acc, a) => acc + (parseFloat(a.saldoPendiente) || 0), 0)
+                    .toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-4 bg-white border-2 border-gray-800 p-3">
+                <label className="text-[10px]">Cruce a Aplicar Hoy:</label>
+                <div className="relative border-b-2 border-gray-800">
+                  <span className="absolute left-1 top-1/2 -translate-y-1/2 text-gray-400 font-mono">
+                    $
+                  </span>
                   <input
                     type="number"
-                    value={retencionPorcentaje}
-                    onChange={(e) => setRetencionPorcentaje(e.target.value)}
-                    className="w-full border-2 border-gray-800 p-2 font-mono font-black text-xl outline-none"
+                    value={montoAplicarAnticipo}
+                    onChange={(e) => setMontoAplicarAnticipo(e.target.value)}
+                    className="w-32 pl-4 text-right font-mono font-black text-lg outline-none text-emerald-700 bg-transparent"
                   />
                 </div>
-                <div className="flex-1 text-right bg-gray-50 p-2 border border-dashed border-gray-300">
-                  <span className="text-[10px] font-black text-gray-500 block">Descontar:</span>
-                  <span className="text-2xl font-mono font-black text-red-600">
-                    -${valorRetenido.toFixed(2)}
-                  </span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 font-black uppercase ">
+          {/* PAGOS Y RETENCIONES */}
+          <div className="space-y-4">
+            <div className="border-2 border-gray-800 p-5 bg-white relative ">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+              <p className="text-[11px] border-b-2 border-gray-800 pb-2 mb-4 flex items-center gap-2 font-black">
+                <MdPayments size={18} /> Detalle de Pagos (Salida de Caja)
+              </p>
+              <div className="grid grid-cols-3 gap-3 font-mono">
+                <div className="space-y-1 text-center">
+                  <label className="text-[9px] text-gray-400 block">
+                    <MdAttachMoney className="inline" /> Efectivo
+                  </label>
+                  <input
+                    type="number"
+                    value={pagos.efectivo}
+                    onChange={(e) => setPagos({ ...pagos, efectivo: e.target.value })}
+                    className="w-full border-2 border-gray-800 p-2 text-center text-lg outline-none focus:bg-emerald-50"
+                  />
+                </div>
+                <div className="space-y-1 text-center">
+                  <label className="text-[9px] text-gray-400 block">
+                    <MdConfirmationNumber className="inline" /> Cheque
+                  </label>
+                  <input
+                    type="number"
+                    value={pagos.cheque}
+                    onChange={(e) => setPagos({ ...pagos, cheque: e.target.value })}
+                    className="w-full border-2 border-gray-800 p-2 text-center text-lg outline-none focus:bg-emerald-50"
+                  />
+                </div>
+                <div className="space-y-1 text-center">
+                  <label className="text-[9px] text-gray-400 block">
+                    <MdAccountBalance className="inline" /> Transf.
+                  </label>
+                  <input
+                    type="number"
+                    value={pagos.transferencia}
+                    onChange={(e) => setPagos({ ...pagos, transferencia: e.target.value })}
+                    className="w-full border-2 border-gray-800 p-2 text-center text-lg outline-none focus:bg-emerald-50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="border-2 border-gray-800 p-5 bg-white relative ">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-red-600"></div>
+              <p className="text-[11px] border-b-2 border-gray-800 pb-2 mb-4 flex items-center gap-2 font-black">
+                <MdMoneyOff size={18} /> Retención Legal
+              </p>
+              <div className="space-y-3">
+                <input
+                  type="text"
+                  value={retencionConcepto}
+                  onChange={(e) => setRetencionConcepto(e.target.value.toUpperCase())}
+                  className="w-full border-2 border-gray-200 p-2 text-[10px] outline-none focus:border-gray-800 font-black"
+                  placeholder="CONCEPTO (EJ: RETENCION 1%)"
+                />
+                <div className="flex gap-4 items-end font-mono">
+                  <div className="w-1/3">
+                    <label className="text-[9px] text-gray-400 block mb-1">Porcentaje (%)</label>
+                    <input
+                      type="number"
+                      value={retencionPorcentaje}
+                      onChange={(e) => setRetencionPorcentaje(e.target.value)}
+                      className="w-full border-2 border-gray-800 p-2 text-xl outline-none"
+                    />
+                  </div>
+                  <div className="flex-1 bg-gray-50 p-2 border border-dashed border-gray-400 text-right">
+                    <span className="text-[10px] text-gray-400 block  mb-1 uppercase font-black">
+                      Valor Retenido:
+                    </span>
+                    <span className="text-2xl font-black text-red-600">
+                      -${Number(valorRetenido || 0).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="border-4 border-gray-800 p-5 bg-gray-50 shadow-md">
-            <div className="flex justify-between font-black text-3xl border-b-4 border-gray-800 mb-6 pb-2 italic">
-              <span>Total:</span>
-              <span>${totalAPagar.toFixed(2)}</span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-6">
-              {['Descuento', 'Efectivo', 'Cheque', 'Transf.'].map((l, i) => (
-                <div
-                  key={l}
-                  className={`border-2 p-2 bg-white ${i === 0 ? 'border-red-600' : 'border-gray-800'}`}
-                >
-                  <label className={`text-[9px] font-black block ${i === 0 ? 'text-red-600' : ''}`}>
-                    {l}
-                  </label>
-                  <input
-                    type="number"
-                    className="w-full font-mono font-black text-lg outline-none"
-                    value={i === 0 ? descuento : Object.values(pagos)[i - 1]}
-                    onChange={(e) =>
-                      i === 0
-                        ? setDescuento(e.target.value)
-                        : setPagos({ ...pagos, [Object.keys(pagos)[i - 1]]: e.target.value })
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-white border-2 border-gray-800 p-3 text-center">
-                <p className="text-[9px] font-black text-gray-400">Pagado</p>
-                <p className="text-2xl font-mono font-black">${montoAbonado.toFixed(2)}</p>
+          {/* TOTALES FINALES */}
+          <div className="border-[4px] border-gray-900 p-6 bg-gray-50  flex flex-col justify-between">
+            <div className="space-y-3">
+              <div className="flex justify-between items-center text-sm border-b border-gray-300 pb-2">
+                <span className="text-gray-500 font-black ">Subtotal Liquidación:</span>
+                <span className="font-mono font-black text-lg">
+                  ${Number(bruto || 0).toFixed(2)}
+                </span>
               </div>
-              <div className="bg-gray-800 text-white p-3 text-center">
-                <p className="text-[9px] font-black text-gray-400">Saldo</p>
-                <p className="text-2xl font-mono font-black text-yellow-400">
-                  ${saldoADeber.toFixed(2)}
+              <div className="flex justify-between items-center text-sm border-b border-gray-300 pb-2 text-red-600  font-black">
+                <span>(-) Retenciones:</span>
+                <span className="font-mono">-${Number(valorRetenido || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-xl font-black border-b-2 border-gray-900 pb-2 mb-4  tracking-tighter">
+                <span>Total Neto a Pagar:</span>
+                <span className="text-3xl font-mono text-emerald-700">
+                  ${Number(totalAPagar || 0).toFixed(2)}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="bg-white border-2 border-gray-800 p-2 text-center">
+                  <p className="text-[8px] text-emerald-600  font-black">(-) Cruce Anticipo</p>
+                  <p className="text-xl font-mono font-black">
+                    -${Number(montoAplicarAnticipo || 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="bg-white border-2 border-gray-800 p-2 text-center">
+                  <p className="text-[8px] text-gray-400  font-black">(-) Abono Hoy</p>
+                  <p className="text-xl font-mono font-black">
+                    -${Number(montoAbonadoTotal || 0).toFixed(2)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-gray-800 text-white p-4 text-center border-b-8 border-amber-500">
+                <p className="text-[10px] text-gray-400 mb-1 uppercase tracking-[0.2em] font-black">
+                  Saldo Pendiente (CRÉDITO)
+                </p>
+                <p className="text-5xl font-mono font-black text-amber-400 ">
+                  ${Number(saldoADeber || 0).toFixed(2)}
                 </p>
               </div>
             </div>
+
             <button
               disabled={loading || isFormDisabled}
               onClick={handleGuardar}
-              className={`w-full py-5 flex items-center justify-center gap-3 transition-all transform font-black border-b-4 active:border-b-0 active:translate-y-1 ${loading || isFormDisabled ? 'bg-gray-200 text-gray-400 grayscale' : 'bg-amber-500 text-black border-amber-700 hover:bg-amber-400 shadow-lg'}`}
+              className={`w-full mt-8 py-5 flex items-center justify-center gap-3 transition-all transform border-b-[6px] active:border-b-0 active:translate-y-2 ${loading || isFormDisabled ? 'bg-gray-200 text-gray-400 border-gray-300' : 'bg-gray-900 text-white border-gray-700 hover:bg-black font-black'}`}
             >
               {loading ? (
-                <div className="w-5 h-5 border-4 border-black/20 border-t-black rounded-full animate-spin" />
-              ) : isFormDisabled ? (
-                <MdLock size={20} />
+                <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
               ) : (
-                <MdPayments size={22} />
+                <MdReceipt size={30} className="text-amber-400" />
               )}
-              <span>
-                {loading ? 'Procesando...' : isFormDisabled ? 'Bloqueado' : 'Finalizar Liquidación'}
+              <span className="text-xl uppercase  tracking-tighter">
+                {loading ? 'Procesando...' : 'Finalizar Transacción'}
               </span>
             </button>
           </div>
         </div>
 
-        {/* HISTORIAL */}
-        <div className="mt-12 border-t-4 border-gray-800 pt-8 uppercase">
+        {/* LISTADO DE LIQUIDACIONES RECIENTES */}
+        <div className="mt-12 pt-8 border-t-[4px] border-gray-800">
+          <div className="flex items-center gap-2 mb-6 font-black uppercase  tracking-tighter">
+            <div className="w-2 h-8 bg-emerald-500"></div>
+            <h3 className="text-xl underline decoration-gray-800 underline-offset-8 font-black">
+              Historial de Movimientos Aroma de Oro
+            </h3>
+          </div>
           <ComprasHeader />
           <ComprasTable
             liquidaciones={liquidaciones}

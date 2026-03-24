@@ -90,7 +90,7 @@ const Home = () => {
 
         let totalVentasHoy = 0
         ;(respVentas.data.ventas || []).forEach((v) => {
-          if (new Date(v.fecha).toISOString().split('T')[0] === hoy)
+          if (new Date(v.createdAt).toISOString().split('T')[0] === hoy)
             totalVentasHoy += parseFloat(v.totalFactura || 0)
         })
 

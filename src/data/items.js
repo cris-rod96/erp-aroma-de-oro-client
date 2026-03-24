@@ -3,6 +3,7 @@ import { FaFilePdf, FaShoppingBasket, FaTruckLoading, FaUsers } from 'react-icon
 import { FaBoxesStacked, FaTruckFast } from 'react-icons/fa6'
 import { GiCash, GiGears, GiPayMoney, GiReceiveMoney } from 'react-icons/gi'
 import { GrUserWorker } from 'react-icons/gr'
+import { MdOutlinePayments, MdPriceCheck, MdOutlineRequestQuote } from 'react-icons/md'
 import { TbCashRegister } from 'react-icons/tb'
 
 export const ITEMS_DATA = [
@@ -45,6 +46,28 @@ export const ITEMS_DATA = [
     path: '/inicio/nomina',
     label: 'NÓMINA',
     icon: GrUserWorker,
+    onlyAdmin: true,
+  },
+
+  {
+    path: '/inicio/anticipos',
+    label: 'ANTICIPOS',
+    icon: MdPriceCheck,
+    onlyAdmin: true,
+  },
+
+  {
+    path: '/inicio/prestamos',
+    label: 'PRÉSTAMOS',
+    icon: MdOutlinePayments,
+    onlyAdmin: true,
+  },
+
+  // --- NUEVA OPCIÓN: GASTOS GENERALES ---
+  {
+    path: '/inicio/gastos',
+    label: 'GASTOS',
+    icon: MdOutlineRequestQuote,
     onlyAdmin: true,
   },
 

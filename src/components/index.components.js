@@ -8,6 +8,7 @@ import {
   CajasTable,
   ProductoresTable,
   ComprasTable,
+  NominaTable,
 } from './tables/index.tables'
 import {
   KardexHeader,
@@ -15,6 +16,7 @@ import {
   CajasHeader,
   ProductoresHeader,
   ComprasHeader,
+  NominaHeader,
 } from './headers/index.headers'
 
 export {
@@ -32,4 +34,6 @@ export {
   ProductoresHeader,
   ComprasTable,
   ComprasHeader,
+  NominaHeader,
+  NominaTable,
 }

@@ -16,7 +16,7 @@ import Swal from 'sweetalert2'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
 
 const Configuracion = () => {
-  const infoData = useAuthStore((state) => state.adminData)
+  const infoData = useAuthStore((state) => state.data)
   const token = useAuthStore((state) => state.token)
   const setAdminData = useAuthStore((state) => state.setAdminData)
   const setEmpresa = useEmpresaStore((state) => state.setEmpresa)
@@ -282,16 +282,6 @@ const Configuracion = () => {
               </div>
 
               <div className="p-8 space-y-6">
-                <div className="flex flex-col items-center justify-center py-10 border-4 border-dashed border-gray-50 rounded-[2.5rem] bg-gray-50/50 group hover:border-amber-200 transition-all cursor-pointer relative overflow-hidden">
-                  <MdCloudUpload
-                    className="text-gray-300 group-hover:text-amber-400 transition-colors"
-                    size={48}
-                  />
-                  <span className="text-[9px] font-black text-gray-400 uppercase mt-3 tracking-widest">
-                    Subir Logotipo PNG
-                  </span>
-                </div>
-
                 <div className="space-y-5">
                   <div className="space-y-2">
                     <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">

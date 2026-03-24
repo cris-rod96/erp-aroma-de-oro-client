@@ -7,6 +7,7 @@ import {
   MdTrendingUp,
   MdTrendingDown,
   MdInfo,
+  MdAccountBalance,
 } from 'react-icons/md'
 import cajaAPI from '../../api/caja/caja.api'
 import Swal from 'sweetalert2'
@@ -14,11 +15,12 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { useCajaStore } from '../../store/useCajaStore'
 import { useCajas } from '../../hooks/useCajas'
 import { formatMoney } from '../../utils/fromatters'
+import { useEffect } from 'react'
 
 const Cajas = () => {
   const token = useAuthStore((state) => state.token)
   const setCaja = useCajaStore((state) => state.setCaja)
-  const user = useAuthStore((store) => store.adminData)
+  const user = useAuthStore((store) => store.data)
   const [observacionesCierre, setObservacionesCierre] = useState('')
 
   const [isBancoModalOpen, setIsBancoModalOpen] = useState(false)
@@ -42,19 +44,51 @@ const Cajas = () => {
     isClosingModal,
   } = useCajas(token)
 
-  // --- LÓGICA DE AUDITORÍA PRE-CIERRE ---
+  // --- LÓGICA DE AUDITORÍA BASADA EN TU ESTRUCTURA DE DATOS ---
   const movimientos = cajaActiva?.Movimientos || []
 
-  const totalIngresos = movimientos
-    .filter((m) => m.tipoMovimiento === 'Ingreso')
+  // 1. INGRESOS FÍSICOS (Efectivo real)
+  const totalIngresosEfectivo = movimientos
+    .filter((m) => {
+      const esIngreso = m.tipoMovimiento === 'Ingreso'
+      const desc = m.descripcion?.toUpperCase() || ''
+      // Si la descripción menciona bancos o cheques, no es efectivo físico
+      const esExterno =
+        desc.includes('BANCO') || desc.includes('CHEQUE') || desc.includes('TRANSFERENCIA')
+      return esIngreso && !esExterno
+    })
     .reduce((acc, curr) => acc + parseFloat(curr.monto), 0)
 
-  const totalEgresos = movimientos
-    .filter((m) => m.tipoMovimiento === 'Egreso')
+  useEffect(() => {
+    console.log('Movimientos: ', movimientos)
+  }, [movimientos])
+  // 2. EGRESOS FÍSICOS (Lo que el cajero pagó en billetes)
+  const totalEgresosEfectivo = movimientos
+    .filter((m) => {
+      const esEgreso = m.tipoMovimiento === 'Egreso'
+      const desc = m.descripcion?.toUpperCase() || ''
+      console.log(desc)
+
+      // Filtro crítico: Ignoramos los $2,000 de "EGRESO BANCO" para el saldo físico
+      const esExterno =
+        desc.includes('BANCO') || desc.includes('CHEQUE') || desc.includes('TRANSFERENCIA')
+      const esContable = m.CajaId === null
+
+      return esEgreso && !esExterno && !esContable
+    })
+    .reduce((acc, curr) => acc + parseFloat(curr.monto), 0)
+
+  // 3. MOVIMIENTOS VIRTUALES (Solo para mostrar información)
+  const totalMovimientosVirtuales = movimientos
+    .filter((m) => {
+      const desc = m.descripcion?.toUpperCase() || ''
+      return desc.includes('BANCO') || desc.includes('CHEQUE') || desc.includes('TRANSFERENCIA')
+    })
     .reduce((acc, curr) => acc + parseFloat(curr.monto), 0)
 
   const saldoInicial = parseFloat(cajaActiva?.montoApertura || 0)
-  const saldoEsperado = saldoInicial + totalIngresos - totalEgresos
+
+  const saldoEsperado = saldoInicial + totalIngresosEfectivo - totalEgresosEfectivo
   const diferenciaActual = montoFisicoCierre ? parseFloat(montoFisicoCierre) - saldoEsperado : 0
 
   const handleAbrirCaja = async (e) => {
@@ -80,17 +114,29 @@ const Cajas = () => {
 
   const handleInyeccionBanco = async (e) => {
     e.preventDefault()
+    const montoNum = parseFloat(montoBanco)
+    if (isNaN(montoNum) || montoNum <= 0) return Swal.fire('Atención', 'Monto inválido', 'warning')
+    if (!descBanco.trim()) return Swal.fire('Atención', 'Falta referencia', 'warning')
+
     setLoading(true)
     try {
-      const data = { monto: parseFloat(montoBanco), descripcion: descBanco, CajaId: cajaActiva.id }
-      await cajaAPI.registrarInyeccionBanco(token, data)
-      setIsBancoModalOpen(false)
-      setMontoBanco('')
-      setDescBanco('')
-      fetchCajas()
-      Swal.fire({ icon: 'success', title: 'Ingreso Registrado' })
+      const data = { monto: montoNum, descripcion: descBanco, CajaId: cajaActiva.id }
+      const resp = await cajaAPI.registrarInyeccionBanco(token, data)
+      if (resp.status === 201) {
+        if (resp.data?.caja) setCaja(resp.data.caja)
+        setIsBancoModalOpen(false)
+        setMontoBanco('')
+        setDescBanco('')
+        fetchCajas()
+        Swal.fire({
+          icon: 'success',
+          title: 'INGRESO EXITOSO',
+          confirmButtonColor: '#000',
+          timer: 2000,
+        })
+      }
     } catch (error) {
-      Swal.fire('Error', 'Error al registrar', 'error')
+      Swal.fire('Error', 'No se pudo registrar la inyección', 'error')
     } finally {
       setLoading(false)
     }
@@ -99,17 +145,14 @@ const Cajas = () => {
   const handleCerrarCaja = async (e) => {
     e.preventDefault()
 
-    // 1. SI HAY DIFERENCIA: Forzamos al alert a estar por encima de todo
     if (diferenciaActual !== 0) {
       const result = await Swal.fire({
         title: '¿Confirmar con Diferencia?',
-        html: `Hay un descuadre de <b>${formatMoney(diferenciaActual)}</b>.<br>Por favor, justifica la diferencia en las observaciones.`,
+        html: `Hay un descuadre de <b>${formatMoney(diferenciaActual)}</b>.<br>Justifica la diferencia en observaciones.`,
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Sí, cerrar con descuadre',
-        cancelButtonText: 'Revisar de nuevo',
+        confirmButtonText: 'Sí, cerrar caja',
         confirmButtonColor: '#d33',
-        // FIX: Forzamos un z-index absurdamente alto para que el modal no lo tape
         didOpen: () => {
           Swal.getContainer().style.zIndex = '99999'
         },
@@ -122,13 +165,12 @@ const Cajas = () => {
       const payload = {
         montoCierre: parseFloat(montoFisicoCierre),
         observaciones:
-          observacionesCierre || `Cierre normal. Diferencia: ${formatMoney(diferenciaActual)}`,
+          observacionesCierre || `Cierre Aroma Oro. Diferencia: ${formatMoney(diferenciaActual)}`,
       }
 
       const resp = await cajaAPI.cerrarCaja(cajaActiva.id, token, payload)
       const { resumen } = resp.data
 
-      // 2. Aquí sí, cerramos el modal antes del alert de éxito final
       setIsClosingModal(false)
 
       setTimeout(() => {
@@ -146,7 +188,6 @@ const Cajas = () => {
             </div>
           </div>`,
           confirmButtonColor: '#0f172a',
-          // También aquí por seguridad
           didOpen: () => {
             Swal.getContainer().style.zIndex = '99999'
           },
@@ -158,15 +199,7 @@ const Cajas = () => {
         setCaja(null)
       }, 150)
     } catch (error) {
-      console.error(error)
-      Swal.fire({
-        icon: 'error',
-        title: 'Error Crítico',
-        text: 'No se pudo sincronizar el cierre',
-        didOpen: () => {
-          Swal.getContainer().style.zIndex = '99999'
-        },
-      })
+      Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cerrar la caja' })
     } finally {
       setLoading(false)
     }
@@ -182,17 +215,31 @@ const Cajas = () => {
           setIsBancoModalOpen={setIsBancoModalOpen}
           user={user}
         />
-        <CajasTable fetching={fetching} cajas={cajas} />
+        {fetching || cajas.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 mt-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+              <MdInfo size={32} />
+            </div>
+            <h3 className="text-gray-900 font-black uppercase tracking-widest text-sm">
+              No hay registros de caja
+            </h3>
+            <p className="text-gray-500 text-xs mt-1 font-medium">
+              Presiona "Abrir Caja" para iniciar un nuevo turno.
+            </p>
+          </div>
+        ) : (
+          <CajasTable fetching={fetching} cajas={cajas} />
+        )}
       </div>
 
-      {/* MODAL 1: APERTURA */}
+      {/* APERTURA */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apertura de Turno">
         <form onSubmit={handleAbrirCaja} className="p-4 space-y-6">
           <div className="space-y-2 text-center">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-              Saldo Inicial en Efectivo
+              Saldo Inicial
             </label>
-            <div className="flex items-center h-20 bg-gray-50 rounded-2xl border-2 border-gray-100 focus-within:border-amber-400 px-6">
+            <div className="flex items-center h-20 bg-gray-50 rounded-2xl border-2 border-gray-100 px-6">
               <MdAttachMoney className="text-amber-500 text-3xl mr-2" />
               <input
                 type="number"
@@ -214,106 +261,135 @@ const Cajas = () => {
         </form>
       </Modal>
 
-      {/* MODAL 2: BANCOS */}
+      {/* BANCOS */}
       <Modal
         isOpen={isBancoModalOpen}
         onClose={() => setIsBancoModalOpen(false)}
-        title="Ingreso desde Bancos"
+        title="INGRESO DESDE BANCOS"
       >
-        <form onSubmit={handleInyeccionBanco} className="p-4 space-y-4">
-          {/* Contenido banco omitido por brevedad según código previo */}
+        <form onSubmit={handleInyeccionBanco} className="px-2 py-4 space-y-5">
+          <div className="bg-amber-50 border-l-4 border-amber-400 p-3 flex items-center gap-3">
+            <MdInfo className="text-amber-500" size={20} />
+            <p className="text-[10px] text-amber-900 font-bold uppercase leading-tight">
+              Inyección Bancaria:{' '}
+              <span className="font-normal">Suma al saldo físico de la caja.</span>
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">
+              Monto
+            </label>
+            <div className="flex items-center h-14 bg-white border border-gray-200 rounded-lg px-4 shadow-sm">
+              <span className="text-gray-400 font-bold text-xl mr-2">$</span>
+              <input
+                type="number"
+                value={montoBanco}
+                onChange={(e) => setMontoBanco(e.target.value)}
+                placeholder="0.00"
+                step="0.01"
+                required
+                className="bg-transparent w-full outline-none text-xl font-black font-mono"
+              />
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[9px] font-black text-gray-500 uppercase tracking-widest ml-1">
+              Referencia
+            </label>
+            <textarea
+              value={descBanco}
+              onChange={(e) => setDescBanco(e.target.value)}
+              placeholder="Detalle del ingreso..."
+              rows="2"
+              required
+              className="w-full bg-white border border-gray-200 rounded-lg py-3 px-4 outline-none text-sm font-bold text-gray-700 resize-none shadow-sm"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !montoBanco}
+            className="w-full py-4 bg-gray-900 text-white rounded-lg font-black uppercase text-[11px]"
+          >
+            CONFIRMAR INGRESO
+          </button>
         </form>
       </Modal>
 
-      {/* MODAL 3: CIERRE DETALLADO */}
+      {/* CIERRE (ARQUEO CORREGIDO) */}
       <Modal
         isOpen={isClosingModal}
         onClose={() => setIsClosingModal(false)}
-        title="Arqueo Detallado de Turno"
+        title="Arqueo Aroma de Oro"
       >
-        {/* Eliminado max-h y overflow para evitar doble scroll */}
         <form onSubmit={handleCerrarCaja} className="p-4 space-y-6">
-          <div className="bg-[#0f172a] rounded-[2rem] p-6 text-white shadow-2xl relative overflow-hidden border border-white/5">
-            <div className="relative z-10">
-              <p className="text-[9px] font-black opacity-40 uppercase tracking-[0.3em] mb-6 text-center">
-                Auditoría de Flujo de Caja
-              </p>
+          <div className="bg-[#0f172a] rounded-[2rem] p-6 text-white shadow-2xl relative border border-white/5">
+            <div className="space-y-6">
+              <div className="grid grid-cols-2 gap-4 border-b border-white/5 pb-6">
+                <div className="space-y-1">
+                  <span className="text-[9px] font-black uppercase text-gray-400">
+                    Fondo Inicial
+                  </span>
+                  <p className="text-2xl font-black font-mono">{formatMoney(saldoInicial)}</p>
+                </div>
+                <div className="space-y-1 text-right">
+                  <span className="text-[9px] font-black uppercase text-amber-500">
+                    Saldo Esperado (Físico)
+                  </span>
+                  <p className="text-2xl font-black font-mono text-amber-400">
+                    {formatMoney(saldoEsperado)}
+                  </p>
+                </div>
+              </div>
 
-              <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4 border-b border-white/5 pb-6">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 text-gray-400">
-                      <span className="text-[9px] font-black uppercase tracking-widest">
-                        Fondo Inicial
-                      </span>
-                    </div>
-                    <p className="text-2xl font-black font-mono leading-none tracking-tighter">
-                      {formatMoney(saldoInicial)}
-                    </p>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                    <MdTrendingUp size={16} />
                   </div>
-
-                  <div className="space-y-1 text-right">
-                    <div className="flex items-center gap-2 text-amber-400 justify-end">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-amber-500">
-                        Saldo Esperado
-                      </span>
-                    </div>
-                    <p className="text-2xl font-black font-mono leading-none text-amber-400 drop-shadow-[0_0_15px_rgba(251,191,36,0.3)]">
-                      {formatMoney(saldoEsperado)}
+                  <div>
+                    <span className="block text-[8px] font-black text-gray-500 uppercase">
+                      Ingresos Caja
+                    </span>
+                    <p className="text-md font-black font-mono text-emerald-400">
+                      +{formatMoney(totalIngresosEfectivo)}
                     </p>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-2 gap-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20">
-                      <MdTrendingUp size={20} />
-                    </div>
-                    <div>
-                      <span className="block text-[8px] font-black text-gray-500 uppercase tracking-widest">
-                        Ingresos Totales
-                      </span>
-                      <p className="text-lg font-black font-mono text-emerald-400 leading-none mt-1">
-                        +{formatMoney(totalIngresos)}
-                      </p>
-                    </div>
+                <div className="flex items-center gap-3 justify-end text-right">
+                  <div>
+                    <span className="block text-[8px] font-black text-gray-500 uppercase">
+                      Egresos Caja
+                    </span>
+                    <p className="text-md font-black font-mono text-rose-400">
+                      -{formatMoney(totalEgresosEfectivo)}
+                    </p>
                   </div>
-
-                  <div className="flex items-center gap-4 justify-end text-right">
-                    <div>
-                      <span className="block text-[8px] font-black text-gray-500 uppercase tracking-widest">
-                        Egresos Totales
-                      </span>
-                      <p className="text-lg font-black font-mono text-rose-400 leading-none mt-1">
-                        -{formatMoney(totalEgresos)}
-                      </p>
-                    </div>
-                    <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20">
-                      <MdTrendingDown size={20} />
-                    </div>
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center text-rose-500">
+                    <MdTrendingDown size={16} />
                   </div>
                 </div>
               </div>
+
+              {/* Informativo para bancos/cheques */}
+              <div className="pt-4 border-t border-white/5 flex items-center justify-between opacity-50">
+                <div className="flex items-center gap-2 text-blue-400">
+                  <MdAccountBalance size={14} />
+                  <span className="text-[8px] font-black uppercase">
+                    Operaciones Bancarias/Cheques
+                  </span>
+                </div>
+                <p className="text-sm font-black font-mono text-blue-300">
+                  {formatMoney(totalMovimientosVirtuales)}
+                </p>
+              </div>
             </div>
-            <div className="absolute -top-10 -left-10 w-32 h-32 bg-amber-500/5 rounded-full blur-3xl"></div>
           </div>
 
-          {/* DINERO REAL EN MANO - TAMAÑO CORREGIDO */}
           <div className="space-y-4">
-            <div className="flex justify-between items-center px-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                Dinero Real en Mano
-              </label>
-              {montoFisicoCierre && (
-                <div
-                  className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm border ${diferenciaActual === 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}
-                >
-                  Diferencia: {formatMoney(diferenciaActual)}
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center h-20 bg-white rounded-3xl border-4 border-gray-100 focus-within:border-gray-900 px-8 transition-all shadow-xl shadow-gray-100">
+            <label className="text-[10px] font-black text-gray-400 uppercase">
+              Dinero Real en Mano
+            </label>
+            <div className="flex items-center h-20 bg-white rounded-3xl border-4 border-gray-100 focus-within:border-gray-900 px-8 shadow-xl">
               <MdAttachMoney className="text-gray-300 text-3xl mr-2" />
               <input
                 type="number"
@@ -325,54 +401,35 @@ const Cajas = () => {
                 className="bg-transparent w-full outline-none text-2xl font-black text-gray-900 font-mono"
               />
             </div>
+            {montoFisicoCierre && (
+              <div
+                className={`px-4 py-2 rounded-xl text-center text-xs font-black border ${diferenciaActual === 0 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}
+              >
+                DIFERENCIA: {formatMoney(diferenciaActual)}
+              </div>
+            )}
           </div>
 
-          {/* OBSERVACIONES */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">
-              Justificación / Notas
+            <label className="text-[10px] font-black text-gray-400 uppercase">
+              Notas de Cierre
             </label>
-            <div className="relative group">
-              <div className="absolute top-4 left-5 text-gray-300 group-focus-within:text-gray-900 transition-colors">
-                <MdDescription size={20} />
-              </div>
-              <textarea
-                value={observacionesCierre}
-                onChange={(e) => setObservacionesCierre(e.target.value)}
-                placeholder="Escribe aquí si hubo algún descuadre o nota del turno..."
-                rows="3"
-                className="w-full bg-white border-4 border-gray-100 rounded-3xl py-4 pl-14 pr-6 outline-none focus:border-gray-900 transition-all text-sm font-bold text-gray-700 placeholder:text-gray-300 shadow-xl shadow-gray-100 resize-none"
-              />
-            </div>
+            <textarea
+              value={observacionesCierre}
+              onChange={(e) => setObservacionesCierre(e.target.value)}
+              placeholder="Justificación en caso de descuadre..."
+              rows="2"
+              className="w-full bg-white border-4 border-gray-100 rounded-3xl py-4 px-6 outline-none font-bold text-gray-700 shadow-xl resize-none"
+            />
           </div>
 
-          {diferenciaActual !== 0 && montoFisicoCierre !== '' && (
-            <div className="bg-rose-50 border-2 border-rose-100 p-5 rounded-2xl flex items-center gap-4 animate-pulse">
-              <div className="bg-rose-500 p-2 rounded-lg text-white">
-                <MdWarningAmber size={24} />
-              </div>
-              <p className="text-[10px] text-rose-800 font-black uppercase leading-tight tracking-tight">
-                El sistema detectó un descuadre. <br />
-                <span className="text-[12px]">
-                  Se informará un {diferenciaActual > 0 ? 'SOBRANTE' : 'FALTANTE'} al administrador.
-                </span>
-              </p>
-            </div>
-          )}
-
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-6 rounded-3xl font-black uppercase text-[12px] tracking-[0.3em] shadow-2xl transition-all active:scale-95 ${
-                diferenciaActual === 0 && montoFisicoCierre
-                  ? 'bg-emerald-600 text-white shadow-emerald-200'
-                  : 'bg-gray-900 text-white shadow-gray-300'
-              }`}
-            >
-              {loading ? 'Procesando Auditoría...' : 'Cerrar Turno Definitivamente'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-6 rounded-3xl font-black uppercase text-[12px] tracking-[0.3em] shadow-2xl transition-all ${diferenciaActual === 0 && montoFisicoCierre ? 'bg-emerald-600 text-white' : 'bg-gray-900 text-white'}`}
+          >
+            {loading ? 'Procesando...' : 'Cerrar Turno'}
+          </button>
         </form>
       </Modal>
     </Container>

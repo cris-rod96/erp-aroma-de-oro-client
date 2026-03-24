@@ -11,8 +11,8 @@ const ventaAPI = {
     })
   },
 
-  crearVenta: (data, token) => {
-    return instance.post(`/${model}/crear`, data, {
+  registrarVenta: (data, token) => {
+    return instance.post(`/${model}/registrar`, data, {
       headers: {
         'x-token': token,
       },

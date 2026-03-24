@@ -3,11 +3,10 @@ import autoTable from 'jspdf-autotable'
 import Swal from 'sweetalert2'
 import { formatMoney } from './fromatters'
 
-export const exportarLiquidacionPDF = (liq, empresa) => {
-  // 1. Alerta con retraso para evitar el bloqueo visual
+export const exportarNominaPDF = (pago, empresa) => {
   Swal.fire({
     title: 'Generando Documento',
-    text: 'Optimizando peso y formato para Aroma de Oro...',
+    text: 'Dando formato de nómina para Aroma de Oro...',
     allowOutsideClick: false,
     didOpen: () => {
       Swal.showLoading()
@@ -24,7 +23,7 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
           orientation: 'portrait',
           unit: 'mm',
           format: 'a4',
-          compress: true, // COMPRESIÓN ACTIVA
+          compress: true,
         })
 
         const anchoPagina = 210
@@ -33,7 +32,7 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
         const widthTotal = anchoPagina - margen * 2
         const espaciado = 5
 
-        // --- FONDO AMARILLO TENUE (TIPO FACTURA) ---
+        // --- FONDO AMARILLO TENUE ---
         doc.setFillColor(254, 252, 230)
         doc.rect(0, 0, anchoPagina, altoPagina, 'F')
 
@@ -56,7 +55,7 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
           doc.setFontSize(7).setTextColor(120).setFont('helvetica', 'oblique')
           doc.text(labelCopia, anchoPagina - margen, startY - 2, { align: 'right' })
 
-          // --- 1. CABECERA (LOGO MAXIMIZADO) ---
+          // --- 1. CABECERA ---
           autoTable(doc, {
             ...baseConfig,
             startY: startY,
@@ -65,16 +64,16 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
             body: [
               [
                 {
-                  content: 'LIQUIDACIÓN DE COMPRA DIRECTA',
+                  content: 'COMPROBANTE DE PAGO NÓMINA',
                   rowSpan: 2,
                   styles: { fontSize: 10, fontStyle: 'bold', cellWidth: 50, halign: 'left' },
                 },
                 {
-                  content: 'ID COMPRA',
+                  content: 'ID PAGO',
                   styles: { fillColor: [250, 250, 250], cellWidth: 20, fontSize: 7 },
                 },
                 {
-                  content: liq.codigo || '-',
+                  content: pago.codigo,
                   styles: { fontStyle: 'bold', fontSize: 9, cellWidth: 25 },
                 },
                 { content: '', rowSpan: 2, styles: { cellWidth: 95, minCellHeight: 18 } },
@@ -82,7 +81,7 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
               [
                 { content: 'FECHA REG.', styles: { fillColor: [250, 250, 250], fontSize: 7 } },
                 {
-                  content: new Date(liq.createdAt).toLocaleDateString(),
+                  content: new Date(pago.createdAt).toLocaleDateString(),
                   styles: { fontStyle: 'bold' },
                 },
               ],
@@ -101,14 +100,12 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
                 }
                 const x = data.cell.x + (data.cell.width - imgW) / 2
                 const y = data.cell.y + (data.cell.height - imgH) / 2
-
-                // OPTIMIZACIÓN DE IMAGEN: JPEG + ALIAS + FAST
-                doc.addImage(img, 'JPEG', x, y, imgW, imgH, 'logo_liq', 'FAST')
+                doc.addImage(img, 'JPEG', x, y, imgW, imgH, undefined, 'FAST')
               }
             },
           })
 
-          // --- 2. PROVEEDOR ---
+          // --- 2. DATOS DEL TRABAJADOR ---
           autoTable(doc, {
             ...baseConfig,
             startY: doc.lastAutoTable.finalY + espaciado,
@@ -117,91 +114,59 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
             body: [
               [
                 {
-                  content: 'PROVEEDOR:',
+                  content: 'EMPLEADO:',
                   styles: { fillColor: [250, 250, 250], cellWidth: 25, halign: 'right' },
                 },
                 {
-                  content: (liq.Persona?.nombreCompleto || 'N/A').toUpperCase(),
+                  content: (pago.Persona?.nombreCompleto || 'N/A').toUpperCase(),
                   styles: { halign: 'left', fontStyle: 'bold', cellWidth: 70 },
                 },
                 {
-                  content: 'RUC / CI:',
+                  content: 'CÉDULA:',
                   styles: { fillColor: [250, 250, 250], cellWidth: 25, halign: 'right' },
                 },
                 {
-                  content: liq.Persona?.numeroIdentificacion || 'N/A',
+                  content: pago.Persona?.numeroIdentificacion || 'N/A',
                   styles: { cellWidth: 70, fontStyle: 'bold' },
                 },
-              ],
-              [
-                { content: 'DIRECCIÓN:', styles: { fillColor: [250, 250, 250], halign: 'right' } },
-                { content: liq.Persona?.direccion || 'S/D', styles: { halign: 'left' } },
-                { content: 'TELÉFONO:', styles: { fillColor: [250, 250, 250], halign: 'right' } },
-                { content: liq.Persona?.telefono || 'N/A' },
               ],
             ],
           })
 
-          // --- 3. DETALLE ---
+          // --- 3. DETALLE DE VALORES ---
           autoTable(doc, {
             ...baseConfig,
             startY: doc.lastAutoTable.finalY + espaciado,
             margin: { left: margen },
             tableWidth: widthTotal,
-            head: [
-              [
-                'Descripción',
-                'Calif. %',
-                'Unidad',
-                'Cant. Bruta',
-                'Imp %',
-                'Cant. Neta',
-                'Precio U.',
-                'Subtotal',
-              ],
-            ],
+            head: [['Descripción', 'Unidades', 'Sueldo Base', 'Bonos', 'Subtotal']],
             body: [
               [
-                liq.DetalleLiquidacion?.descripcionProducto || 'CACAO SECO',
+                `Pago ${pago.tipoPeriodo}`,
+                parseFloat(pago.unidadesTrabajadas).toFixed(0),
+                formatMoney(pago.sueldoBase),
+                formatMoney(pago.bono),
                 {
-                  content: liq.DetalleLiquidacion?.calificacion || '0',
-                  styles: { fontStyle: 'bold' },
-                },
-                (liq.DetalleLiquidacion?.unidad || 'QUINTALES').toUpperCase(),
-                liq.DetalleLiquidacion?.cantidad || '0',
-                `${liq.DetalleLiquidacion?.impurezas || 0}%`,
-                {
-                  content: parseFloat(liq.DetalleLiquidacion?.cantidadNeta || 0).toFixed(2),
-                  styles: { fontStyle: 'bold' },
-                },
-                formatMoney(liq.DetalleLiquidacion?.precio || 0),
-                {
-                  content: formatMoney(liq.totalLiquidacion || 0),
+                  content: formatMoney(pago.subTotal),
                   styles: { halign: 'right', fontStyle: 'bold' },
                 },
               ],
             ],
-            columnStyles: { 0: { halign: 'left' } },
           })
 
-          // --- 4. RETENCIONES Y TOTALES (NEGRO PURO) ---
+          // --- 4. DESCUENTOS Y TOTALES ---
           const yFinDetalle = doc.lastAutoTable.finalY + espaciado
-
           autoTable(doc, {
             ...baseConfig,
             startY: yFinDetalle,
             margin: { left: margen },
             tableWidth: widthTotal * 0.48,
-            head: [['Descripción Retención', '%', 'Valor']],
-            body:
-              liq.Retencions?.length > 0
-                ? liq.Retencions.map((r) => [
-                    r.descripcion,
-                    `${r.porcentajeRetencion}%`,
-                    formatMoney(r.valorRetenido),
-                  ])
-                : [['RETENCIÓN DE LA FUENTE', '1%', formatMoney(liq.totalRetencion)]],
-            columnStyles: { 2: { halign: 'right', textColor: [0, 0, 0] } },
+            head: [['Descripción Descuento', 'Valor']],
+            body: [
+              ['DESCUENTO GENERAL', formatMoney(pago.descuentoGeneral)],
+              ['DESCUENTO PRÉSTAMO', formatMoney(pago.descuentoPrestamo)],
+            ],
+            columnStyles: { 0: { halign: 'left' }, 1: { halign: 'right' } },
           })
 
           autoTable(doc, {
@@ -210,31 +175,21 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
             margin: { left: margen + widthTotal * 0.52 },
             tableWidth: widthTotal * 0.48,
             body: [
+              ['SUBTOTAL:', { content: formatMoney(pago.subTotal), styles: { halign: 'right' } }],
               [
-                'SUBTOTAL:',
-                { content: formatMoney(liq.totalLiquidacion), styles: { halign: 'right' } },
-              ],
-              [
-                '(-) TOTAL RETENCIONES:',
+                '(-) TOTAL DESCUENTOS:',
                 {
-                  content: `-${formatMoney(liq.totalRetencion)}`,
-                  styles: { halign: 'right', textColor: [0, 0, 0] },
-                },
-              ],
-              [
-                '(-) ABONO ANTICIPO:',
-                {
-                  content: `-${formatMoney(liq.abonoAnticipo || 0)}`,
-                  styles: { halign: 'right', fontStyle: 'bold' },
+                  content: `-${formatMoney(parseFloat(pago.descuentoGeneral) + parseFloat(pago.descuentoPrestamo))}`,
+                  styles: { halign: 'right' },
                 },
               ],
               [
                 {
-                  content: 'TOTAL A PAGAR',
+                  content: 'TOTAL NETO RECIBIDO',
                   styles: { fillColor: [40, 40, 40], textColor: 255, fontStyle: 'bold' },
                 },
                 {
-                  content: formatMoney(liq.totalAPagar),
+                  content: formatMoney(pago.totalPagar),
                   styles: {
                     fillColor: [40, 40, 40],
                     textColor: 255,
@@ -246,39 +201,28 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
             ],
           })
 
-          // --- 5. FLUJO CAJA ---
-          autoTable(doc, {
-            ...baseConfig,
-            startY: doc.lastAutoTable.finalY + espaciado,
-            margin: { left: margen },
-            tableWidth: widthTotal,
-            head: [['Efectivo', 'Cheque', 'Transferencia', 'Abono Ant.', 'Saldo Pendiente']],
-            body: [
-              [
-                formatMoney(liq.pagoEfectivo),
-                formatMoney(liq.pagoCheque),
-                formatMoney(liq.pagoTransferencia),
-                formatMoney(liq.abonoAnticipo || 0),
-                {
-                  content: formatMoney(liq.montoPorPagar),
-                  styles: { textColor: [0, 0, 0], fontStyle: 'bold' },
-                },
-              ],
-            ],
-          })
-
-          // --- 6. FIRMAS ---
+          // --- 5. FIRMAS (CON CÉDULA DEBAJO) ---
           const yFirmas = doc.lastAutoTable.finalY + 22
-          doc.setDrawColor(0).setLineWidth(0.3)
+          doc.setDrawColor(0).setLineWidth(0.3).setFontSize(7).setFont('helvetica', 'bold')
+
+          // Firma Autorizada
           doc.line(margen + 10, yFirmas, margen + 70, yFirmas)
           doc.text('FIRMA AUTORIZADA', margen + 40, yFirmas + 4, { align: 'center' })
-          doc.line(anchoPagina - margen - 70, yFirmas, anchoPagina - margen - 10, yFirmas)
-          doc.text('FIRMA PRODUCTOR', anchoPagina - margen - 40, yFirmas + 4, { align: 'center' })
 
-          // --- 7. PIE CORPORATIVO ---
+          // Firma Trabajador + Cédula
+          doc.line(anchoPagina - margen - 70, yFirmas, anchoPagina - margen - 10, yFirmas)
+          doc.text('FIRMA TRABAJADOR', anchoPagina - margen - 40, yFirmas + 4, { align: 'center' })
+          doc.setFontSize(6.5).setFont('helvetica', 'normal')
+          doc.text(
+            `C.I: ${pago.Persona?.numeroIdentificacion || '__________'}`,
+            anchoPagina - margen - 40,
+            yFirmas + 8,
+            { align: 'center' }
+          )
+
+          // --- 6. PIE CORPORATIVO ---
           const yPie = 143
           const infoPie = `${(empresa?.nombre || 'AROMA DE ORO').toUpperCase()} | RUC: ${empresa?.ruc || ''} | Dir: ${empresa?.direccion || ''}`
-
           if (startY > 148) {
             doc.line(margen, 285, anchoPagina - margen, 285)
             doc
@@ -294,15 +238,13 @@ export const exportarLiquidacionPDF = (liq, empresa) => {
           }
         }
 
-        dibujarCopia(12, 'ORIGINAL - CLIENTE')
-
+        dibujarCopia(12, 'ORIGINAL - TRABAJADOR')
         doc.setDrawColor(200).setLineWidth(0.1).setLineDash([2, 2])
         doc.line(margen, 148.5, anchoPagina - margen, 148.5)
         doc.setLineDash([])
+        dibujarCopia(158, 'COPIA - ARCHIVO EMPRESA')
 
-        dibujarCopia(158, 'COPIA - ARCHIVO AROMA DE ORO')
-
-        doc.save(`LIQUIDACION_${liq.codigo}.pdf`)
+        doc.save(`RECIBO_NOM_${pago.Persona?.nombreCompleto || 'NOMINA'}.pdf`)
         Swal.close()
       } catch (error) {
         console.error(error)

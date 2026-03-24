@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   MdArrowForward,
   MdClose,
@@ -12,14 +12,23 @@ import {
   MdHistory,
   MdAttachMoney,
   MdPrint,
+  MdHandshake,
+  MdAssignmentReturn,
+  MdPublishedWithChanges,
+  MdMonetizationOn,
+  MdAccountBalanceWallet,
 } from 'react-icons/md'
 import { formatFecha, formatMoney } from '../../utils/fromatters'
-import { useEffect } from 'react'
 import { exportarCajaDetallePDF } from '../../utils/cajaReport'
+import { useAuthStore } from '../../store/useAuthStore'
+import { useEmpresaStore } from '../../store/useEmpresaStore'
 
 const CajasTable = ({ fetching, cajas }) => {
   const [selectedCaja, setSelectedCaja] = useState(null)
   const [showModal, setShowModal] = useState(false)
+
+  const user = useAuthStore((store) => store.data)
+  const empresa = useEmpresaStore((store) => store.empresa)
 
   const handleVerDetalle = (caja) => {
     setSelectedCaja(caja)
@@ -36,15 +45,58 @@ const CajasTable = ({ fetching, cajas }) => {
         return <MdGroups />
       case 'Bancos':
         return <MdAccountBalance />
+      case 'Gasto General':
+        return <MdReceiptLong className="text-orange-500" />
+      case 'Préstamo':
+        return <MdHandshake className="text-blue-500" />
+      case 'Cobro Préstamo':
+        return <MdAssignmentReturn className="text-emerald-600" />
+      case 'Cobro Anticipo':
+        return <MdPublishedWithChanges className="text-teal-600" />
+      case 'Anticipo':
+        return <MdMonetizationOn className="text-emerald-500" />
       default:
         return <MdMoreHoriz />
     }
   }
 
+  // --- LÓGICA DE DESGLOSE PARA CLARIDAD VISUAL ---
+  const calcularDesglose = (caja) => {
+    if (!caja || !caja.Movimientos) return { efectivo: 0, bancos: 0 }
+
+    let efec = 0
+    let banc = 0
+
+    caja.Movimientos.forEach((m) => {
+      const monto = parseFloat(m.monto)
+      const isIngreso = m.tipoMovimiento === 'Ingreso'
+      const isVirtual =
+        m.descripcion?.toUpperCase().includes('BANCO') ||
+        m.descripcion?.toUpperCase().includes('CHEQUE') ||
+        m.descripcion?.toUpperCase().includes('TRANSF')
+
+      if (isVirtual) {
+        banc += isIngreso ? monto : -monto
+      } else {
+        efec += isIngreso ? monto : -monto
+      }
+    })
+
+    return {
+      efectivoNeto: efec,
+      bancosNeto: banc,
+      soloEfectivoEsperado: parseFloat(caja.montoApertura) + efec,
+    }
+  }
+
+  const desglose = selectedCaja
+    ? calcularDesglose(selectedCaja)
+    : { efectivoNeto: 0, bancosNeto: 0, soloEfectivoEsperado: 0 }
+
   return (
-    <div>
-      {/* TABLA PRINCIPAL CON COLUMNA MONTO ESPERADO */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden font-sans">
+    <div className="font-sans">
+      {/* --- TABLA PRINCIPAL --- */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50/50">
@@ -52,7 +104,7 @@ const CajasTable = ({ fetching, cajas }) => {
                 <th className="px-6 py-5 text-left">Apertura / N°</th>
                 <th className="px-6 py-5 text-right">Fondo Inicial</th>
                 <th className="px-6 py-5 text-right text-amber-600 bg-amber-50/30">
-                  Monto Esperado
+                  Saldo Real (Efectivo)
                 </th>
                 <th className="px-6 py-5 text-right">Monto Cierre</th>
                 <th className="px-6 py-5 text-right bg-gray-100/50">Diferencia</th>
@@ -67,258 +119,229 @@ const CajasTable = ({ fetching, cajas }) => {
                     colSpan="7"
                     className="px-6 py-20 text-center animate-pulse font-black text-gray-300 uppercase text-xs"
                   >
-                    Cargando historial de cajas...
+                    Cargando...
                   </td>
                 </tr>
               ) : (
-                cajas.map((caja, index) => {
-                  // Calculamos el esperado: Saldo Inicial + Ingresos - Egresos
-                  // Si tu backend ya lo envía como saldoEsperado, úsalo directamente.
-
-                  return (
-                    <tr key={caja.id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="font-black text-gray-400 text-[10px]">
-                          #{cajas.length - index}
-                        </div>
-                        <div className="text-[12px] font-bold text-gray-700 font-mono">
-                          {formatFecha(caja.fechaApertura)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right text-xs font-black text-gray-900 font-mono">
-                        {formatMoney(caja.montoApertura)}
-                      </td>
-
-                      {/* NUEVA COLUMNA: MONTO ESPERADO */}
-                      <td className="px-6 py-4 text-right text-xs font-black text-amber-700 font-mono bg-amber-50/10">
-                        {caja.estado === 'Abierta' ? 'En curso' : formatMoney(caja.montoEsperado)}
-                      </td>
-
-                      <td className="px-6 py-4 text-right text-xs font-black text-gray-800 font-mono">
-                        {caja.estado === 'Abierta' ? '---' : formatMoney(caja.montoCierre)}
-                      </td>
-                      <td
-                        className={`px-6 py-4 text-right text-xs font-black font-mono ${!caja.diferencia || parseFloat(caja.diferencia) === 0 ? 'text-gray-400' : parseFloat(caja.diferencia) > 0 ? 'text-emerald-600' : 'text-rose-600'}`}
+                cajas.map((caja, index) => (
+                  <tr key={caja.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-black text-gray-400 text-[10px]">
+                        #{cajas.length - index}
+                      </div>
+                      <div className="text-[12px] font-bold text-gray-700 font-mono">
+                        {formatFecha(caja.fechaApertura)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-right text-xs font-black text-gray-900 font-mono">
+                      {formatMoney(caja.montoApertura)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-xs font-black text-amber-700 font-mono bg-amber-50/10">
+                      {formatMoney(caja.saldoActual || caja.montoEsperado)}
+                    </td>
+                    <td className="px-6 py-4 text-right text-xs font-black text-gray-800 font-mono">
+                      {caja.estado === 'Abierta' ? '---' : formatMoney(caja.montoCierre)}
+                    </td>
+                    <td
+                      className={`px-6 py-4 text-right text-xs font-black font-mono ${!caja.diferencia || parseFloat(caja.diferencia) === 0 ? 'text-gray-400' : 'text-rose-600'}`}
+                    >
+                      {caja.estado === 'Abierta' ? 'En curso' : formatMoney(caja.diferencia)}
+                    </td>
+                    <td className="px-6 py-4 text-center">
+                      <span
+                        className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border tracking-widest ${caja.estado === 'Abierta' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
                       >
-                        {caja.estado === 'Abierta' ? 'En curso' : formatMoney(caja.diferencia)}
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span
-                          className={`px-3 py-1.5 rounded-full text-[9px] font-black uppercase border tracking-widest ${caja.estado === 'Abierta' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
-                        >
-                          {caja.estado}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => handleVerDetalle(caja)}
-                          className="text-amber-600 hover:text-amber-900 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic ml-auto group"
-                        >
-                          Ver Movimientos{' '}
-                          <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })
+                        {caja.estado}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => handleVerDetalle(caja)}
+                        className="text-amber-600 hover:text-amber-900 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic ml-auto group"
+                      >
+                        Ver Movimientos{' '}
+                        <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* MODAL DE MOVIMIENTOS (Sin cambios en tu lógica interna) */}
+      {/* --- MODAL DE AUDITORÍA REDISEÑADO PARA CLARIDAD --- */}
       {showModal && selectedCaja && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md">
-          <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[85vh] shadow-2xl overflow-hidden border border-gray-200 flex flex-col">
-            <div className="bg-white border-b border-gray-100 p-6 flex justify-between items-center">
+          <div className="bg-white rounded-3xl w-full max-w-6xl max-h-[90vh] shadow-2xl overflow-hidden border border-gray-200 flex flex-col transition-all">
+            {/* Cabecera */}
+            <div className="p-6 flex justify-between items-center border-b border-gray-50">
               <div className="flex items-center gap-4">
-                <div className="bg-amber-500 p-3 rounded-xl text-white shadow-lg shadow-amber-200">
+                <div className="bg-gray-900 p-3 rounded-2xl text-amber-400 shadow-xl">
                   <MdReceiptLong size={24} />
                 </div>
                 <div>
-                  <h2 className="font-black uppercase italic tracking-tighter text-2xl text-gray-900 leading-none">
-                    Auditoría de Movimientos
+                  <h2 className="font-black uppercase tracking-tighter text-2xl text-gray-900 leading-none">
+                    Auditoría de Flujos
                   </h2>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">
-                    ID Transacción: {selectedCaja.id.split('-')[0].toUpperCase()} |{' '}
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                    Caja ID: {selectedCaja.id.split('-')[0]} |{' '}
                     {formatFecha(selectedCaja.fechaApertura)}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-900 p-2 hover:bg-gray-100 rounded-full transition-all"
+                className="bg-gray-100 text-gray-400 hover:text-gray-900 p-2 rounded-full transition-all"
               >
                 <MdClose size={24} />
               </button>
             </div>
 
-            <div className="grid grid-cols-3 divide-x divide-gray-100 border-b border-gray-100 bg-gray-50/30">
-              <div className="p-6">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 text-center">
-                  {' '}
-                  Fondo Inicial{' '}
-                </p>
-                <p className="text-xl font-black font-mono text-gray-900 text-center">
-                  {' '}
-                  {formatMoney(selectedCaja.montoApertura)}{' '}
+            {/* TARJETAS DE DESGLOSE (ESTO ES LO QUE DA CLARIDAD) */}
+            <div className="grid grid-cols-4 gap-4 p-6 bg-gray-50/50">
+              <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                <p className="text-[9px] font-black text-gray-400 uppercase mb-2">Fondo Apertura</p>
+                <p className="text-xl font-black font-mono text-gray-900">
+                  {formatMoney(selectedCaja.montoApertura)}
                 </p>
               </div>
-              <div className="p-6 bg-gray-50/50">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 text-center font-bold">
-                  {' '}
-                  Saldo Final/Actual{' '}
+
+              <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 shadow-sm relative overflow-hidden">
+                <MdAttachMoney
+                  className="absolute -right-2 -bottom-2 text-amber-200/50"
+                  size={80}
+                />
+                <p className="text-[9px] font-black text-amber-600 uppercase mb-2">
+                  Dinero en Mano (Efectivo)
                 </p>
-                <p className="text-xl font-black font-mono text-amber-600 text-center">
-                  {' '}
-                  {formatMoney(selectedCaja.saldoActual || selectedCaja.montoCierre)}{' '}
+                <p className="text-xl font-black font-mono text-amber-700">
+                  {formatMoney(desglose.soloEfectivoEsperado)}
                 </p>
+                <span className="text-[8px] font-bold text-amber-500 uppercase italic">
+                  Solo billetes físicos
+                </span>
               </div>
-              <div className="p-6">
-                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 text-center">
-                  {' '}
-                  Estado de Caja{' '}
+
+              <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 shadow-sm relative overflow-hidden">
+                <MdAccountBalance
+                  className="absolute -right-2 -bottom-2 text-blue-200/50"
+                  size={80}
+                />
+                <p className="text-[9px] font-black text-blue-600 uppercase mb-2">
+                  Balance Bancario/Cheques
                 </p>
-                <div className="flex justify-center mt-1">
-                  <span
-                    className={`px-4 py-1 rounded-full text-[10px] font-black uppercase ${selectedCaja.estado === 'Abierta' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}
-                  >
-                    {selectedCaja.estado}
-                  </span>
-                </div>
+                <p className="text-xl font-black font-mono text-blue-700">
+                  {formatMoney(desglose.bancosNeto)}
+                </p>
+                <span className="text-[8px] font-bold text-blue-500 uppercase italic">
+                  Movimientos virtuales
+                </span>
+              </div>
+
+              <div className="bg-gray-900 p-5 rounded-2xl shadow-xl relative overflow-hidden">
+                <MdAccountBalanceWallet
+                  className="absolute -right-2 -bottom-2 text-white/5"
+                  size={80}
+                />
+                <p className="text-[9px] font-black text-gray-400 uppercase mb-2">
+                  Saldo Total Sistema
+                </p>
+                <p className="text-xl font-black font-mono text-white">
+                  {formatMoney(selectedCaja.saldoActual || selectedCaja.montoCierre)}
+                </p>
+                <span className="text-[8px] font-bold text-gray-400 uppercase italic">
+                  Efectivo + Bancos
+                </span>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4">
-              <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">
-                      <th className="px-4 py-4 text-center w-16">Tipo</th>
-                      <th className="px-4 py-4 text-left w-32">Fecha / Hora</th>
-                      <th className="px-4 py-4 text-left w-32">Categoría</th>
-                      <th className="px-4 py-4 text-left">Detalle de Operación</th>
-                      <th className="px-4 py-4 text-left w-48">Registrado Por</th>
-                      <th className="px-4 py-4 text-right w-32">Monto</th>
+            {/* Listado de Movimientos */}
+            <div className="flex-1 overflow-y-auto p-6 bg-white">
+              <div className="border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+                <table className="min-w-full divide-y divide-gray-100">
+                  <thead className="bg-gray-50/50">
+                    <tr className="text-[9px] font-black text-gray-400 uppercase">
+                      <th className="px-4 py-4 text-center">Flujo</th>
+                      <th className="px-4 py-4 text-left">Fecha / Hora</th>
+                      <th className="px-4 py-4 text-left">Origen</th>
+                      <th className="px-4 py-4 text-left">Descripción del Movimiento</th>
+                      <th className="px-4 py-4 text-right">Monto</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 bg-white">
-                    {selectedCaja.Movimientos && selectedCaja.Movimientos.length > 0 ? (
-                      selectedCaja.Movimientos.map((mov) => {
-                        let tituloPrimario = mov.categoria
-                        let subtituloSecundario = mov.descripcion || 'Sin descripción'
-                        let usuarioNombre = ''
+                  <tbody className="divide-y divide-gray-50">
+                    {selectedCaja.Movimientos?.filter((m) => m.CajaId !== null).map((mov) => {
+                      const isVirtual =
+                        mov.descripcion?.toUpperCase().includes('BANCO') ||
+                        mov.descripcion?.toUpperCase().includes('CHEQUE')
+                      const isIngreso = mov.tipoMovimiento === 'Ingreso'
 
-                        if (mov.categoria === 'Nomina') {
-                          tituloPrimario = 'Pago de Nómina'
-                          subtituloSecundario =
-                            mov.detalleNomina?.Persona?.nombreCompleto || mov.descripcion
-                          usuarioNombre = mov.detalleNomina?.Usuario?.nombresCompletos || 'Sistema'
-                        } else if (mov.categoria === 'Compra') {
-                          tituloPrimario = `Compra: ${mov.detalleCompra?.DetalleLiquidacion?.Producto?.nombre || 'Insumos'}`
-                          subtituloSecundario = `Proveedor: ${mov.detalleCompra?.Persona?.nombreCompleto || 'Varios'}`
-                          usuarioNombre = mov.detalleCompra?.Usuario?.nombresCompletos || 'Sistema'
-                        } else if (mov.categoria === 'Venta') {
-                          tituloPrimario = 'Ingreso de Venta'
-                          subtituloSecundario = `Ref: ${mov.idReferencia?.slice(0, 8).toUpperCase() || 'N/A'}`
-                          usuarioNombre = mov.detalleVenta?.Usuario?.nombresCompletos || 'Sistema'
-                        } else {
-                          usuarioNombre = 'Sistema'
-                        }
-
-                        return (
-                          <tr key={mov.id} className="hover:bg-amber-50/30 transition-colors group">
-                            <td className="px-4 py-4 text-center">
-                              <div
-                                className={`mx-auto w-8 h-8 rounded-lg flex items-center justify-center transition-all ${mov.tipoMovimiento === 'Ingreso' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-rose-50 text-rose-600 border border-rose-100'}`}
-                              >
-                                {mov.tipoMovimiento === 'Ingreso' ? (
-                                  <MdArrowUpward />
-                                ) : (
-                                  <MdArrowDownward />
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="text-[11px] font-black text-gray-700 font-mono leading-none">
-                                {new Date(mov.fecha).toLocaleDateString()}
-                              </div>
-                              <div className="text-[9px] font-bold text-gray-400 mt-1 uppercase italic">
-                                {new Date(mov.fecha).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-2">
-                                <span className="text-gray-400 text-lg">
-                                  {getIcon(mov.categoria)}
-                                </span>
-                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">
-                                  {mov.categoria}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div>
-                                <p className="text-[11px] font-black text-gray-800 uppercase italic leading-none">
-                                  {tituloPrimario}
-                                </p>
-                                <p className="text-[10px] font-bold text-amber-600 uppercase mt-1 tracking-tight truncate max-w-[200px]">
-                                  {subtituloSecundario}
-                                </p>
-                              </div>
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center text-[10px] font-black text-gray-400">
-                                  {usuarioNombre.charAt(0)}
-                                </div>
-                                <span className="text-[10px] font-bold text-gray-500 uppercase italic tracking-tight">
-                                  {usuarioNombre}
-                                </span>
-                              </div>
-                            </td>
-                            <td
-                              className={`px-4 py-4 text-right font-mono font-black text-sm ${mov.tipoMovimiento === 'Ingreso' ? 'text-emerald-600' : 'text-rose-600'}`}
+                      return (
+                        <tr key={mov.id} className="hover:bg-gray-50/50 transition-colors">
+                          <td className="px-4 py-4 text-center">
+                            <div
+                              className={`mx-auto w-7 h-7 rounded-lg flex items-center justify-center ${isIngreso ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}
                             >
-                              <span className="opacity-50 text-[10px] mr-1">
-                                {mov.tipoMovimiento === 'Ingreso' ? '+' : '-'}
+                              {isIngreso ? <MdArrowUpward /> : <MdArrowDownward />}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="text-[10px] font-black text-gray-700 font-mono">
+                              {new Date(mov.fecha).toLocaleDateString()}
+                            </div>
+                            <div className="text-[8px] font-bold text-gray-400 uppercase">
+                              {new Date(mov.fecha).toLocaleTimeString([], {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-2">
+                              <span className="text-gray-400">{getIcon(mov.categoria)}</span>
+                              <span className="text-[9px] font-black text-gray-500 uppercase">
+                                {mov.categoria}
                               </span>
-                              {formatMoney(mov.monto)}
-                            </td>
-                          </tr>
-                        )
-                      })
-                    ) : (
-                      <tr>
-                        <td colSpan="6" className="px-6 py-20 text-center text-gray-300">
-                          <MdHistory size={48} className="mx-auto mb-2 opacity-20" />
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em]">
-                            Caja sin movimientos registrados
-                          </p>
-                        </td>
-                      </tr>
-                    )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="text-[10px] font-black text-gray-800 uppercase italic leading-none">
+                              {mov.descripcion.split('|')[0]}
+                            </p>
+                            <span
+                              className={`text-[7px] font-black px-1.5 py-0.5 rounded mt-1 inline-block uppercase tracking-tighter ${!isVirtual ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}
+                            >
+                              {!isVirtual ? '💸 Dinero Físico' : '🏦 Operación Bancaria'}
+                            </span>
+                          </td>
+                          <td
+                            className={`px-4 py-4 text-right font-mono font-black text-xs ${isIngreso ? 'text-emerald-600' : 'text-rose-600'}`}
+                          >
+                            {isIngreso ? '+' : '-'}
+                            {formatMoney(mov.monto)}
+                          </td>
+                        </tr>
+                      )
+                    })}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-white flex justify-between items-center">
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-100 flex justify-between items-center bg-gray-50/30">
               <button
-                className="flex items-center gap-2 text-[10px] font-black uppercase text-gray-500 hover:text-gray-900 transition-colors"
-                onClick={() => exportarCajaDetallePDF(selectedCaja)}
+                className="flex items-center gap-2 text-[9px] font-black uppercase text-gray-500 hover:text-gray-900 transition-all"
+                onClick={() => exportarCajaDetallePDF(selectedCaja, empresa)}
               >
-                <MdPrint size={18} /> Imprimir Comprobante de Arqueo
+                <MdPrint size={18} /> Imprimir Reporte de Auditoría
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="bg-gray-900 hover:bg-black text-white px-10 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all active:scale-95 shadow-lg shadow-gray-200"
+                className="bg-gray-900 text-white px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
               >
-                Cerrar Informe
+                Entendido
               </button>
             </div>
           </div>

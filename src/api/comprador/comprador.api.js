@@ -11,15 +11,15 @@ const compradorAPI = {
     })
   },
 
-  agregarProductor: (data, token) => {
-    return instance.post(`/${model}/compradores/agregar`, data, {
+  agregarComprador: (data, token) => {
+    return instance.post(`/${model}/agregar`, data, {
       headers: {
         'x-token': token,
       },
     })
   },
 
-  actualizarProductor: (id, data, token) => {
+  actualizarComprador: (id, data, token) => {
     return instance.patch(`/${model}/compradores/actualizar-informacion/${id}`, data, {
       headers: {
         'x-token': token,
@@ -27,7 +27,7 @@ const compradorAPI = {
     })
   },
 
-  eliminarProductor: (id, token) => {
+  eliminarComprador: (id, token) => {
     return instance.delete(`/${model}/compradores/borrar-persona/${id}`, {
       headers: {
         'x-token': token,

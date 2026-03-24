@@ -13,7 +13,7 @@ const Aside = ({ hiddenMenu }) => {
   const [countdown, setCountdown] = useState(5)
 
   const token = useAuthStore((state) => state.token)
-  const user = useAuthStore((state) => state.adminData)
+  const user = useAuthStore((state) => state.data)
   const isAdmin = useAuthStore((state) => state.isAdmin)
   const logout = useAuthStore((state) => state.logout)
   const clearCaja = useCajaStore((state) => state.clearCaja)

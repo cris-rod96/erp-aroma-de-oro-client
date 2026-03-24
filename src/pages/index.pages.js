@@ -16,6 +16,9 @@ import Alerta from './alerta/Alerta'
 import NotFound from './404/NotFound'
 import NotAuthorized from './401/NotAuthorized'
 import Tickets from './tickets/Tickets'
+import Anticipos from './anticipos/Anticipos'
+import Prestamos from './prestamo/Prestamo'
+import Gastos from './gasto/Gastos'
 export {
   Login,
   Home,
@@ -35,4 +38,7 @@ export {
   NotFound,
   NotAuthorized,
   Tickets,
+  Anticipos,
+  Prestamos,
+  Gastos,
 }

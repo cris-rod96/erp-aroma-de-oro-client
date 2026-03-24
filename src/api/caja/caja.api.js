@@ -43,7 +43,13 @@ const cajaAPI = {
     })
   },
 
-  listarCajasPorRango: (token, fechaInicio, fechaFin) => {},
+  registrarInyeccionBanco: (token, data) => {
+    return instance.post(`/${model}/inyectar-banco`, data, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
 }
 
 export default cajaAPI

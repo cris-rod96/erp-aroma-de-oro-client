@@ -45,8 +45,8 @@ const cuentasPorCobrarAPI = {
    * Registra un nuevo cobro/abono.
    * El objeto data debe contener: montoEfectivo, montoCheque, montoTransferencia, etc.
    */
-  registrarCobro: (id, data, token) => {
-    return instance.patch(`/${model}/cobrar/${id}`, data, {
+  registrarCobro: (token, data) => {
+    return instance.patch(`/${model}/registrar-cobro`, data, {
       headers: {
         'x-token': token,
       },

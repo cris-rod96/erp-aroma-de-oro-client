@@ -17,6 +17,7 @@ export const useCajas = (token) => {
     setFetching(true)
     try {
       const resp = await cajaAPI.listarTodas(token)
+      console.log('Cajas: ', resp.data.cajas)
       setCajas(resp.data.cajas || [])
     } catch (error) {
       console.error('Error al listar cajas', error)

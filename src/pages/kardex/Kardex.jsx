@@ -6,11 +6,21 @@ import { exportarKardexPDF } from '../../utils/kardexExport'
 
 const Kardex = () => {
   const token = useAuthStore((store) => store.token)
-  const { cajaId, cajas, dataProcesada, filtroTipo, productos, setCajaId, setFiltroTipo } =
-    useKardex(token)
+  const {
+    cajaId,
+    cajas,
+    dataProcesada,
+    filtroTipo,
+    productos,
+    setCajaId,
+    setFiltroTipo,
+    filtroTiempo,
+    setFiltroTiempo, // Traemos los nuevos estados
+  } = useKardex(token)
 
   const handleExportPDF = () => {
-    exportarKardexPDF(dataProcesada, cajas, cajaId, filtroTipo, productos)
+    // Aquí luego pasaremos filtroTiempo para que el título del PDF cambie
+    exportarKardexPDF(dataProcesada, cajas, cajaId, filtroTipo, productos, filtroTiempo)
   }
 
   return (
@@ -19,12 +29,14 @@ const Kardex = () => {
         <KardexHeader
           filtroTipo={filtroTipo}
           setFiltroTipo={setFiltroTipo}
+          filtroTiempo={filtroTiempo} // <-- Nuevo
+          setFiltroTiempo={setFiltroTiempo} // <-- Nuevo
           cajaId={cajaId}
           setCajaId={setCajaId}
           cajas={cajas}
           onExportPDF={handleExportPDF}
+          hasData={dataProcesada.length > 0}
         />
-
         <KardexTable data={dataProcesada} productos={productos} />
       </div>
     </Container>

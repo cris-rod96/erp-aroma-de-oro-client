@@ -28,6 +28,7 @@ const usuarioAPI = {
   },
 
   eliminarUsuario: (id, token) => {
+    console.log(id, token)
     return instance.delete(`/${model}/borrar-usuario/${id}`, {
       headers: {
         'x-token': token,

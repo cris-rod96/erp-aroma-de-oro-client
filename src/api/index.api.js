@@ -14,6 +14,12 @@ import ventaAPI from './venta/venta.api'
 import movimientoAPI from './movimiento/movimiento.api'
 import reporteAPI from './reporte/reporte.api'
 import nominaAPI from './nomina/nomina.api'
+import abonosPorPagarApi from './abono-por-pagar/abono-por-pagar.api'
+import anticipoAPI from './anticipos/anticipos.api'
+import prestanoApi from './prestamo/prestamo.api'
+import gastoAPI from './gasto/gasto.api'
+import abonoPorCobrarAPI from './abono-por-cobrar/abono-por-cobrar.api'
+
 export {
   authAPI,
   usuarioAPI,
@@ -31,4 +37,9 @@ export {
   movimientoAPI,
   reporteAPI,
   nominaAPI,
+  abonosPorPagarApi,
+  anticipoAPI,
+  prestanoApi,
+  gastoAPI,
+  abonoPorCobrarAPI,
 }
