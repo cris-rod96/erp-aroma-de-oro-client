@@ -93,6 +93,10 @@ const CajasTable = ({ fetching, cajas }) => {
     ? calcularDesglose(selectedCaja)
     : { efectivoNeto: 0, bancosNeto: 0, soloEfectivoEsperado: 0 }
 
+  useEffect(() => {
+    console.log(cajas)
+  }, [cajas])
+
   return (
     <div className="font-sans">
       {/* --- TABLA PRINCIPAL --- */}
@@ -307,7 +311,9 @@ const CajasTable = ({ fetching, cajas }) => {
                           </td>
                           <td className="px-4 py-4">
                             <p className="text-[10px] font-black text-gray-800 uppercase italic leading-none">
-                              {mov.descripcion?.split('|')[0] || 'SIN DESCRIPCIÓN'}
+                              {mov.categoria?.toLowerCase().includes('gasto')
+                                ? `${mov.detalleGasto?.categoria ?? ''} ${mov.detalleGasto?.descripcion ?? ''}`
+                                : mov.descripcion?.split('|')[0] || 'General'}
                             </p>
                             <span
                               className={`text-[7px] font-black px-1.5 py-0.5 rounded mt-1 inline-block uppercase tracking-tighter ${!isVirtual ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-blue-100 text-blue-700 border border-blue-200'}`}
