@@ -6,8 +6,8 @@ import { formatMoney } from './fromatters'
 export const exportarVentaPDF = async (venta, empresa) => {
   // Alerta inicial
   Swal.fire({
-    title: 'Generando Factura',
-    text: 'Procesando datos de Aroma de Oro...',
+    title: 'Generando Comprobante',
+    text: 'Espere un momento...',
     allowOutsideClick: false,
     didOpen: () => Swal.showLoading(),
   })
@@ -74,7 +74,7 @@ export const exportarVentaPDF = async (venta, empresa) => {
         body: [
           [
             {
-              content: 'FACTURA DE VENTA',
+              content: 'COMPROBANTE VENTA',
               rowSpan: 2,
               styles: { fontSize: 11, fontStyle: 'bold', cellWidth: 55 },
             },
@@ -278,7 +278,7 @@ export const exportarVentaPDF = async (venta, empresa) => {
     dibujarCopia(162, 'COPIA - CLIENTE')
 
     // NOMBRE DEL ARCHIVO: FACTURA_VENTA_VNT-0001.pdf
-    doc.save(`FACTURA_VENTA_${venta.codigoVenta || 'VNT'}.pdf`)
+    doc.save(`COMPROBANTE_VENTA_${venta.codigoVenta || 'VNT'}.pdf`)
     Swal.close()
   } catch (error) {
     console.error(error)

@@ -14,7 +14,6 @@ import {
   Reportes,
   Usuarios,
   Ventas,
-  Alerta,
   NotFound,
   Tickets,
   Anticipos,
@@ -43,7 +42,6 @@ const AppRouter = () => {
         <Route path="/inicio/reportes" element={<Reportes />} />
         <Route path="/inicio/usuarios" element={<Usuarios />} />
         <Route path="/inicio/ventas" element={<Ventas />} />
-        <Route path="/inicio/alertas" element={<Alerta />} />
         <Route path="/inicio/anticipos" element={<Anticipos />} />
         <Route path="/inicio/prestamos" element={<Prestamos />} />
         <Route path="/inicio/gastos" element={<Gastos />} />

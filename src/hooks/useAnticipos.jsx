@@ -71,7 +71,7 @@ export const useAnticipos = () => {
       setLoading(true)
       const res = await anticipoAPI.crearAnticipo(token, data)
       Swal.fire('¡Éxito!', 'Anticipo registrado y descontado de caja', 'success')
-      if (res.data.cajaActualizada) setCaja(res.data.cajaActualizada)
+      if (res.data.caja) setCaja(res.data.caja)
 
       // Reset
       setProductorInfo(null)

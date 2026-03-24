@@ -10,10 +10,13 @@ import {
   MdErrorOutline,
   MdReceiptLong,
   MdEventRepeat,
+  MdPrint, // Añadimos icono de impresión
 } from 'react-icons/md'
 import { usePrestamos } from '../../hooks/usePrestamos'
+import { useEmpresaStore } from '../../store/useEmpresaStore' // Importamos el store de empresa
 import { Container } from '../../components/index.components'
 import { formatFecha } from '../../utils/fromatters'
+import { exportarPrestamoPDF } from '../../utils/prestamoReport' // Importamos tu nuevo reporte
 
 const Prestamos = () => {
   const {
@@ -33,6 +36,7 @@ const Prestamos = () => {
     caja,
   } = usePrestamos()
 
+  const empresa = useEmpresaStore((state) => state.empresa) // Obtenemos datos de la empresa
   const [filtroTexto, setFiltroTexto] = useState('')
   const [filtroEstado, setFiltroEstado] = useState('Todos')
 
@@ -55,7 +59,7 @@ const Prestamos = () => {
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-6">
-        {/* HEADER */}
+        {/* HEADER (Se mantiene igual) */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
           <div className="border-l-4 border-amber-400 pl-4">
             <h1 className="text-3xl md:text-4xl font-black text-gray-800 uppercase tracking-tighter leading-none">
@@ -83,7 +87,7 @@ const Prestamos = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">
-          {/* PANEL DE REGISTRO */}
+          {/* PANEL DE REGISTRO (Se mantiene igual) */}
           <div className="lg:col-span-4">
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-8 sticky top-6">
               <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-6">
@@ -241,6 +245,7 @@ const Prestamos = () => {
                         <th className="px-8 py-6 text-left">Empleado</th>
                         <th className="px-8 py-6 text-center">Progreso</th>
                         <th className="px-8 py-6 text-right">Saldo</th>
+                        <th className="px-8 py-6 text-center">Acción</th> {/* Nueva columna */}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50 uppercase font-bold text-[13px]">
@@ -287,6 +292,15 @@ const Prestamos = () => {
                               ${parseFloat(pres.saldoPendiente).toFixed(2)}
                             </p>
                             <p className="text-[9px] text-gray-400 uppercase">Faltante</p>
+                          </td>
+                          <td className="px-8 py-5 text-center">
+                            <button
+                              onClick={() => exportarPrestamoPDF(pres, empresa)}
+                              className="p-3 bg-gray-100 hover:bg-amber-400 text-gray-400 hover:text-gray-900 rounded-xl transition-all active:scale-90 shadow-sm"
+                              title="Imprimir Comprobante"
+                            >
+                              <MdPrint size={18} />
+                            </button>
                           </td>
                         </tr>
                       ))}

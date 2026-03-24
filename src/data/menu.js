@@ -125,11 +125,4 @@ export const MENU_DATA = [
     icon: GiGears,
     onlyAdmin: true,
   },
-
-  {
-    path: '/inicio/alertas',
-    label: 'Estilo de Alertas',
-    icon: TbBellFilled,
-    onlyAdmin: true,
-  },
 ]

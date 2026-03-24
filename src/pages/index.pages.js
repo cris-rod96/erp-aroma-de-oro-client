@@ -12,7 +12,6 @@ import Kardex from './kardex/Kardex'
 import Nomina from './nomina/Nomina'
 import Reportes from './reportes/Reportes'
 import Ventas from './ventas/Ventas'
-import Alerta from './alerta/Alerta'
 import NotFound from './404/NotFound'
 import NotAuthorized from './401/NotAuthorized'
 import Tickets from './tickets/Tickets'
@@ -34,7 +33,6 @@ export {
   Nomina,
   Reportes,
   Ventas,
-  Alerta,
   NotFound,
   NotAuthorized,
   Tickets,
