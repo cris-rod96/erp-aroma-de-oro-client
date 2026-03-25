@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, replace } from 'react-router-dom'
 import {
   Cajas,
   Compras,
@@ -21,13 +21,21 @@ import {
   Gastos,
 } from './pages/index.pages'
 import RootLayout from './layout/RootLayout'
+import { useAuthStore } from './store/useAuthStore'
 const AppRouter = () => {
+  const token = useAuthStore((state) => state.token)
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/inicio-sesion" replace />} />
-      <Route path="/inicio-sesion" element={<Login />} />
+      <Route
+        path="/inicio-sesion"
+        element={token ? <Navigate to="/inicio" replace /> : <Login />}
+      />
 
-      <Route path="/inicio" element={<RootLayout />}>
+      <Route
+        path="/inicio"
+        element={token ? <RootLayout /> : <Navigate to="/inicio-sesion" replace />}
+      >
         <Route index element={<Home />} />
         <Route path="/inicio/cajas" element={<Cajas />} />
         <Route path="/inicio/productores" element={<Productores />} />
