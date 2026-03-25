@@ -147,7 +147,7 @@ const ComprasTable = ({ liquidaciones = [], setSelectedLiq, setShowModal }) => {
             de <span className="text-gray-900">{liquidaciones.length}</span> expedientes
           </p>
           <span className="text-[8px] text-amber-600 font-bold uppercase mt-1 tracking-[0.2em]">
-            Filtro Activo
+            Filtro de Compras Activo
           </span>
         </div>
 
