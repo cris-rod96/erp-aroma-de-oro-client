@@ -708,7 +708,7 @@ const Compras = () => {
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] text-gray-500 ml-1 flex items-center gap-1">
-                      <MdPhone size={12} /> Teléfono *
+                      <MdPhone size={12} /> Teléfono (Opcional)
                     </label>
                     <input
                       type="text"

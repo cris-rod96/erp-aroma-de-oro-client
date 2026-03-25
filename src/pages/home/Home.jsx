@@ -79,10 +79,6 @@ const Home = () => {
           return new Date(liq.fecha).toISOString().split('T')[0] === hoy
         }).length
 
-        const stockTotal = (respProductos.data.productos || []).reduce(
-          (acc, prod) => acc + parseFloat(prod.stock || 0),
-          0
-        )
         const cajaData = respCajaActiva.data.caja
         const dineroEnCaja = cajaData
           ? parseFloat(
@@ -110,7 +106,7 @@ const Home = () => {
           USUARIOS: `${countActivos} Activos`,
           NÓMINA: `${respTrabajadores.data.trabajadores?.length || 0} Empleados`,
           COMPRAS: `${liquidacionesHoy} Hoy`,
-          INVENTARIO: `${stockTotal.toFixed(2)} qq`,
+          INVENTARIO: `Ver bodega`,
           PRODUCTORES: `${respProductores.data.productores?.length || 0} Total`,
           CAJAS: formatter.format(dineroEnCaja),
           VENTAS: formatter.format(totalVentasHoy),

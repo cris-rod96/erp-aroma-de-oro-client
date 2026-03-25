@@ -158,8 +158,8 @@ export const useLiquidacion = () => {
   }, [cantidad, calificacion, impurezas, precio, retencionPorcentaje, pagos, montoAplicarAnticipo])
 
   const handleRegistrarProductor = async () => {
-    if (!nuevoProductor.nombreCompleto || !nuevoProductor.telefono) {
-      return Swal.fire('Faltan datos', 'Nombre y teléfono obligatorios', 'warning')
+    if (!nuevoProductor.nombreCompleto) {
+      return Swal.fire('Faltan datos', 'Nombre obligatorio', 'warning')
     }
     try {
       setLoading(true)
@@ -170,7 +170,7 @@ export const useLiquidacion = () => {
       }
       Swal.fire('Éxito', 'Productor registrado', 'success')
     } catch (error) {
-      Swal.fire('Error', 'No se pudo crear el productor', 'error')
+      Swal.fire('Error', error.response?.data?.message || 'Error al registrar productor', 'error')
     } finally {
       setLoading(false)
     }
@@ -303,6 +303,8 @@ export const useLiquidacion = () => {
     setAnticiposPendientes([])
     setMostrarSugerencias(false)
     setMostrarFormProductor(false)
+    setRetencionPorcentaje(0)
+    setRetencionConcepto('')
   }
 
   return {

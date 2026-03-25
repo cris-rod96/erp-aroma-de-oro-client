@@ -253,13 +253,12 @@ const Productores = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
-                Teléfono
+                Teléfono (Opcional)
               </label>
               <div className="flex items-center h-14 bg-gray-50 rounded-2xl border border-gray-100 px-4">
                 <MdPhone className="text-amber-500 mr-3" />
                 <input
                   type="text"
-                  required
                   maxLength={10}
                   value={formData.telefono}
                   onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
