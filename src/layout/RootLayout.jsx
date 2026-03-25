@@ -23,16 +23,6 @@ const RootLayout = () => {
                 <HiOutlineSwitchHorizontal size={25} color="#375A65" />
               )}
             </button>
-
-            <div className="flex flex-row gap-5">
-              <NavLink>
-                <FaUserCog size={20} color="#375A65" />
-              </NavLink>
-
-              <NavLink>
-                <FaPowerOff size={20} color="#375A65" />
-              </NavLink>
-            </div>
           </header>
           {/* Opciones */}
         </section>
