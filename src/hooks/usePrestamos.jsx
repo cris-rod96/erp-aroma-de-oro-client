@@ -12,6 +12,7 @@ export const usePrestamos = () => {
   const setCaja = useCajaStore((store) => store.setCaja)
 
   // Estados de carga y datos
+  const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [prestamosGlobales, setPrestamosGlobales] = useState([])
   const [trabajadores, setTrabajadores] = useState([]) // Lista para búsqueda local
@@ -26,6 +27,7 @@ export const usePrestamos = () => {
   // 1. Cargar datos iniciales (Caja, Préstamos y la lista de Trabajadores)
   const fetchDatosIniciales = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const [resPrestamos, resTrabajadores] = await Promise.all([
         prestamoAPI.listarTodos(token),
@@ -35,7 +37,8 @@ export const usePrestamos = () => {
       if (resPrestamos.data) setPrestamosGlobales(resPrestamos.data.prestamos)
       if (resTrabajadores.data) setTrabajadores(resTrabajadores.data.trabajadores)
     } catch (error) {
-      console.error('Error al cargar datos:', error)
+      const msg = error.response?.data?.message || 'Error al obtener préstamos'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -147,5 +150,6 @@ export const usePrestamos = () => {
     setComentario,
     handleGuardarPrestamo,
     refreshData: fetchDatosIniciales,
+    error,
   }
 }

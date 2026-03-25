@@ -3,6 +3,7 @@ import { usuarioAPI } from '../api/index.api'
 import { useEffect } from 'react'
 
 export const useUsuarios = (token) => {
+  const [error, setError] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
@@ -15,18 +16,19 @@ export const useUsuarios = (token) => {
     telefono: '',
     correo: '',
     clave: '',
-    esAdministrador: false,
+    rol: '',
     estaActivo: true,
   })
 
   const fetchUsuarios = async () => {
     setFetching(true)
+    setError(null)
     try {
       const resp = await usuarioAPI.listarUsuarios(token)
       // Ajusta según cómo responda tu backend (resp.data o resp.data.usuarios)
       setUsuarios(resp.data.usuarios || resp.data || [])
     } catch (error) {
-      console.error('Error al cargar usuarios:', error)
+      setError(error.response?.data.message || 'Error al cargar')
     } finally {
       setFetching(false)
     }
@@ -46,7 +48,7 @@ export const useUsuarios = (token) => {
         telefono: usuario.telefono,
         correo: usuario.correo,
         clave: '', // La clave no se suele enviar de vuelta al editar
-        esAdministrador: usuario.esAdministrador,
+        rol: usuario.rol,
         estaActivo: usuario.estaActivo,
       })
     } else {
@@ -57,7 +59,7 @@ export const useUsuarios = (token) => {
         telefono: '',
         correo: '',
         clave: '',
-        esAdministrador: false,
+        rol: '',
         estaActivo: true,
       })
     }
@@ -78,6 +80,7 @@ export const useUsuarios = (token) => {
     setFormData,
     usuarios,
     loading,
+    error,
     setLoading,
   }
 }

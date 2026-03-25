@@ -43,6 +43,7 @@ const Productores = () => {
     setIsEdit,
     setIsModalOpen,
     setLoading,
+    error,
     setSelectedId,
   } = useProductores(token)
 
@@ -151,6 +152,7 @@ const Productores = () => {
           handleOpenModal={handleOpenModal}
           handleVerLiquidaciones={handleVerLiquidaciones}
           productores={productores}
+          error={error}
         />
       </div>
 

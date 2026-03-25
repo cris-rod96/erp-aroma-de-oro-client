@@ -12,6 +12,8 @@ export const useAnticipos = () => {
   const [productores, setProductores] = useState([])
   const [loading, setLoading] = useState(false)
 
+  const [error, setError] = useState(null)
+
   // Estados del Formulario
   const [cedulaBusqueda, setCedulaBusqueda] = useState('')
   const [productorInfo, setProductorInfo] = useState(null)
@@ -20,6 +22,7 @@ export const useAnticipos = () => {
   const [saldoDeudaProductor, setSaldoDeudaProductor] = useState(0)
 
   const fetchDatos = useCallback(async () => {
+    setError(null)
     try {
       setLoading(true)
       const [resAnt, resProd] = await Promise.all([
@@ -29,7 +32,8 @@ export const useAnticipos = () => {
       setAnticiposGlobales(resAnt.data.anticipos || [])
       setProductores(resProd.data.productores || [])
     } catch (error) {
-      console.error('Error Aroma de Oro:', error)
+      const msg = error.response?.data?.message || 'Error al procesar'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -100,5 +104,6 @@ export const useAnticipos = () => {
     handleGuardarAnticipo,
     cajaActual: caja,
     saldoDeudaProductor,
+    error,
   }
 }

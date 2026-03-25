@@ -32,6 +32,7 @@ const Usuarios = () => {
     setFormData,
     usuarios,
     loading,
+    error,
     setLoading,
   } = useUsuarios(token)
 
@@ -53,7 +54,10 @@ const Usuarios = () => {
     try {
       if (isEdit) {
         const dataToUpdate = { ...formData }
-        if (!dataToUpdate.clave) delete dataToUpdate.clave
+        if (formData.clave && formData.clave.trim() !== '') {
+          await usuarioAPI.actualizarClave(selectedId, formData.clave, token)
+        }
+        delete dataToUpdate.clave
 
         await usuarioAPI.actualizarUsuario(selectedId, dataToUpdate, token)
         Swal.fire({
@@ -104,6 +108,7 @@ const Usuarios = () => {
   const cerrarModalLimpio = () => {
     setIsModalOpen(false)
     setRegistrarComoTrabajador(false)
+    handleOpenModal(false)
   }
 
   return (
@@ -117,6 +122,7 @@ const Usuarios = () => {
         />
 
         <UsuariosTable
+          error={error}
           fetching={fetching}
           handleDelete={async (id) => {
             const confirm = await Swal.fire({
@@ -245,7 +251,7 @@ const Usuarios = () => {
                   onChange={(e) => setFormData({ ...formData, rol: e.target.value })}
                   className="bg-transparent w-full outline-none text-sm font-bold text-gray-700 cursor-pointer"
                 >
-                  <option value="Estandar">ESTÁNDAR</option>
+                  <option value="Estándar">ESTÁNDAR</option>
                   <option value="Administrador">ADMINISTRADOR</option>
                   <option value="Contador">CONTADOR</option>
                 </select>

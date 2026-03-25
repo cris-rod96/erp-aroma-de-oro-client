@@ -5,13 +5,13 @@ export const useAuthStore = create(
   persist(
     (set) => ({
       token: null,
-      isAdmin: null,
+      estaHabilitado: false,
       data: null,
 
       login: (data) =>
         set({
           token: data.token,
-          isAdmin: data.usuario.rol === 'Administrador',
+          estaHabilitado: data.usuario.rol === 'Administrador' || data.usuario.rol === 'Contador',
           data: data.usuario,
         }),
 
@@ -19,13 +19,16 @@ export const useAuthStore = create(
         set((state) => ({
           data: { ...state.data, ...newData },
           // También actualizamos isAdmin por si cambió el rango
-          isAdmin: newData.rol !== undefined ? newData.rol === 'Administrador' : state.isAdmin,
+          estaHabilitado:
+            newData.rol !== undefined
+              ? newData.rol === 'Administrador' || newData.rol === 'Contador'
+              : state.estaHabilitado,
         })),
 
       logout: () =>
         set({
           token: null,
-          isAdmin: null,
+          estaHabilitado: null,
           data: null,
         }),
     }),

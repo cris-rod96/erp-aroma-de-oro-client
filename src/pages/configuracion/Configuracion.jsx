@@ -111,7 +111,7 @@ const Configuracion = () => {
       if (resp.status === 200 || resp.status === 201) {
         Swal.fire({
           icon: 'success',
-          title: 'Empresa Guardada',
+          title: 'Información actualizada',
           timer: 1500,
           showConfirmButton: false,
         })
@@ -123,6 +123,50 @@ const Configuracion = () => {
       }
     } catch (error) {
       Swal.fire('Error', 'No se pudo guardar la empresa', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const actualizarPassword = async () => {
+    const { nuevaClave, repetirClave } = passwordData
+
+    // 1. Validaciones básicas de cliente
+    if (!nuevaClave || !repetirClave) {
+      return Swal.fire('Atención', 'Debes completar ambos campos de contraseña', 'warning')
+    }
+
+    if (nuevaClave !== repetirClave) {
+      return Swal.fire('Error', 'Las contraseñas no coinciden', 'error')
+    }
+
+    if (nuevaClave.length < 6) {
+      return Swal.fire('Atención', 'La contraseña debe tener al menos 6 caracteres', 'warning')
+    }
+
+    try {
+      setLoading(true)
+      const { id } = infoData // UUID del usuario logueado
+
+      // 2. Llamada a la API (Orden: id, clave, token)
+      const resp = await usuarioAPI.actualizarClave(id, nuevaClave, token)
+
+      if (resp.status === 200) {
+        Swal.fire({
+          icon: 'success',
+          title: 'Seguridad Actualizada',
+          text: 'Tu contraseña ha sido cambiada con éxito',
+          timer: 2000,
+          showConfirmButton: false,
+        })
+
+        // Limpiar los campos después del éxito
+        setPasswordData({ nuevaClave: '', repetirClave: '' })
+      }
+    } catch (error) {
+      // Manejo de errores (incluyendo el 400 si la clave es igual a la anterior)
+      const mensajeError = error.response?.data?.message || 'No se pudo actualizar la contraseña'
+      Swal.fire('Error', mensajeError, 'error')
     } finally {
       setLoading(false)
     }
@@ -234,127 +278,149 @@ const Configuracion = () => {
               </div>
               <div className="p-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                  <div className="relative">
-                    <MdLock
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
-                      size={20}
-                    />
-                    <input
-                      type="password"
-                      placeholder="NUEVA CONTRASEÑA"
-                      className="h-14 w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-5 text-[10px] font-black uppercase tracking-widest outline-none focus:border-rose-400 transition-all"
-                      onChange={(e) =>
-                        setPasswordData({ ...passwordData, nuevaClave: e.target.value })
-                      }
-                    />
+                  {/* Nueva Contraseña */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      Nueva Contraseña
+                    </label>
+                    <div className="relative">
+                      <MdLock
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
+                        size={20}
+                      />
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={passwordData.nuevaClave}
+                        className="h-14 w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-5 text-[10px] font-black uppercase tracking-widest outline-none focus:border-rose-400 transition-all shadow-sm"
+                        onChange={(e) =>
+                          setPasswordData({ ...passwordData, nuevaClave: e.target.value })
+                        }
+                      />
+                    </div>
                   </div>
-                  <div className="relative">
-                    <MdLock
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
-                      size={20}
-                    />
-                    <input
-                      type="password"
-                      placeholder="CONFIRMAR CONTRASEÑA"
-                      className="h-14 w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-5 text-[10px] font-black uppercase tracking-widest outline-none focus:border-rose-400 transition-all"
-                      onChange={(e) =>
-                        setPasswordData({ ...passwordData, repetirClave: e.target.value })
-                      }
-                    />
+
+                  {/* Confirmar Contraseña */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      Confirmar Contraseña
+                    </label>
+                    <div className="relative">
+                      <MdLock
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"
+                        size={20}
+                      />
+                      <input
+                        type="password"
+                        placeholder="••••••••"
+                        value={passwordData.repetirClave}
+                        className="h-14 w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-5 text-[10px] font-black uppercase tracking-widest outline-none focus:border-rose-400 transition-all shadow-sm"
+                        onChange={(e) =>
+                          setPasswordData({ ...passwordData, repetirClave: e.target.value })
+                        }
+                      />
+                    </div>
                   </div>
                 </div>
+
                 <div className="flex justify-end">
-                  <button className="bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2">
-                    Actualizar Clave de Acceso
+                  <button
+                    disabled={loading}
+                    className="bg-rose-50 text-rose-600 border border-rose-100 hover:bg-rose-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 disabled:opacity-50"
+                    onClick={actualizarPassword}
+                  >
+                    {loading ? 'Procesando...' : 'Actualizar Clave de Acceso'}
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-8">
-            <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden sticky top-4">
-              <div className="px-8 py-5 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
-                <MdBusiness className="text-amber-500" size={24} />
-                <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">
-                  Identidad Corporativa
-                </h2>
-              </div>
-
-              <div className="p-8 space-y-6">
-                <div className="space-y-5">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                      Razón Social
-                    </label>
-                    <input
-                      type="text"
-                      name="nombre"
-                      value={empresaData.nombre || ''}
-                      onChange={handleEmpresaChange}
-                      className="h-12 w-full bg-white border border-gray-200 rounded-xl px-4 text-sm font-bold text-gray-700 outline-none focus:border-amber-400 shadow-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                      Número de RUC
-                    </label>
-                    <input
-                      type="text"
-                      name="ruc"
-                      value={empresaData.ruc || ''}
-                      onChange={handleEmpresaChange}
-                      className="h-12 w-full bg-white border border-gray-200 rounded-xl px-4 text-sm font-black text-gray-700 font-mono outline-none focus:border-amber-400 shadow-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                      Teléfono
-                    </label>
-                    <input
-                      type="tel"
-                      name="telefono"
-                      value={empresaData.telefono || ''}
-                      onChange={handleEmpresaChange}
-                      className="h-12 w-full bg-white border border-gray-200 rounded-xl px-4 text-sm font-black text-gray-700 font-mono outline-none focus:border-amber-400 shadow-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                      Correo Electrónico
-                    </label>
-                    <input
-                      type="email"
-                      name="correo"
-                      value={empresaData.correo || ''}
-                      onChange={handleEmpresaChange}
-                      className="h-12 w-full bg-white border border-gray-200 rounded-xl px-4 text-sm font-black text-gray-700 font-mono outline-none focus:border-amber-400 shadow-sm"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-                      Dirección Matriz
-                    </label>
-                    <textarea
-                      name="direccion"
-                      rows="3"
-                      value={empresaData.direccion || ''}
-                      onChange={handleEmpresaChange}
-                      className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 outline-none resize-none focus:border-amber-400 shadow-sm"
-                    />
-                  </div>
+          {infoData && (infoData.rol === 'Administrador' || infoData.rol === 'Contador') && (
+            <div className="space-y-8">
+              <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden sticky top-4">
+                <div className="px-8 py-5 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
+                  <MdBusiness className="text-amber-500" size={24} />
+                  <h2 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                    Identidad Corporativa
+                  </h2>
                 </div>
 
-                <button
-                  onClick={actualizarEmpresa}
-                  disabled={loading}
-                  className="w-full bg-gray-900 hover:bg-black text-amber-400 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl transition-all flex justify-center items-center gap-3 uppercase tracking-[0.2em] border-b-4 border-amber-600 active:scale-95 disabled:opacity-50"
-                >
-                  <MdSave size={20} /> {loading ? 'Guardando...' : 'Guardar Información'}
-                </button>
+                <div className="p-8 space-y-6">
+                  <div className="space-y-5">
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                        Razón Social
+                      </label>
+                      <input
+                        type="text"
+                        name="nombre"
+                        value={empresaData.nombre || ''}
+                        onChange={handleEmpresaChange}
+                        className="h-12 w-full bg-white border border-gray-200 rounded-xl px-4 text-sm font-bold text-gray-700 outline-none focus:border-amber-400 shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                        Número de RUC
+                      </label>
+                      <input
+                        type="text"
+                        name="ruc"
+                        value={empresaData.ruc || ''}
+                        onChange={handleEmpresaChange}
+                        className="h-12 w-full bg-white border border-gray-200 rounded-xl px-4 text-sm font-black text-gray-700 font-mono outline-none focus:border-amber-400 shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                        Teléfono
+                      </label>
+                      <input
+                        type="tel"
+                        name="telefono"
+                        value={empresaData.telefono || ''}
+                        onChange={handleEmpresaChange}
+                        className="h-12 w-full bg-white border border-gray-200 rounded-xl px-4 text-sm font-black text-gray-700 font-mono outline-none focus:border-amber-400 shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                        Correo Electrónico
+                      </label>
+                      <input
+                        type="email"
+                        name="correo"
+                        value={empresaData.correo || ''}
+                        onChange={handleEmpresaChange}
+                        className="h-12 w-full bg-white border border-gray-200 rounded-xl px-4 text-sm font-black text-gray-700 font-mono outline-none focus:border-amber-400 shadow-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                        Dirección Matriz
+                      </label>
+                      <textarea
+                        name="direccion"
+                        rows="3"
+                        value={empresaData.direccion || ''}
+                        onChange={handleEmpresaChange}
+                        className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold text-gray-700 outline-none resize-none focus:border-amber-400 shadow-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={actualizarEmpresa}
+                    disabled={loading}
+                    className="w-full bg-gray-900 hover:bg-black text-amber-400 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl transition-all flex justify-center items-center gap-3 uppercase tracking-[0.2em] border-b-4 border-amber-600 active:scale-95 disabled:opacity-50"
+                  >
+                    <MdSave size={20} /> {loading ? 'Guardando...' : 'Guardar Información'}
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </Container>

@@ -17,6 +17,7 @@ const KardexHeader = ({
   filtroTiempo,
   setFiltroTiempo,
   hasData,
+  error,
 }) => {
   // Determinamos si el selector de caja debe estar bloqueado
   // Bloqueado si el tiempo es mayor a un día (semana, mes, etc)
@@ -40,7 +41,7 @@ const KardexHeader = ({
         <div className="flex gap-2 mr-2">
           <button
             onClick={hasData ? onExportPDF : null}
-            disabled={!hasData}
+            disabled={!hasData || error}
             title="Exportar Reporte PDF"
             className="p-2.5 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all border border-rose-100 shadow-sm"
           >

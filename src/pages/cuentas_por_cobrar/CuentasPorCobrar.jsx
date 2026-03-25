@@ -8,8 +8,11 @@ import {
   MdAccountBalanceWallet,
   MdCalendarMonth,
   MdTrendingUp,
+  MdSecurity,
+  MdChevronLeft,
+  MdChevronRight,
 } from 'react-icons/md'
-import { FaHistory, FaUserCircle } from 'react-icons/fa'
+import { FaHistory } from 'react-icons/fa'
 import { Container, Modal } from '../../components/index.components'
 import { useAuthStore } from '../../store/useAuthStore'
 import { abonoPorCobrarAPI, cuentasPorCobrarAPI } from '../../api/index.api'
@@ -25,6 +28,11 @@ const CuentasPorCobrar = () => {
   const [cuentas, setCuentas] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [error, setError] = useState(null)
+
+  // --- LÓGICA DE PAGINACIÓN ---
+  const [paginaActual, setPaginaActual] = useState(1)
+  const registrosPorPagina = 8 // Ajustado para que quepa bien con el footer negro
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedCuenta, setSelectedCuenta] = useState(null)
@@ -36,12 +44,13 @@ const CuentasPorCobrar = () => {
   const [loadingHistory, setLoadingHistory] = useState(false)
 
   const fetchCuentas = async () => {
+    setLoading(true)
+    setError(null)
     try {
-      setLoading(true)
       const resp = await cuentasPorCobrarAPI.listarTodas(token)
       setCuentas(resp.data?.cuentasPorCobrar || [])
     } catch (error) {
-      console.error('Error Aroma de Oro:', error)
+      setError(error.response?.data?.message || 'Error al obtener información')
     } finally {
       setLoading(false)
     }
@@ -50,26 +59,6 @@ const CuentasPorCobrar = () => {
   useEffect(() => {
     fetchCuentas()
   }, [])
-
-  const handleOpenCobro = (cuenta) => {
-    setSelectedCuenta(cuenta)
-    setFormData({ monto: cuenta.montoPorCobrar, metodoCobro: 'Efectivo' })
-    setIsModalOpen(true)
-  }
-
-  const handleOpenHistory = async (cuenta) => {
-    setSelectedCuenta(cuenta)
-    setIsHistoryOpen(true)
-    setLoadingHistory(true)
-    try {
-      const resp = await abonoPorCobrarAPI.obtenerHistorialPorCxc(cuenta.id, token)
-      setHistoryData(resp.data?.abonos || [])
-    } catch (error) {
-      setHistoryData([])
-    } finally {
-      setLoadingHistory(false)
-    }
-  }
 
   const getDetallesOrigen = (c) => {
     if (!c) return { sujeto: '', detalle: '', color: 'text-gray-400' }
@@ -100,8 +89,10 @@ const CuentasPorCobrar = () => {
     }
   }
 
+  // 1. Filtrado General
   const filtered = useMemo(() => {
     const term = searchTerm.toLowerCase()
+    setPaginaActual(1) // Resetear página al buscar
     return cuentas.filter(
       (c) =>
         getDetallesOrigen(c).sujeto.toLowerCase().includes(term) ||
@@ -109,29 +100,42 @@ const CuentasPorCobrar = () => {
     )
   }, [cuentas, searchTerm])
 
+  // 2. Cálculos de Paginación
+  const totalPaginas = Math.ceil(filtered.length / registrosPorPagina)
+  const indiceUltimoItem = paginaActual * registrosPorPagina
+  const indicePrimerItem = indiceUltimoItem - registrosPorPagina
+
+  const filteredPaginado = useMemo(() => {
+    return filtered.slice(indicePrimerItem, indiceUltimoItem)
+  }, [filtered, paginaActual])
+
+  const handleOpenCobro = (cuenta) => {
+    setSelectedCuenta(cuenta)
+    setFormData({ monto: cuenta.montoPorCobrar, metodoCobro: 'Efectivo' })
+    setIsModalOpen(true)
+  }
+
+  const handleOpenHistory = async (cuenta) => {
+    setSelectedCuenta(cuenta)
+    setIsHistoryOpen(true)
+    setLoadingHistory(true)
+    try {
+      const resp = await abonoPorCobrarAPI.obtenerHistorialPorCxc(cuenta.id, token)
+      setHistoryData(resp.data?.abonos || [])
+    } catch (error) {
+      setHistoryData([])
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
   const handleSubmitCobro = async (e) => {
     e.preventDefault()
     const valor = parseFloat(formData.monto)
     const saldoPendiente = parseFloat(selectedCuenta?.montoPorCobrar || 0)
 
-    // Validaciones de monto
-    if (!valor || valor <= 0) {
-      return Swal.fire({
-        title: 'Monto Inválido',
-        text: 'Por favor ingrese un monto mayor a cero',
-        icon: 'warning',
-        confirmButtonColor: '#111827',
-      })
-    }
-
-    if (valor > saldoPendiente) {
-      return Swal.fire({
-        title: 'Excede el Saldo',
-        text: `El monto máximo permitido es $${saldoPendiente.toFixed(2)}`,
-        icon: 'error',
-        confirmButtonColor: '#111827',
-      })
-    }
+    if (!valor || valor <= 0) return Swal.fire({ title: 'Monto Inválido', icon: 'warning' })
+    if (valor > saldoPendiente) return Swal.fire({ title: 'Excede el Saldo', icon: 'error' })
 
     setProcessing(true)
     try {
@@ -143,29 +147,20 @@ const CuentasPorCobrar = () => {
         CajaId: caja.id,
         origen: selectedCuenta.origen,
       }
-
       const resp = await cuentasPorCobrarAPI.registrarCobro(token, payload)
-
       if (resp.status === 200) {
         Swal.fire({
           title: 'Cobro Registrado',
-          text: 'El ingreso se ha reflejado en caja correctamente',
           icon: 'success',
           timer: 1500,
           showConfirmButton: false,
         })
         setIsModalOpen(false)
         fetchCuentas()
-        // Actualizamos la caja global con el nuevo saldo
         if (resp.data.caja) setCaja(resp.data.caja)
       }
     } catch (error) {
-      Swal.fire({
-        title: 'Error de Aroma de Oro',
-        text: error.response?.data?.message || 'No se pudo procesar el cobro',
-        icon: 'error',
-        confirmButtonColor: '#111827',
-      })
+      Swal.fire({ title: 'Error', text: error.response?.data?.message, icon: 'error' })
     } finally {
       setProcessing(false)
     }
@@ -174,7 +169,7 @@ const CuentasPorCobrar = () => {
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-6 space-y-8">
-        {/* CABECERA ESTILO AROMA DE ORO */}
+        {/* CABECERA */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="border-l-4 border-amber-400 pl-4">
             <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter leading-none">
@@ -184,155 +179,229 @@ const CuentasPorCobrar = () => {
               Cartera Activa Aroma de Oro
             </p>
           </div>
-
-          <div className="relative group">
-            <MdSearch
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-amber-500 transition-colors"
-              size={20}
-            />
-            <input
-              type="text"
-              placeholder="BUSCAR CLIENTE O DOCUMENTO..."
-              className="pl-12 pr-6 py-3.5 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/5 transition-all w-full md:w-80 shadow-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+          {!error && (
+            <div className="relative group">
+              <MdSearch
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                size={20}
+              />
+              <input
+                type="text"
+                placeholder="BUSCAR CLIENTE O DOCUMENTO..."
+                className="pl-12 pr-6 py-3.5 bg-white border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none focus:border-amber-400 w-full md:w-80 shadow-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
-        {/* TABLA PRINCIPAL */}
-        <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-gray-50/50 border-b border-gray-50">
-                <tr>
-                  <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    Origen / Fecha
-                  </th>
-                  <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    Sujeto Asociado
-                  </th>
-                  <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    Saldo Pendiente
-                  </th>
-                  <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    Gestión
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {loading ? (
+        {error ? (
+          <div className="bg-white py-10 text-center rounded-2xl border border-gray-100">
+            <MdSecurity size={50} className="text-rose-400 mx-auto mb-4" />
+            <h3 className="text-rose-600 font-black uppercase text-sm tracking-[0.2em]">
+              Acceso Restringido
+            </h3>
+            <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase">{error}</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col min-h-[600px]">
+            <div className="overflow-x-auto flex-1">
+              <table className="w-full text-left">
+                <thead className="bg-gray-50/50 border-b border-gray-50">
                   <tr>
-                    <td
-                      colSpan="4"
-                      className="py-20 text-center animate-pulse text-gray-300 font-black uppercase text-xs tracking-widest"
-                    >
-                      Sincronizando cartera...
-                    </td>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Origen / Fecha
+                    </th>
+                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Sujeto Asociado
+                    </th>
+                    <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Saldo Pendiente
+                    </th>
+                    <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      Gestión
+                    </th>
                   </tr>
-                ) : filtered.length > 0 ? (
-                  filtered.map((c) => {
-                    const info = getDetallesOrigen(c)
-                    return (
-                      <tr key={c.id} className="hover:bg-amber-50/20 transition-colors group">
-                        <td className="px-8 py-5">
-                          <div className="flex items-center gap-4">
-                            <div className="h-10 w-10 rounded-xl bg-gray-900 text-amber-400 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform">
-                              <MdReceipt size={18} />
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {loading ? (
+                    <tr>
+                      <td
+                        colSpan="4"
+                        className="py-20 text-center animate-pulse text-gray-300 font-black uppercase text-xs italic"
+                      >
+                        Sincronizando cartera...
+                      </td>
+                    </tr>
+                  ) : filteredPaginado.length > 0 ? (
+                    filteredPaginado.map((c) => {
+                      const info = getDetallesOrigen(c)
+                      return (
+                        <tr
+                          key={c.id}
+                          className="hover:bg-amber-50/20 transition-colors group uppercase font-bold"
+                        >
+                          <td className="px-8 py-5">
+                            <div className="flex items-center gap-4">
+                              <div className="h-10 w-10 rounded-xl bg-gray-900 text-amber-400 flex items-center justify-center shadow-lg">
+                                <MdReceipt size={18} />
+                              </div>
+                              <div>
+                                <p
+                                  className={`text-[11px] font-black tracking-tighter ${info.color}`}
+                                >
+                                  {c.origen}
+                                </p>
+                                <p className="text-[9px] text-gray-400 font-bold mt-0.5 flex items-center gap-1">
+                                  <MdCalendarMonth size={10} />{' '}
+                                  {info.fecha
+                                    ? new Date(info.fecha).toLocaleDateString('es-EC')
+                                    : '--'}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <p
-                                className={`text-[11px] font-black uppercase tracking-tighter ${info.color}`}
+                          </td>
+                          <td className="px-8 py-5">
+                            <p className="text-sm font-black text-gray-800 italic tracking-tighter leading-none">
+                              {info.sujeto}
+                            </p>
+                            <p className="text-[10px] text-gray-400 font-bold mt-1 tracking-widest">
+                              {info.detalle}
+                            </p>
+                          </td>
+                          <td className="px-8 py-5 text-right">
+                            <span className="text-lg font-black font-mono text-gray-900 italic">
+                              ${parseFloat(c.montoPorCobrar).toFixed(2)}
+                            </span>
+                            <p className="text-[9px] text-gray-300 font-black tracking-tighter">
+                              INICIAL: ${parseFloat(c.montoTotal).toFixed(2)}
+                            </p>
+                          </td>
+                          <td className="px-8 py-5 text-right">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                onClick={() => handleOpenCobro(c)}
+                                className="bg-gray-900 text-amber-400 px-5 py-2.5 rounded-xl text-[10px] font-black italic tracking-widest border-b-4 border-amber-600 hover:bg-black transition-all active:scale-95 flex items-center gap-2 shadow-lg"
                               >
-                                {c.origen}
-                              </p>
-                              <p className="text-[9px] text-gray-400 font-bold mt-0.5 flex items-center gap-1 uppercase">
-                                <MdCalendarMonth size={10} />{' '}
-                                {info.fecha
-                                  ? new Date(info.fecha).toLocaleDateString('es-EC')
-                                  : '--'}
-                              </p>
+                                <MdPayments size={14} /> Cobrar
+                              </button>
+                              <button
+                                onClick={() => handleOpenHistory(c)}
+                                className="p-2.5 text-gray-400 border border-gray-100 rounded-xl hover:text-amber-600 hover:bg-amber-50 transition-all shadow-sm"
+                              >
+                                <FaHistory size={14} />
+                              </button>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-8 py-5">
-                          <p className="text-sm font-black text-gray-800 uppercase italic tracking-tighter leading-none">
-                            {info.sujeto}
-                          </p>
-                          <p className="text-[10px] text-gray-400 uppercase font-bold mt-1 tracking-widest">
-                            {info.detalle}
-                          </p>
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <span className="text-lg font-black font-mono text-gray-900 italic">
-                            ${parseFloat(c.montoPorCobrar).toFixed(2)}
-                          </span>
-                          <p className="text-[9px] text-gray-300 font-black uppercase tracking-tighter">
-                            Inicial: ${parseFloat(c.montoTotal).toFixed(2)}
-                          </p>
-                        </td>
-                        <td className="px-8 py-5 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleOpenCobro(c)}
-                              className="bg-gray-900 text-amber-400 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase italic tracking-widest border-b-4 border-amber-600 hover:bg-black transition-all active:scale-95 flex items-center gap-2 shadow-lg"
-                            >
-                              <MdPayments size={14} /> Cobrar
-                            </button>
-                            <button
-                              onClick={() => handleOpenHistory(c)}
-                              className="p-2.5 text-gray-400 border border-gray-100 rounded-xl hover:text-gray-900 hover:bg-gray-50 transition-all shadow-sm"
-                            >
-                              <FaHistory size={14} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })
-                ) : (
-                  <tr>
-                    <td
-                      colSpan="4"
-                      className="py-24 text-center text-gray-300 uppercase font-black text-xs tracking-widest"
-                    >
-                      <MdInbox size={48} className="mx-auto mb-2 opacity-20" /> Sin cuentas
-                      pendientes
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  ) : (
+                    <tr>
+                      <td
+                        colSpan="4"
+                        className="py-24 text-center text-gray-300 uppercase font-black text-xs tracking-widest italic"
+                      >
+                        Sin cuentas pendientes
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-          {/* FOOTER TOTALIZADOR */}
-          <div className="bg-gray-900 p-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-amber-400/10 rounded-2xl text-amber-400 border border-amber-400/20">
-                <MdTrendingUp size={24} />
+            {/* --- PAGINACIÓN 3D AROMA DE ORO --- */}
+            <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">
+                  Mostrando{' '}
+                  <span className="text-gray-900">
+                    {filtered.length > 0 ? indicePrimerItem + 1 : 0}
+                  </span>{' '}
+                  a{' '}
+                  <span className="text-gray-900">
+                    {Math.min(indiceUltimoItem, filtered.length)}
+                  </span>{' '}
+                  de <span className="text-gray-900">{filtered.length}</span> registros
+                </p>
               </div>
-              <div>
-                <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-[0.2em] leading-none">
-                  Cartera Total
-                </p>
-                <p className="text-gray-400 text-[10px] font-bold uppercase mt-1">
-                  Registros Activos: {filtered.length}
-                </p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPaginaActual(paginaActual - 1)}
+                  disabled={paginaActual === 1 || totalPaginas === 0}
+                  className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-20 hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+                >
+                  <MdChevronLeft size={20} />
+                </button>
+
+                <div className="flex items-center gap-1.5">
+                  {totalPaginas <= 1 ? (
+                    <button className="w-9 h-9 rounded-xl text-[11px] font-black bg-gray-900 text-amber-400 shadow-xl border-b-4 border-amber-600 italic">
+                      1
+                    </button>
+                  ) : (
+                    [...Array(totalPaginas)]
+                      .map((_, i) => {
+                        const num = i + 1
+                        const esActiva = paginaActual === num
+                        return (
+                          <button
+                            key={num}
+                            onClick={() => setPaginaActual(num)}
+                            className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all italic ${esActiva ? 'bg-gray-900 text-amber-400 shadow-xl border-b-4 border-amber-600' : 'bg-white border border-gray-200 text-gray-400 hover:border-amber-200'}`}
+                          >
+                            {num}
+                          </button>
+                        )
+                      })
+                      .slice(
+                        Math.max(0, paginaActual - 3),
+                        Math.min(totalPaginas, paginaActual + 2)
+                      )
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setPaginaActual(paginaActual + 1)}
+                  disabled={paginaActual === totalPaginas || totalPaginas === 0}
+                  className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-20 hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+                >
+                  <MdChevronRight size={20} />
+                </button>
               </div>
             </div>
-            <div className="text-right">
-              <span className="text-3xl font-black font-mono text-white tracking-tighter italic">
-                $
-                {filtered
-                  .reduce((acc, c) => acc + parseFloat(c.montoPorCobrar), 0)
-                  .toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </span>
-              <p className="text-[9px] font-black text-amber-400 uppercase tracking-[0.3em] mt-1 text-center md:text-right">
-                Aroma de Oro | Auditoría
-              </p>
+
+            {/* FOOTER TOTALIZADOR NEGRO (SE MANTIENE AL FINAL) */}
+            <div className="bg-gray-900 p-8 flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-amber-400/10 rounded-2xl text-amber-400 border border-amber-400/20">
+                  <MdTrendingUp size={24} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-[0.2em] leading-none">
+                    Cartera Total
+                  </p>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase mt-1">
+                    Registros Activos: {filtered.length}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="text-3xl font-black font-mono text-white tracking-tighter italic">
+                  $
+                  {filtered
+                    .reduce((acc, c) => acc + parseFloat(c.montoPorCobrar), 0)
+                    .toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </span>
+                <p className="text-[9px] font-black text-amber-400 uppercase tracking-[0.3em] mt-1 text-center md:text-right">
+                  Aroma de Oro | Auditoría
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* MODAL COBRO PREMIUM */}

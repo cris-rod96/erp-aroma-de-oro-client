@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { ITEMS_DATA } from '../../data'
 import { NavLink, useOutletContext } from 'react-router-dom'
-import { MdTrendingUp, MdLock } from 'react-icons/md' // Importamos MdLock
+import { MdTrendingUp, MdLock, MdSecurity } from 'react-icons/md' // Importamos MdLock
 import Swal from 'sweetalert2'
-import { Loading } from '../../components/index.components'
+import { Container, Loading } from '../../components/index.components'
 import { useAuthStore } from '../../store/useAuthStore'
 import {
   cajaAPI,
@@ -20,10 +20,11 @@ import {
 const Home = () => {
   const { hiddenMenu } = useOutletContext()
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [mensajeLoading, setMensajeLoading] = useState('Iniciando sistema...')
 
   const token = useAuthStore((store) => store.token)
-  const isAdmin = useAuthStore((state) => state.isAdmin) // Obtenemos el rol
+  const estaHabilitado = useAuthStore((state) => state.estaHabilitado) // Obtenemos el rol
 
   const [stats, setStats] = useState({
     USUARIOS: 'Cargando...',
@@ -43,6 +44,7 @@ const Home = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       setLoading(true)
+      setError(null)
       try {
         setMensajeLoading('Sincronizando base de datos...')
 
@@ -116,7 +118,8 @@ const Home = () => {
           'POR PAGAR': formatter.format(totalPorPagar),
         }))
       } catch (error) {
-        console.error('Error en Dashboard:', error)
+        const msg = error.response?.data?.message || 'Error al obtener información'
+        setError(msg)
       } finally {
         setLoading(false)
       }
@@ -127,76 +130,94 @@ const Home = () => {
   return (
     <>
       {loading && <Loading mensaje={mensajeLoading} />}
-
-      <section
-        className={`flex-1 bg-[#F5F9FF] min-h-screen transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'}`}
-      >
-        <div
-          className={`grid md:grid-cols-2 sm:grid-cols-1 items-center ${
-            hiddenMenu ? 'w-[90%] lg:grid-cols-4' : 'w-[80%] pl-56 lg:grid-cols-3'
-          } mx-auto gap-10 px-10 py-28 transition-all duration-500`}
+      {error ? (
+        <Container fullWidth={true}>
+          <div className="flex flex-col items-center justify-center bg-white py-10 text-center rounded-2xl ">
+            <div className="bg-rose-50 p-4 rounded-3xl mb-4 border border-rose-100">
+              <MdSecurity size={50} className="text-rose-400" />
+            </div>
+            <h3 className="text-rose-600 font-black uppercase text-sm tracking-[0.2em]">
+              Acceso Restringido
+            </h3>
+            <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase max-w-xs mx-auto leading-relaxed">
+              {error}
+            </p>
+            <span className="text-[8px] bg-gray-100 text-gray-500 px-3 py-1 rounded-full mt-4 font-black uppercase italic">
+              Seguridad Aroma de Oro
+            </span>
+          </div>
+        </Container>
+      ) : (
+        <section
+          className={`flex-1 bg-[#F5F9FF] min-h-screen transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'} `}
         >
-          {ITEMS_DATA.map((item, index) => {
-            const isBlocked = item.onlyAdmin && !isAdmin
+          <div
+            className={`grid md:grid-cols-2 sm:grid-cols-1 items-center ${
+              hiddenMenu ? 'w-[90%] lg:grid-cols-4' : 'w-[80%] pl-56 lg:grid-cols-3'
+            } mx-auto gap-10 px-10 py-28 transition-all duration-500`}
+          >
+            {ITEMS_DATA.map((item, index) => {
+              const isBlocked = item.onlyAdmin && !estaHabilitado
 
-            return (
-              <NavLink
-                key={index}
-                to={isBlocked ? '#' : item.path}
-                onClick={(e) => isBlocked && e.preventDefault()}
-                className={`group flex flex-col border border-gray-200 rounded-[2rem] w-full bg-white transition-all duration-500 overflow-hidden ${
-                  isBlocked
-                    ? 'grayscale opacity-60 cursor-not-allowed shadow-none'
-                    : 'cursor-pointer shadow-sm hover:shadow-2xl hover:shadow-amber-900/15 hover:-translate-y-2'
-                }`}
-              >
-                <header
-                  className={`h-14 flex justify-between items-center px-6 border-b border-gray-50 bg-gray-50/50 transition-colors ${!isBlocked && 'group-hover:bg-amber-50'}`}
+              return (
+                <NavLink
+                  key={index}
+                  to={isBlocked ? '#' : item.path}
+                  onClick={(e) => isBlocked && e.preventDefault()}
+                  className={`group flex flex-col border border-gray-200 rounded-[2rem] w-full bg-white transition-all duration-500 overflow-hidden ${
+                    isBlocked
+                      ? 'grayscale opacity-60 cursor-not-allowed shadow-none'
+                      : 'cursor-pointer shadow-sm hover:shadow-2xl hover:shadow-amber-900/15 hover:-translate-y-2'
+                  }`}
                 >
-                  <h2
-                    className={`text-[11px] font-black uppercase tracking-widest italic transition-colors ${isBlocked ? 'text-gray-400' : 'text-[#375A65] group-hover:text-amber-700'}`}
+                  <header
+                    className={`h-14 flex justify-between items-center px-6 border-b border-gray-50 bg-gray-50/50 transition-colors ${!isBlocked && 'group-hover:bg-amber-50'}`}
                   >
-                    {item.label}
-                  </h2>
-                  {isBlocked ? (
-                    <MdLock className="text-rose-500" size={18} />
-                  ) : (
-                    <MdTrendingUp
-                      className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                      size={18}
-                    />
-                  )}
-                </header>
-
-                <main className="p-10 flex flex-col items-center justify-center gap-4 relative">
-                  <div
-                    className={`transition-all duration-300 transform ${isBlocked ? 'text-gray-300' : 'text-[#375A65] group-hover:text-amber-500 group-hover:scale-90'}`}
-                  >
-                    <item.icon size={65} />
-                  </div>
-
-                  <div className="text-center">
-                    <p
-                      className={`text-lg font-black font-mono transition-colors ${isBlocked ? 'text-gray-300' : 'text-gray-800 group-hover:text-amber-600'}`}
+                    <h2
+                      className={`text-[11px] font-black uppercase tracking-widest italic transition-colors ${isBlocked ? 'text-gray-400' : 'text-[#375A65] group-hover:text-amber-700'}`}
                     >
-                      {isBlocked ? 'BLOQUEADO' : stats[item.label.toUpperCase()] || '0.00'}
-                    </p>
-                    <span
-                      className={`text-[9px] font-bold uppercase tracking-tighter transition-all transform ${isBlocked ? 'text-rose-400 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'}`}
-                    >
-                      {isBlocked ? 'Solo nivel Administrador' : 'Ver detalles del módulo'}
-                    </span>
-                  </div>
+                      {item.label}
+                    </h2>
+                    {isBlocked ? (
+                      <MdLock className="text-rose-500" size={18} />
+                    ) : (
+                      <MdTrendingUp
+                        className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        size={18}
+                      />
+                    )}
+                  </header>
 
-                  {!isBlocked && (
-                    <div className="absolute bottom-0 left-0 h-1.5 w-0 bg-amber-400 group-hover:w-full transition-all duration-700 ease-in-out" />
-                  )}
-                </main>
-              </NavLink>
-            )
-          })}
-        </div>
-      </section>
+                  <main className="p-10 flex flex-col items-center justify-center gap-4 relative">
+                    <div
+                      className={`transition-all duration-300 transform ${isBlocked ? 'text-gray-300' : 'text-[#375A65] group-hover:text-amber-500 group-hover:scale-90'}`}
+                    >
+                      <item.icon size={65} />
+                    </div>
+
+                    <div className="text-center">
+                      <p
+                        className={`text-lg font-black font-mono transition-colors ${isBlocked ? 'text-gray-300' : 'text-gray-800 group-hover:text-amber-600'}`}
+                      >
+                        {isBlocked ? 'BLOQUEADO' : stats[item.label.toUpperCase()] || '0.00'}
+                      </p>
+                      <span
+                        className={`text-[9px] font-bold uppercase tracking-tighter transition-all transform ${isBlocked ? 'text-rose-400 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'}`}
+                      >
+                        {isBlocked ? 'Solo nivel Administrador' : 'Ver detalles del módulo'}
+                      </span>
+                    </div>
+
+                    {!isBlocked && (
+                      <div className="absolute bottom-0 left-0 h-1.5 w-0 bg-amber-400 group-hover:w-full transition-all duration-700 ease-in-out" />
+                    )}
+                  </main>
+                </NavLink>
+              )
+            })}
+          </div>
+        </section>
+      )}
     </>
   )
 }

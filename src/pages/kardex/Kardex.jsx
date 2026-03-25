@@ -15,6 +15,8 @@ const Kardex = () => {
     setCajaId,
     setFiltroTipo,
     filtroTiempo,
+    error,
+    fetching,
     setFiltroTiempo, // Traemos los nuevos estados
   } = useKardex(token)
 
@@ -27,6 +29,7 @@ const Kardex = () => {
     <Container fullWidth={true}>
       <div className="w-full px-8 py-4">
         <KardexHeader
+          error={error}
           filtroTipo={filtroTipo}
           setFiltroTipo={setFiltroTipo}
           filtroTiempo={filtroTiempo} // <-- Nuevo
@@ -37,7 +40,7 @@ const Kardex = () => {
           onExportPDF={handleExportPDF}
           hasData={dataProcesada.length > 0}
         />
-        <KardexTable data={dataProcesada} productos={productos} />
+        <KardexTable data={dataProcesada} fetching={fetching} error={error} />
       </div>
     </Container>
   )

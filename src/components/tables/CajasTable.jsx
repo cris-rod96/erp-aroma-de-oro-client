@@ -9,7 +9,6 @@ import {
   MdAccountBalance,
   MdGroups,
   MdMoreHoriz,
-  MdHistory,
   MdAttachMoney,
   MdPrint,
   MdHandshake,
@@ -17,18 +16,37 @@ import {
   MdPublishedWithChanges,
   MdMonetizationOn,
   MdAccountBalanceWallet,
+  MdSecurity,
+  MdChevronLeft, // Nuevo
+  MdChevronRight, // Nuevo
 } from 'react-icons/md'
 import { formatFecha, formatMoney } from '../../utils/fromatters'
 import { exportarCajaDetallePDF } from '../../utils/cajaReport'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
 
-const CajasTable = ({ fetching, cajas }) => {
+const CajasTable = ({ fetching, cajas, error }) => {
   const [selectedCaja, setSelectedCaja] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
+  // --- LÓGICA DE PAGINACIÓN ---
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 8 // Cantidad de filas por página
+
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentCajas = cajas.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(cajas.length / itemsPerPage)
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+
   const user = useAuthStore((store) => store.data)
   const empresa = useEmpresaStore((store) => store.empresa)
+
+  // Resetear a página 1 si cambian los datos (por ejemplo, al filtrar o refrescar)
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [cajas.length])
 
   const handleVerDetalle = (caja) => {
     setSelectedCaja(caja)
@@ -60,13 +78,11 @@ const CajasTable = ({ fetching, cajas }) => {
     }
   }
 
-  // --- LÓGICA DE DESGLOSE PARA CLARIDAD VISUAL ---
   const calcularDesglose = (caja) => {
-    if (!caja || !caja.Movimientos) return { efectivo: 0, bancos: 0 }
-
+    if (!caja || !caja.Movimientos)
+      return { efectivoNeto: 0, bancosNeto: 0, soloEfectivoEsperado: 0 }
     let efec = 0
     let banc = 0
-
     caja.Movimientos.forEach((m) => {
       const monto = parseFloat(m.monto)
       const isIngreso = m.tipoMovimiento === 'Ingreso'
@@ -74,14 +90,12 @@ const CajasTable = ({ fetching, cajas }) => {
         m.descripcion?.toUpperCase().includes('BANCO') ||
         m.descripcion?.toUpperCase().includes('CHEQUE') ||
         m.descripcion?.toUpperCase().includes('TRANSF')
-
       if (isVirtual) {
         banc += isIngreso ? monto : -monto
       } else {
         efec += isIngreso ? monto : -monto
       }
     })
-
     return {
       efectivoNeto: efec,
       bancosNeto: banc,
@@ -93,13 +107,8 @@ const CajasTable = ({ fetching, cajas }) => {
     ? calcularDesglose(selectedCaja)
     : { efectivoNeto: 0, bancosNeto: 0, soloEfectivoEsperado: 0 }
 
-  useEffect(() => {
-    console.log(cajas)
-  }, [cajas])
-
   return (
-    <div className="font-sans">
-      {/* --- TABLA PRINCIPAL --- */}
+    <div className="font-sans space-y-4">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -126,12 +135,28 @@ const CajasTable = ({ fetching, cajas }) => {
                     Cargando...
                   </td>
                 </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan="7" className="px-6 py-24 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="bg-rose-50 p-4 rounded-3xl mb-4 border border-rose-100">
+                        <MdSecurity size={50} className="text-rose-400" />
+                      </div>
+                      <h3 className="text-rose-600 font-black uppercase text-sm tracking-[0.2em]">
+                        Acceso Restringido
+                      </h3>
+                      <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase max-w-xs mx-auto">
+                        {error}
+                      </p>
+                    </div>
+                  </td>
+                </tr>
               ) : (
-                cajas.map((caja, index) => (
+                currentCajas.map((caja, index) => (
                   <tr key={caja.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="font-black text-gray-400 text-[10px]">
-                        #{cajas.length - index}
+                        #{cajas.length - (indexOfFirstItem + index)}
                       </div>
                       <div className="text-[12px] font-bold text-gray-700 font-mono">
                         {formatFecha(caja.fechaApertura)}
@@ -173,9 +198,51 @@ const CajasTable = ({ fetching, cajas }) => {
             </tbody>
           </table>
         </div>
+
+        {/* --- CONTROLES DE PAGINACIÓN --- */}
+        {!fetching && !error && cajas.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              Mostrando <span className="text-gray-900">{indexOfFirstItem + 1}</span> a{' '}
+              <span className="text-gray-900">{Math.min(indexOfLastItem, cajas.length)}</span> de{' '}
+              <span className="text-gray-900">{cajas.length}</span> turnos
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+              >
+                <MdChevronLeft size={18} />
+              </button>
+
+              <div className="flex items-center gap-1">
+                {[...Array(totalPages)]
+                  .map((_, i) => (
+                    <button
+                      key={i + 1}
+                      onClick={() => paginate(i + 1)}
+                      className={`w-8 h-8 rounded-lg text-[10px] font-black transition-all ${currentPage === i + 1 ? 'bg-gray-900 text-amber-400 shadow-lg' : 'bg-white border border-gray-200 text-gray-400 hover:border-amber-200'}`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))
+                  .slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))}
+              </div>
+
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg border border-gray-200 bg-white text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+              >
+                <MdChevronRight size={18} />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* --- MODAL DE AUDITORÍA REDISEÑADO PARA CLARIDAD --- */}
+      {/* ... (El resto del Modal de Auditoría se mantiene igual) */}
       {showModal && selectedCaja && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md">
           <div className="bg-white rounded-3xl w-full max-w-6xl max-h-[90vh] shadow-2xl overflow-hidden border border-gray-200 flex flex-col transition-all">

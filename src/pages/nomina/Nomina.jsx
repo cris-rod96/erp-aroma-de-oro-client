@@ -13,6 +13,7 @@ import { useEmpresaStore } from '../../store/useEmpresaStore'
 const Nomina = () => {
   // --- ESTADOS ---
   const [activeTab, setActiveTab] = useState('empleados')
+  const [error, setError] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPagoModalOpen, setIsPagoModalOpen] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
@@ -86,12 +87,14 @@ const Nomina = () => {
   // --- MÉTODOS DE CARGA ---
   const fetchTrabajadores = async () => {
     setFetching(true)
+    setError(null)
     try {
       const resp = await trabajadorAPI.listarTodos(token)
       const data = resp.data.trabajadores || resp.data || []
       setTrabajadores(data.filter((t) => t.tipo === 'Trabajador'))
     } catch (error) {
-      console.error(error)
+      const msg = error.response?.data?.message || 'Error al cargar nómina'
+      setError(msg)
     } finally {
       setFetching(false)
     }
@@ -99,11 +102,13 @@ const Nomina = () => {
 
   const fetchPagos = async () => {
     setFetching(true)
+    setError(null)
     try {
       const resp = await nominaAPI.listarPagos(token)
       setPagos(resp.data.pagos || [])
     } catch (error) {
-      console.error(error)
+      const msg = error.response?.data?.message || 'Error al cargar nómina'
+      setError(msg)
     } finally {
       setFetching(false)
     }
@@ -134,6 +139,7 @@ const Nomina = () => {
   const handleSaveTrabajador = async (e) => {
     e.preventDefault()
     setLoading(true)
+    setError(null)
     try {
       if (isEdit) {
         await trabajadorAPI.actualizarTrabajador(selectedId, formData, token)
@@ -145,7 +151,8 @@ const Nomina = () => {
       setIsModalOpen(false)
       fetchTrabajadores()
     } catch (error) {
-      Swal.fire('Error', 'No se pudo guardar el registro', 'error')
+      const msg = error.response?.data?.message || 'Error al guardar'
+      Swal.fire('Error', msg, 'error')
     } finally {
       setLoading(false)
     }
@@ -166,7 +173,8 @@ const Nomina = () => {
         Swal.fire('Eliminado', 'Registro borrado', 'success')
         fetchTrabajadores()
       } catch (error) {
-        Swal.fire('Error', 'No se pudo eliminar', 'error')
+        const msg = error.response?.data.message || 'Error al eliminar'
+        Swal.fire('Error', msg, 'error')
       }
     }
   }
@@ -232,6 +240,7 @@ const Nomina = () => {
           activeTab={activeTab}
           handleOpenModal={handleAbrirNuevo} // Llama al método de limpieza
           setActiveTab={setActiveTab}
+          error={error}
         />
 
         <NominaTable
@@ -242,6 +251,7 @@ const Nomina = () => {
           handleEdit={handleEditTrabajador}
           handleImprimir={handleImprimir}
           handleOpenPago={handleOpenPago}
+          error={error}
         />
       </div>
 

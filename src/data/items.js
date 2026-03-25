@@ -1,4 +1,3 @@
-import { BiSolidBusiness } from 'react-icons/bi'
 import { FaFilePdf, FaShoppingBasket, FaTruckLoading, FaUsers } from 'react-icons/fa'
 import { FaBoxesStacked, FaTruckFast } from 'react-icons/fa6'
 import { GiCash, GiGears, GiPayMoney, GiReceiveMoney } from 'react-icons/gi'

@@ -1,14 +1,54 @@
+import { useState, useEffect } from 'react'
 import { FaUserEdit } from 'react-icons/fa'
-import { MdDelete, MdEmail, MdPhone } from 'react-icons/md'
+import {
+  MdDelete,
+  MdEmail,
+  MdInbox,
+  MdPhone,
+  MdSecurity,
+  MdChevronLeft,
+  MdChevronRight,
+} from 'react-icons/md'
 
-const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete }) => {
+const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete, error }) => {
+  // --- LÓGICA DE PAGINACIÓN ---
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 7 // Ideal para gestión de personal
+
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentUsuarios = usuarios?.slice(indexOfFirstItem, indexOfLastItem) || []
+  const totalPages = Math.ceil((usuarios?.length || 0) / itemsPerPage)
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+
+  // Resetear pág al filtrar o cargar
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [usuarios?.length])
+
   return (
-    <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col">
       {fetching ? (
         <div className="px-6 py-20 text-center animate-pulse text-gray-300 font-black uppercase text-xs tracking-widest">
           Sincronizando seguridad...
         </div>
-      ) : usuarios.length === 0 ? (
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center bg-white py-20 text-center rounded-2xl">
+          <div className="bg-rose-50 p-4 rounded-3xl mb-4 border border-rose-100">
+            <MdSecurity size={50} className="text-rose-400" />
+          </div>
+          <h3 className="text-rose-600 font-black uppercase text-sm tracking-[0.2em]">
+            Acceso Restringido
+          </h3>
+          <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase max-w-xs mx-auto leading-relaxed">
+            {error}
+          </p>
+          <span className="text-[8px] bg-gray-100 text-gray-500 px-3 py-1 rounded-full mt-4 font-black uppercase italic">
+            Seguridad Aroma de Oro
+          </span>
+        </div>
+      ) : !usuarios || usuarios.length === 0 ? (
         <div className="px-6 py-20 text-center">
           <MdInbox size={60} className="mx-auto text-gray-100 mb-4" />
           <p className="text-gray-400 font-black uppercase text-xs tracking-widest">
@@ -43,9 +83,8 @@ const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete }) =>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {usuarios.map((u) => (
+                {currentUsuarios.map((u) => (
                   <tr key={u.id} className="hover:bg-amber-50/20 transition-colors group">
-                    {/* USUARIO */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-xl bg-gray-900 text-amber-400 flex items-center justify-center font-black text-sm uppercase shadow-sm">
@@ -59,24 +98,16 @@ const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete }) =>
                         </div>
                       </div>
                     </td>
-
-                    {/* EMAIL */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-600 font-medium">
-                        <MdEmail className="mr-2 text-amber-500/50" />
-                        {u.correo}
+                        <MdEmail className="mr-2 text-amber-500/50" /> {u.correo}
                       </div>
                     </td>
-
-                    {/* TELÉFONO */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-600 font-bold tracking-tight">
-                        <MdPhone className="mr-2 text-amber-500/50" />
-                        {u.telefono}
+                        <MdPhone className="mr-2 text-amber-500/50" /> {u.telefono}
                       </div>
                     </td>
-
-                    {/* ROL */}
                     <td className="px-6 py-4 whitespace-nowrap text-left">
                       <span
                         className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest border transition-colors ${
@@ -90,8 +121,6 @@ const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete }) =>
                         {u.rol || 'ESTÁNDAR'}
                       </span>
                     </td>
-
-                    {/* ESTADO */}
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <span
@@ -104,8 +133,6 @@ const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete }) =>
                         </span>
                       </div>
                     </td>
-
-                    {/* ACCIONES */}
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-2">
                         <button
@@ -130,7 +157,7 @@ const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete }) =>
 
           {/* VISTA MÓVIL */}
           <div className="md:hidden divide-y divide-gray-50">
-            {usuarios.map((u) => (
+            {currentUsuarios.map((u) => (
               <div key={u.id} className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex items-center">
@@ -142,30 +169,75 @@ const UsuariosTable = ({ fetching, usuarios, handleOpenModal, handleDelete }) =>
                         {u.nombresCompletos}
                       </div>
                       <div className="text-[10px] text-gray-400 uppercase font-bold tracking-widest">
-                        {u.esAdministrador ? 'Admin' : 'Estándar'}
+                        {u.rol}
                       </div>
                     </div>
                   </div>
                   <div
-                    className={`h-2 w-2 rounded-full ${u.estaActivo ? 'bg-green-500' : 'bg-red-500'}`}
+                    className={`h-2.5 w-2.5 rounded-full ${u.estaActivo ? 'bg-green-500 shadow-[0_0_5px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}
                   ></div>
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleOpenModal(true, u)}
-                    className="flex-1 py-2 bg-gray-100 text-gray-800 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                    className="flex-1 py-2.5 bg-gray-100 text-gray-800 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm"
                   >
                     Editar
                   </button>
                   <button
                     onClick={() => handleDelete(u.id)}
-                    className="flex-1 py-2 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                    className="flex-1 py-2.5 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-red-100"
                   >
                     Borrar
                   </button>
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* --- CONTROLES DE PAGINACIÓN --- */}
+          <div className="px-6 py-5 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.15em]">
+              Mostrando <span className="text-gray-900">{indexOfFirstItem + 1}</span> a{' '}
+              <span className="text-gray-900">{Math.min(indexOfLastItem, usuarios.length)}</span> de{' '}
+              <span className="text-gray-900">{usuarios.length}</span> usuarios
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-20 hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+              >
+                <MdChevronLeft size={20} />
+              </button>
+
+              <div className="flex items-center gap-1.5">
+                {[...Array(totalPages)]
+                  .map((_, i) => (
+                    <button
+                      key={i + 1}
+                      onClick={() => paginate(i + 1)}
+                      className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all ${
+                        currentPage === i + 1
+                          ? 'bg-gray-900 text-amber-400 shadow-xl border-b-4 border-amber-600'
+                          : 'bg-white border border-gray-200 text-gray-400 hover:border-amber-200'
+                      }`}
+                    >
+                      {i + 1}
+                    </button>
+                  ))
+                  .slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))}
+              </div>
+
+              <button
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-20 hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+              >
+                <MdChevronRight size={20} />
+              </button>
+            </div>
           </div>
         </>
       )}

@@ -7,6 +7,7 @@ import { useEmpresaStore } from '../store/useEmpresaStore'
 
 export const useVentas = () => {
   const token = useAuthStore((state) => state.token)
+  const [error, setError] = useState(null)
   const usuarioId = useAuthStore((state) => state.data?.id)
   const { caja } = useCajaStore()
 
@@ -35,6 +36,7 @@ export const useVentas = () => {
 
   const fetchVentasData = useCallback(async () => {
     setLoading(true)
+    setError(null)
     try {
       const [resComp, resProd, resVent] = await Promise.all([
         compradorAPI.listarTodos(token),
@@ -49,7 +51,8 @@ export const useVentas = () => {
         setFormData((prev) => ({ ...prev, ProductoId: resProd.data.productos[0].id }))
       }
     } catch (error) {
-      console.error(error)
+      const msg = error.response?.data?.message || 'Error al obtener ventas'
+      setError(msg)
     } finally {
       setLoading(false)
     }
@@ -220,6 +223,7 @@ export const useVentas = () => {
     formData,
     setFormData,
     calculos,
+    error,
     isFormDisabled: !caja || loading,
     buscarComprador,
     handleFinalizarVenta,

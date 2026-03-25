@@ -28,12 +28,23 @@ const usuarioAPI = {
   },
 
   eliminarUsuario: (id, token) => {
-    console.log(id, token)
     return instance.delete(`/${model}/borrar-usuario/${id}`, {
       headers: {
         'x-token': token,
       },
     })
+  },
+
+  actualizarClave: (id, clave, token) => {
+    return instance.patch(
+      `/${model}/actualizar-clave/${id}`,
+      { clave },
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
   },
 }
 

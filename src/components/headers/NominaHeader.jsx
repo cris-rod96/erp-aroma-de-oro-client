@@ -1,6 +1,6 @@
 import { FaUserPlus, FaHistory, FaUsers } from 'react-icons/fa'
 
-const NominaHeader = ({ activeTab, setActiveTab, handleOpenModal }) => {
+const NominaHeader = ({ activeTab, setActiveTab, handleOpenModal, error }) => {
   return (
     <div className="w-full mb-10">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 text-gray-800 mb-8">
@@ -13,7 +13,7 @@ const NominaHeader = ({ activeTab, setActiveTab, handleOpenModal }) => {
           </p>
         </div>
 
-        {activeTab === 'empleados' && (
+        {activeTab === 'empleados' && !error && (
           <button
             onClick={handleOpenModal}
             className="bg-gray-900 hover:bg-gray-800 text-amber-400 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl active:scale-95 flex items-center gap-2 justify-center border-b-4 border-amber-600"

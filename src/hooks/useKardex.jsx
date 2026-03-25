@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { cajaAPI, movimientoAPI, productoAPI } from '../api/index.api'
 
 export const useKardex = (token) => {
+  const [error, setError] = useState(null)
   const [movimientosRaw, setMovimientosRaw] = useState([])
   const [productos, setProductos] = useState([])
   const [cajas, setCajas] = useState([])
@@ -9,7 +10,7 @@ export const useKardex = (token) => {
   const [cajaId, setCajaId] = useState('todas')
   const [filtroTipo, setFiltroTipo] = useState('todos')
   const [filtroTiempo, setFiltroTiempo] = useState('todos')
-  const [loading, setLoading] = useState(true)
+  const [fetching, setFetching] = useState(true)
 
   // --- LÓGICA DE INTERDEPENDENCIA DE FILTROS ---
   useEffect(() => {
@@ -34,6 +35,7 @@ export const useKardex = (token) => {
   // ----------------------------------------------
 
   const fetchData = async () => {
+    setFetching(true)
     try {
       const [resProd, resMov, resCajas] = await Promise.all([
         productoAPI.listarProductos(token),
@@ -44,9 +46,10 @@ export const useKardex = (token) => {
       setMovimientosRaw(resMov.data.movimientos || [])
       setCajas(resCajas.data.cajas || [])
     } catch (error) {
-      console.error('Error en Kardex:', error)
+      const message = error.response?.data.message || 'Error al cargar'
+      setError(message)
     } finally {
-      setLoading(false)
+      setFetching(false)
     }
   }
 
@@ -106,9 +109,10 @@ export const useKardex = (token) => {
     setCajaId,
     filtroTipo,
     setFiltroTipo,
+    error,
     filtroTiempo,
     setFiltroTiempo,
-    loading,
+    fetching,
     dataProcesada,
   }
 }

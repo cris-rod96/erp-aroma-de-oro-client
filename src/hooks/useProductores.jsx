@@ -3,6 +3,7 @@ import { productorAPI } from '../api/index.api'
 import { useEffect } from 'react'
 
 export const useProductores = (token) => {
+  const [error, setError] = useState(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
   const [selectedId, setSelectedId] = useState(null)
@@ -23,11 +24,14 @@ export const useProductores = (token) => {
 
   const fetchProductores = async () => {
     setFetching(true)
+    setError(null)
     try {
       const resp = await productorAPI.listarTodos(token)
       setProductores(resp.data.productores || [])
     } catch (error) {
       console.log('Error al listar productores', error)
+      const msg = error.response?.data?.message || 'Error al sincronizar productores'
+      setError(msg)
     } finally {
       setFetching(false)
     }
@@ -51,5 +55,6 @@ export const useProductores = (token) => {
     formData,
     setFormData,
     fetchProductores,
+    error,
   }
 }

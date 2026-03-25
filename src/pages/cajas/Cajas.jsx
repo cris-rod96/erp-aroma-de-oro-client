@@ -8,6 +8,7 @@ import {
   MdTrendingDown,
   MdInfo,
   MdAccountBalance,
+  MdSecurity,
 } from 'react-icons/md'
 import cajaAPI from '../../api/caja/caja.api'
 import Swal from 'sweetalert2'
@@ -42,6 +43,7 @@ const Cajas = () => {
     setIsClosingModal,
     setMontoFisicoCierre,
     isClosingModal,
+    error,
   } = useCajas(token)
 
   // --- LÓGICA DE AUDITORÍA BASADA EN TU ESTRUCTURA DE DATOS ---
@@ -215,21 +217,47 @@ const Cajas = () => {
           setIsBancoModalOpen={setIsBancoModalOpen}
           user={user}
         />
-        {fetching || cajas.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200 mt-4">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
-              <MdInfo size={32} />
+        <div className="mt-6">
+          {fetching ? (
+            <div className="flex flex-col items-center justify-center py-20 bg-gray-50/30 rounded-3xl border-2 border-dashed border-gray-100 italic">
+              <p className="text-gray-400 font-black uppercase text-xs animate-pulse tracking-widest">
+                Sincronizando flujos Aroma de Oro...
+              </p>
             </div>
-            <h3 className="text-gray-900 font-black uppercase tracking-widest text-sm">
-              No hay registros de caja
-            </h3>
-            <p className="text-gray-500 text-xs mt-1 font-medium">
-              Presiona "Abrir Caja" para iniciar un nuevo turno.
-            </p>
-          </div>
-        ) : (
-          <CajasTable fetching={fetching} cajas={cajas} />
-        )}
+          ) : error ? (
+            /* --- NUEVO: VISTA DE ACCESO DENEGADO --- */
+            <div className="flex flex-col items-center justify-center bg-white py-10 text-center rounded-2xl">
+              <div className="bg-rose-50 p-4 rounded-3xl mb-4 border border-rose-100">
+                <MdSecurity size={50} className="text-rose-400" />
+              </div>
+              <h3 className="text-rose-600 font-black uppercase text-sm tracking-[0.2em]">
+                Acceso Restringido
+              </h3>
+              <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase max-w-xs mx-auto leading-relaxed">
+                {error}
+              </p>
+              <span className="text-[8px] bg-gray-100 text-gray-500 px-3 py-1 rounded-full mt-4 font-black uppercase italic">
+                Seguridad Aroma de Oro
+              </span>
+            </div>
+          ) : !cajas || cajas.length === 0 ? (
+            /* --- VISTA DE CAJA VACÍA --- */
+            <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-3xl border-2 border-dashed border-gray-200">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4">
+                <MdInfo size={32} />
+              </div>
+              <h3 className="text-gray-900 font-black uppercase tracking-widest text-sm">
+                No hay registros de caja
+              </h3>
+              <p className="text-gray-500 text-xs mt-1 font-medium italic">
+                Presiona "Abrir Caja" para iniciar un nuevo turno.
+              </p>
+            </div>
+          ) : (
+            /* --- VISTA DE TABLA (Pasamos el error por si acaso) --- */
+            <CajasTable fetching={fetching} cajas={cajas} error={error} />
+          )}
+        </div>
       </div>
 
       {/* APERTURA */}

@@ -13,6 +13,7 @@ import {
 
 export const useLiquidacion = () => {
   const [liquidaciones, setLiquidaciones] = useState([])
+  const [error, setError] = useState(null)
   const [productores, setProductores] = useState([])
   const [productos, setProductos] = useState([])
   const [loading, setLoading] = useState(false)
@@ -52,6 +53,7 @@ export const useLiquidacion = () => {
   const { empresa, setEmpresa } = useEmpresaStore()
 
   const fetchInicial = async () => {
+    setError(null)
     try {
       const [respProd, respEmpresa, respLiq, respItems] = await Promise.all([
         productorAPI.listarTodos(token),
@@ -64,7 +66,8 @@ export const useLiquidacion = () => {
       setLiquidaciones(respLiq.data.liquidaciones || [])
       setProductos(respItems.data.productos || [])
     } catch (error) {
-      console.error('Error en fetch:', error)
+      const msg = error.response?.data?.message || 'Error al cargar la información'
+      setError(msg)
     }
   }
 
@@ -348,6 +351,7 @@ export const useLiquidacion = () => {
     buscarProductor,
     handleRegistrarProductor,
     handleGuardar,
+    error,
     isFormDisabled: !empresa?.id || !caja || caja.estado !== 'Abierta',
   }
 }

@@ -14,7 +14,7 @@ const Aside = ({ hiddenMenu }) => {
 
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.data)
-  const isAdmin = useAuthStore((state) => state.isAdmin)
+  const estaHabilitado = useAuthStore((state) => state.estaHabilitado)
   const logout = useAuthStore((state) => state.logout)
   const clearCaja = useCajaStore((state) => state.clearCaja)
   const clearEmpresa = useEmpresaStore((state) => state.clearEmpresa)
@@ -95,16 +95,16 @@ const Aside = ({ hiddenMenu }) => {
         <section className="p-8 flex flex-col gap-4 items-center border-b border-white/10 backdrop-blur-md">
           <div className="relative">
             <div
-              className={`w-24 h-24 rounded-full border-4 ${isAdmin ? 'border-amber-500/50' : 'border-emerald-500/50'} p-1`}
+              className={`w-24 h-24 rounded-full border-4 ${estaHabilitado ? 'border-amber-500/50' : 'border-emerald-500/50'} p-1`}
             >
               <img
-                src={`https://ui-avatars.com/api/?name=${user?.nombresCompletos || 'Admin'}&background=${isAdmin ? 'fbbf24' : '10b981'}&color=000&bold=true`}
+                src={`https://ui-avatars.com/api/?name=${user?.nombresCompletos || 'Admin'}&background=${estaHabilitado ? 'fbbf24' : '10b981'}&color=000&bold=true`}
                 className="w-full h-full rounded-full object-cover bg-amber-500"
                 alt="Profile"
               />
             </div>
             <div
-              className={`absolute bottom-1 right-1 w-6 h-6 ${isAdmin ? 'bg-emerald-500' : 'bg-amber-500'} border-4 border-[#1a2529] rounded-full`}
+              className={`absolute bottom-1 right-1 w-6 h-6 ${estaHabilitado ? 'bg-emerald-500' : 'bg-amber-500'} border-4 border-[#1a2529] rounded-full`}
             ></div>
           </div>
           <div className="text-center">
@@ -112,9 +112,9 @@ const Aside = ({ hiddenMenu }) => {
               {user?.nombresCompletos || 'Usuario'}
             </h3>
             <p
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] ${isAdmin ? 'text-amber-500' : 'text-emerald-500'}`}
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] ${estaHabilitado ? 'text-amber-500' : 'text-emerald-500'}`}
             >
-              {isAdmin ? 'Administrador' : 'Contabilidad'}
+              {estaHabilitado ? 'Administrador' : 'Contabilidad'}
             </p>
           </div>
         </section>
@@ -122,7 +122,7 @@ const Aside = ({ hiddenMenu }) => {
         {/* MENÚ CON INHABILITACIÓN VISUAL MEJORADA */}
         <section className="flex flex-col overflow-y-auto flex-1 py-4 custom-scrollbar">
           {MENU_DATA.map((item, index) => {
-            const isBlocked = item.onlyAdmin && !isAdmin
+            const isBlocked = item.onlyAdmin && !estaHabilitado
 
             return (
               <NavLink
@@ -166,7 +166,7 @@ const Aside = ({ hiddenMenu }) => {
           })}
 
           {/* MENSAJE DE RESTRICCIÓN AL FINAL */}
-          {!isAdmin && (
+          {!estaHabilitado && (
             <div className="px-8 py-4 mt-auto">
               <div className="flex items-center gap-2 text-rose-400 bg-rose-500/10 p-3 rounded-lg border border-rose-500/20">
                 <MdLock size={18} />
