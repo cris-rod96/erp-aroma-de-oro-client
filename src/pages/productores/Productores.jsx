@@ -27,6 +27,8 @@ import { useAuthStore } from '../../store/useAuthStore'
 import { productorAPI } from '../../api/index.api'
 import Swal from 'sweetalert2'
 import { useProductores } from '../../hooks/useProductores'
+import { useState } from 'react'
+import { useMemo } from 'react'
 
 const Productores = () => {
   const token = useAuthStore((state) => state.token)
@@ -46,6 +48,22 @@ const Productores = () => {
     error,
     setSelectedId,
   } = useProductores(token)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [verEliminados, setVerEliminados] = useState(false)
+
+  const productoresFiltrados = useMemo(() => {
+    let lista = productores.filter((p) => p.estaActivo === !verEliminados)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase()
+      lista = lista.filter(
+        (p) =>
+          p.numeroIdentificacion.toLowerCase().includes(search) ||
+          p.nombreCompleto.toLowerCase().includes(search)
+      )
+    }
+
+    return lista
+  }, [productores, searchTerm, verEliminados])
 
   const handleOpenModal = (edit = false, productor = null) => {
     setIsEdit(edit)
@@ -139,11 +157,55 @@ const Productores = () => {
     Swal.fire('Info', 'Módulo de liquidaciones en desarrollo para este productor', 'info')
   }
 
+  const swalConfig = {
+    target: document.getElementById('root'), // O usa document.body si 'root' no funciona
+    customClass: {
+      container: 'my-swal-container',
+    },
+    didOpen: () => {
+      // Forzamos el z-index al máximo posible
+      Swal.getContainer().style.zIndex = '999999'
+    },
+  }
+
+  const handleRestore = async (id) => {
+    const confirm = await Swal.fire({
+      ...swalConfig,
+      title: '¿Restaurar productor?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981', // Emerald 500
+      confirmButtonText: 'Sí, restaurar',
+    })
+
+    if (confirm.isConfirmed) {
+      try {
+        const resp = await productorAPI.recuperarProductor(id, token)
+        Swal.fire(
+          'Productor recuperado',
+          resp.response?.data.message || 'Se recuperó al productor con éxito',
+          'success'
+        )
+        fetchProductores()
+        setVerEliminados(false)
+      } catch (error) {
+        const msg = error.response?.data?.message || 'Error al recuperar productor'
+        Swal.fire('Error', msg, 'error')
+      }
+    }
+  }
+
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-4">
         {/* HEADER */}
-        <ProductoresHeader handleOpenModal={handleOpenModal} />
+        <ProductoresHeader
+          handleOpenModal={handleOpenModal}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          verEliminados={verEliminados}
+          setVerEliminados={setVerEliminados}
+        />
 
         {/* CONTENEDOR PRINCIPAL */}
         <ProductoresTable
@@ -151,8 +213,10 @@ const Productores = () => {
           handleDelete={handleDelete}
           handleOpenModal={handleOpenModal}
           handleVerLiquidaciones={handleVerLiquidaciones}
-          productores={productores}
+          productores={productoresFiltrados}
           error={error}
+          handleRestore={handleRestore}
+          verEliminados={verEliminados}
         />
       </div>
 

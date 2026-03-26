@@ -46,6 +46,18 @@ const usuarioAPI = {
       }
     )
   },
+
+  recuperarUsuario: (token, id) => {
+    return instance.patch(
+      `/${model}/recuperar-usuario/${id}`,
+      {},
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
 }
 
 export default usuarioAPI

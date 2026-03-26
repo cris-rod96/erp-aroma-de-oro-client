@@ -34,6 +34,18 @@ const compradorAPI = {
       },
     })
   },
+
+  recuperarComprador: (id, token) => {
+    return instance.patch(
+      `/${model}/recuperar-comprador/${id}`,
+      { estaActivo: true },
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
 }
 
 export default compradorAPI

@@ -15,10 +15,13 @@ import Swal from 'sweetalert2'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useUsuarios } from '../../hooks/useUsuarios'
 import { usuarioAPI, trabajadorAPI } from '../../api/index.api.js'
+import { useMemo } from 'react'
 
 const Usuarios = () => {
   const token = useAuthStore((state) => state.token)
   const [registrarComoTrabajador, setRegistrarComoTrabajador] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [verEliminados, setVerEliminados] = useState(false)
 
   const {
     isModalOpen,
@@ -35,6 +38,17 @@ const Usuarios = () => {
     error,
     setLoading,
   } = useUsuarios(token)
+
+  const usuariosFiltrados = useMemo(() => {
+    let lista = usuarios.filter((u) => u.estaActivo === !verEliminados)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase()
+      lista = lista.filter(
+        (u) => u.nombresCompletos.toLowerCase().includes(search) || u.cedula.includes(search)
+      )
+    }
+    return lista
+  }, [usuarios, searchTerm, verEliminados])
 
   // ESTA ES LA CONFIGURACIÓN CRÍTICA PARA QUE SALGA ADELANTE
   const swalConfig = {
@@ -111,6 +125,30 @@ const Usuarios = () => {
     handleOpenModal(false)
   }
 
+  const handleRestore = async (id) => {
+    const confirm = await Swal.fire({
+      ...swalConfig,
+      title: '¿Restaurar acceso?',
+      text: 'El usuario recuperará sus permisos en el sistema',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981', // Emerald 500
+      confirmButtonText: 'Sí, restaurar',
+    })
+
+    if (confirm.isConfirmed) {
+      try {
+        await usuarioAPI.recuperarUsuario(token, id)
+        fetchUsuarios()
+        Swal.fire('success', 'Usuario recuperado con éxito', 'success')
+        setVerEliminados(false)
+      } catch (error) {
+        const msg = error.response?.data?.message || 'Error al recuperar usuario'
+        Swal.fire('Error', msg, 'error')
+      }
+    }
+  }
+
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-4">
@@ -119,6 +157,10 @@ const Usuarios = () => {
             setRegistrarComoTrabajador(false)
             handleOpenModal()
           }}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          verEliminados={verEliminados}
+          setVerEliminados={setVerEliminados}
         />
 
         <UsuariosTable
@@ -151,7 +193,8 @@ const Usuarios = () => {
             }
           }}
           handleOpenModal={handleOpenModal}
-          usuarios={usuarios}
+          usuarios={usuariosFiltrados}
+          handleRestore={handleRestore}
         />
       </div>
 

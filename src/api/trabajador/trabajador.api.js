@@ -34,6 +34,18 @@ const trabajadorAPI = {
       },
     })
   },
+
+  recuperarTrabajador: (id, token) => {
+    return instance.patch(
+      `/${model}/recuperar-trabajador/${id}`,
+      { estaActivo: true },
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
 }
 
 export default trabajadorAPI

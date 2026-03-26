@@ -35,6 +35,18 @@ const productorAPI = {
       },
     })
   },
+
+  recuperarProductor: (id, token) => {
+    return instance.patch(
+      `/${model}/recuperar-productor/${id}`,
+      { estaActivo: true },
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
 }
 
 export default productorAPI
