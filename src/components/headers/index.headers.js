@@ -4,4 +4,13 @@ import CajasHeader from './CajasHeader'
 import ProductoresHeader from './ProductoresHeader'
 import ComprasHeader from './ComprasHeader'
 import NominaHeader from './NominaHeader'
-export { KardexHeader, UsuariosHeader, CajasHeader, ProductoresHeader, ComprasHeader, NominaHeader }
+import InventarioHeader from './InventarioHeader'
+export {
+  KardexHeader,
+  UsuariosHeader,
+  CajasHeader,
+  ProductoresHeader,
+  ComprasHeader,
+  NominaHeader,
+  InventarioHeader,
+}

@@ -18,6 +18,26 @@ const nominaAPI = {
       },
     })
   },
+
+  eliminarTrabajador: (id, token) => {
+    return instance.delete(`/${model}/borrar-persona/${id}`, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
+
+  recuperarTrabajador: (id, token) => {
+    return instance.patch(
+      `/${model}/recuperar-trabajador/${id}`,
+      { estaActivo: true },
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
 }
 
 export default nominaAPI

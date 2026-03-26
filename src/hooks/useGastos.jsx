@@ -15,7 +15,7 @@ export const useGastos = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const token = useAuthStore((state) => state.token)
-  const user = useAuthStore((state) => state.data)
+  const user = useAuthStore((state) => state.user)
   const { caja, setCaja } = useCajaStore()
 
   const fetchGastos = useCallback(async () => {

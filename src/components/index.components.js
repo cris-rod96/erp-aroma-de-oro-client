@@ -17,6 +17,7 @@ import {
   ProductoresHeader,
   ComprasHeader,
   NominaHeader,
+  InventarioHeader,
 } from './headers/index.headers'
 
 export {
@@ -36,4 +37,5 @@ export {
   ComprasHeader,
   NominaHeader,
   NominaTable,
+  InventarioHeader,
 }

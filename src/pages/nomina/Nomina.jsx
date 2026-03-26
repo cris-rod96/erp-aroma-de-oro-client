@@ -9,6 +9,7 @@ import prestamoAPI from '../../api/prestamo/prestamo.api'
 import { nominaAPI, trabajadorAPI } from '../../api/index.api'
 import { exportarNominaPDF } from '../../utils/nominaReport'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
+import { useMemo } from 'react'
 
 const Nomina = () => {
   // --- ESTADOS ---
@@ -46,13 +47,28 @@ const Nomina = () => {
 
   const [formData, setFormData] = useState(initialFormState)
   const [pagoData, setPagoData] = useState(initialPagoState)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [verEliminados, setVerEliminados] = useState(false)
 
   // --- STORES ---
   const token = useAuthStore((state) => state.token)
-  const user = useAuthStore((state) => state.data)
+  const user = useAuthStore((state) => state.user)
   const caja = useCajaStore((state) => state.caja)
   const setCaja = useCajaStore((state) => state.setCaja)
   const empresa = useEmpresaStore((store) => store.empresa)
+
+  const empleadosFiltrados = useMemo(() => {
+    let lista = trabajadores.filter((t) => t.estaActivo === !verEliminados)
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase()
+      return lista.filter(
+        (l) =>
+          l.numeroIdentificacion.toLowerCase().includes(search) ||
+          l.nombreCompleto.toLowerCase().includes(search)
+      )
+    }
+    return lista
+  }, [trabajadores, searchTerm, verEliminados])
 
   // --- LÓGICA DE CÁLCULOS ---
   const subTotal =
@@ -170,7 +186,7 @@ const Nomina = () => {
     if (result.isConfirmed) {
       try {
         await trabajadorAPI.eliminarTrabajador(id, token)
-        Swal.fire('Eliminado', 'Registro borrado', 'success')
+        Swal.fire('Eliminado', 'Trabajador eliminado', 'success')
         fetchTrabajadores()
       } catch (error) {
         const msg = error.response?.data.message || 'Error al eliminar'
@@ -232,6 +248,38 @@ const Nomina = () => {
   }
 
   const handleImprimir = (pago) => exportarNominaPDF(pago, empresa)
+  const swalConfig = {
+    target: document.getElementById('root'), // O usa document.body si 'root' no funciona
+    customClass: {
+      container: 'my-swal-container',
+    },
+    didOpen: () => {
+      // Forzamos el z-index al máximo posible
+      Swal.getContainer().style.zIndex = '999999'
+    },
+  }
+  const handleRestore = async (id) => {
+    const confirm = await Swal.fire({
+      ...swalConfig,
+      title: '¿Restaurar trabajador?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981', // Emerald 500
+      confirmButtonText: 'Sí, restaurar',
+    })
+
+    if (confirm.isConfirmed) {
+      try {
+        await trabajadorAPI.recuperarTrabajador(id, token)
+        fetchTrabajadores()
+        Swal.fire('Recuperación', 'Trabajador recuperado con éxito', 'success')
+        setVerEliminados(false)
+      } catch (error) {
+        const msg = error.response?.data?.message || 'Error al recuperar trabajador'
+        Swal.fire('Error', msg, 'error')
+      }
+    }
+  }
 
   return (
     <Container fullWidth={true}>
@@ -241,16 +289,21 @@ const Nomina = () => {
           handleOpenModal={handleAbrirNuevo} // Llama al método de limpieza
           setActiveTab={setActiveTab}
           error={error}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          verEliminados={verEliminados}
+          setVerEliminados={setVerEliminados}
         />
 
         <NominaTable
           activeTab={activeTab}
-          data={activeTab === 'empleados' ? trabajadores : pagos}
+          data={activeTab === 'empleados' ? empleadosFiltrados : pagos}
           fetching={fetching}
           handleDelete={handleDeleteTrabajador}
           handleEdit={handleEditTrabajador}
           handleImprimir={handleImprimir}
           handleOpenPago={handleOpenPago}
+          handleRestore={handleRestore}
           error={error}
         />
       </div>

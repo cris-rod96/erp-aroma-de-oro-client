@@ -85,7 +85,7 @@ const ComprasTable = ({ liquidaciones = [], setSelectedLiq, setShowModal }) => {
                   </td>
 
                   <td className="px-6 py-4 text-right">
-                    {parseFloat(liq.montoPorPagar) > 0 ? (
+                    {liq.estado === 'Pendiente' ? (
                       <div className="inline-flex flex-col items-end">
                         <span className="text-[11px] font-black text-orange-600 font-mono">
                           ${parseFloat(liq.montoPorPagar).toFixed(2)}
@@ -97,7 +97,7 @@ const ComprasTable = ({ liquidaciones = [], setSelectedLiq, setShowModal }) => {
                       </div>
                     ) : (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg text-[9px] font-black bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase tracking-widest">
-                        Liquidado
+                        Pagada
                       </span>
                     )}
                   </td>

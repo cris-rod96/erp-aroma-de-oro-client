@@ -8,7 +8,7 @@ import { useEmpresaStore } from '../store/useEmpresaStore'
 export const useVentas = () => {
   const token = useAuthStore((state) => state.token)
   const [error, setError] = useState(null)
-  const usuarioId = useAuthStore((state) => state.data?.id)
+  const usuarioId = useAuthStore((state) => state.user?.id)
   const { caja } = useCajaStore()
 
   const [compradores, setCompradores] = useState([])

@@ -21,7 +21,7 @@ import { useEffect } from 'react'
 const Cajas = () => {
   const token = useAuthStore((state) => state.token)
   const setCaja = useCajaStore((state) => state.setCaja)
-  const user = useAuthStore((store) => store.data)
+  const user = useAuthStore((store) => store.user)
   const [observacionesCierre, setObservacionesCierre] = useState('')
 
   const [isBancoModalOpen, setIsBancoModalOpen] = useState(false)
@@ -108,6 +108,7 @@ const Cajas = () => {
       fetchCajas()
       Swal.fire({ icon: 'success', title: 'Caja Abierta', confirmButtonColor: '#000' })
     } catch (error) {
+      console.log(error.message)
       Swal.fire('Error', 'No se pudo abrir la caja', 'error')
     } finally {
       setLoading(false)

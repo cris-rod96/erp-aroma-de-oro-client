@@ -5,35 +5,32 @@ export const useAuthStore = create(
   persist(
     (set) => ({
       token: null,
-      estaHabilitado: false,
-      data: null,
+      user: null, // Cambiado de 'data' a 'user' para mayor claridad
 
       login: (data) =>
         set({
           token: data.token,
-          estaHabilitado: data.usuario.rol === 'Administrador' || data.usuario.rol === 'Contador',
-          data: data.usuario,
+          user: data.usuario,
         }),
 
-      setAdminData: (newData) =>
+      // Función única para actualizar cualquier dato del perfil
+      updateUser: (newData) =>
         set((state) => ({
-          data: { ...state.data, ...newData },
-          // También actualizamos isAdmin por si cambió el rango
-          estaHabilitado:
-            newData.rol !== undefined
-              ? newData.rol === 'Administrador' || newData.rol === 'Contador'
-              : state.estaHabilitado,
+          user: { ...state.user, ...newData },
         })),
 
       logout: () =>
         set({
           token: null,
-          estaHabilitado: null,
-          data: null,
+          user: null,
         }),
     }),
     {
       name: 'auth-storage',
+      partialize: (state) => ({
+        token: state.token,
+        user: state.user,
+      }),
     }
   )
 )

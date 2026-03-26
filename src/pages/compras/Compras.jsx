@@ -22,6 +22,7 @@ const Compras = () => {
   const {
     // Estados y Datos
     liquidaciones,
+    resetFiltros,
     productos,
     loading,
     empresa,
@@ -80,6 +81,10 @@ const Compras = () => {
     unidad,
     setUnidad,
     error,
+    filtros,
+    setFiltros,
+    liquidacionesFiltradas,
+    productores,
   } = useLiquidacion()
 
   // Función para procesar registro y limpiar la vista
@@ -641,23 +646,44 @@ const Compras = () => {
                 {/* LISTA DE SUGERENCIAS */}
                 {mostrarSugerencias && productoresFiltrados.length > 0 && (
                   <div className="absolute z-50 w-full bg-white border-2 border-black mt-1 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-h-60 overflow-y-auto">
-                    {productoresFiltrados.map((p) => (
-                      <div
-                        key={p.id}
-                        onClick={() => seleccionarProductor(p)}
-                        className="p-3 border-b border-gray-100 hover:bg-emerald-50 cursor-pointer flex justify-between items-center transition-colors"
-                      >
-                        <div className="flex flex-col">
-                          <span className="text-sm font-black">{p.nombreCompleto}</span>
-                          <span className="text-[10px] text-gray-500">
-                            {p.numeroIdentificacion}
-                          </span>
+                    {productoresFiltrados.map((p) => {
+                      // Definimos si el item es clicable
+                      const esActivo = p.estaActivo !== false
+
+                      return (
+                        <div
+                          key={p.id}
+                          // Solo ejecuta la función si está activo
+                          onClick={() => esActivo && seleccionarProductor(p)}
+                          className={`p-3 border-b border-gray-100 flex justify-between items-center transition-colors ${
+                            esActivo
+                              ? 'hover:bg-emerald-50 cursor-pointer'
+                              : 'bg-gray-50 opacity-60 cursor-not-allowed'
+                          }`}
+                        >
+                          <div className="flex flex-col">
+                            <span
+                              className={`text-sm font-black ${!esActivo && 'line-through text-gray-400'}`}
+                            >
+                              {p.nombreCompleto}
+                            </span>
+                            <span className="text-[10px] text-gray-500">
+                              {p.numeroIdentificacion}
+                            </span>
+                          </div>
+
+                          {esActivo ? (
+                            <span className="text-[10px] bg-emerald-500 text-white px-2 py-1 border border-black font-black italic">
+                              SELECCIONAR
+                            </span>
+                          ) : (
+                            <span className="text-[8px] bg-red-100 text-red-600 px-2 py-1 border border-red-200 font-black uppercase">
+                              Inactivo
+                            </span>
+                          )}
                         </div>
-                        <span className="text-[10px] bg-gray-100 px-2 py-1 border border-black">
-                          SELECCIONAR
-                        </span>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -791,12 +817,24 @@ const Compras = () => {
                       <select
                         value={productoSeleccionado}
                         onChange={(e) => setProductoSeleccionado(e.target.value)}
-                        className="w-full p-2 outline-none text-xs font-black cursor-pointer bg-transparent"
+                        className={`w-full p-2 outline-none text-xs font-black cursor-pointer bg-transparent ${
+                          !productoSeleccionado ? 'text-gray-400' : 'text-gray-900'
+                        }`}
                       >
-                        <option value="">-- SELECCIONAR --</option>
+                        <option value="" className="text-gray-400">
+                          -- SELECCIONAR PRODUCTO --
+                        </option>
                         {productos.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.nombre}
+                          <option
+                            key={p.id}
+                            value={p.id}
+                            disabled={!p.estaActivo}
+                            className={p.estaActivo ? 'text-gray-900' : 'text-gray-400 italic'}
+                          >
+                            {/* Si no está activo, añadimos el prefijo [INACTIVO] y el sufijo de aviso */}
+                            {p.estaActivo
+                              ? p.nombre.toUpperCase()
+                              : `[INACTIVO] ${p.nombre.toUpperCase()} - NO DISPONIBLE`}
                           </option>
                         ))}
                       </select>
@@ -1059,9 +1097,14 @@ const Compras = () => {
                   Historial de Movimientos Aroma de Oro
                 </h3>
               </div>
-              <ComprasHeader />
+              <ComprasHeader
+                filtros={filtros}
+                setFiltros={setFiltros}
+                productores={productores}
+                resetFiltros={resetFiltros}
+              />
               <ComprasTable
-                liquidaciones={liquidaciones}
+                liquidaciones={liquidacionesFiltradas}
                 setSelectedLiq={setSelectedLiq}
                 setShowModal={setShowModal}
               />

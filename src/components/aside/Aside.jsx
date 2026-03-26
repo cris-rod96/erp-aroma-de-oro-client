@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { MENU_DATA } from '../../data'
 import { MdLogout, MdChevronRight, MdRefresh, MdLock } from 'react-icons/md'
@@ -8,27 +8,32 @@ import { useCajaStore } from '../../store/useCajaStore'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
 
 const Aside = ({ hiddenMenu }) => {
-  // --- ESTADOS PARA EL LOGOUT ---
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [countdown, setCountdown] = useState(5)
 
+  // 1. Uso correcto del Store simplificado (user en lugar de data)
   const token = useAuthStore((state) => state.token)
-  const user = useAuthStore((state) => state.data)
-  const estaHabilitado = useAuthStore((state) => state.estaHabilitado)
+  const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
+
+  // 2. Lógica derivada: No necesitamos 'estaHabilitado' en el store.
+  // Lo calculamos aquí para evitar estados duplicados o antiguos.
+  const tienePermisosEspeciales = useMemo(() => {
+    return user?.rol === 'Administrador' || user?.rol === 'Contador'
+  }, [user?.rol])
+
   const clearCaja = useCajaStore((state) => state.clearCaja)
   const clearEmpresa = useEmpresaStore((state) => state.clearEmpresa)
-
-  const navigate = useNavigate()
-
   const setCaja = useCajaStore((state) => state.setCaja)
   const setEmpresa = useEmpresaStore((state) => state.setEmpresa)
 
-  // Validación inicial de requisitos
+  const navigate = useNavigate()
+
   useEffect(() => {
     let isMounted = true
     const verificarRequisitos = async () => {
       try {
+        // Usamos el ID del usuario desde la nueva estructura 'user'
         const [respCaja, respEmp] = await Promise.all([
           cajaAPI.obtenerCajaAbierta(token, user?.id),
           empresaAPI.obtenerInformacion(token),
@@ -46,13 +51,10 @@ const Aside = ({ hiddenMenu }) => {
     }
   }, [token, user?.id, setCaja, setEmpresa])
 
-  // Lógica de cuenta regresiva para Logout
   useEffect(() => {
     let timer
     if (isLoggingOut && countdown > 0) {
-      timer = setInterval(() => {
-        setCountdown((prev) => prev - 1)
-      }, 1000)
+      timer = setInterval(() => setCountdown((prev) => prev - 1), 1000)
     } else if (countdown === 0) {
       logout()
       clearCaja()
@@ -62,13 +64,8 @@ const Aside = ({ hiddenMenu }) => {
     return () => clearInterval(timer)
   }, [isLoggingOut, countdown, logout, clearCaja, clearEmpresa, navigate])
 
-  const handleLogoutClick = () => {
-    setIsLoggingOut(true)
-  }
-
   return (
     <>
-      {/* LOADER DE CIERRE DE SESIÓN */}
       {isLoggingOut && (
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center">
           <div className="relative flex items-center justify-center">
@@ -82,47 +79,48 @@ const Aside = ({ hiddenMenu }) => {
       )}
 
       <aside
-        className={`fixed h-screen w-80 flex flex-col z-50 transition-all duration-500 shadow-2xl overflow-hidden ${
+        className={`fixed h-screen w-80 flex flex-col z-40 transition-all duration-500 shadow-2xl overflow-hidden ${
           !hiddenMenu ? 'left-0' : '-left-full'
         }`}
       >
         <div className="absolute inset-0 z-[-1]">
           <img src="/fondo_cacao.jpg" alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/80 shadow-[inset_0_0_100px_rgba(0,0,0,0.9)]" />
+          <div className="absolute inset-0 bg-black/85 shadow-[inset_0_0_100px_rgba(0,0,0,0.9)]" />
         </div>
 
-        {/* PERFIL */}
+        {/* PERFIL DINÁMICO */}
         <section className="p-8 flex flex-col gap-4 items-center border-b border-white/10 backdrop-blur-md">
           <div className="relative">
             <div
-              className={`w-24 h-24 rounded-full border-4 ${estaHabilitado ? 'border-amber-500/50' : 'border-emerald-500/50'} p-1`}
+              className={`w-24 h-24 rounded-full border-4 ${tienePermisosEspeciales ? 'border-amber-500/50' : 'border-emerald-500/50'} p-1`}
             >
               <img
-                src={`https://ui-avatars.com/api/?name=${user?.nombresCompletos || 'Admin'}&background=${estaHabilitado ? 'fbbf24' : '10b981'}&color=000&bold=true`}
+                src={`https://ui-avatars.com/api/?name=${user?.nombresCompletos || 'User'}&background=${tienePermisosEspeciales ? 'fbbf24' : '10b981'}&color=000&bold=true`}
                 className="w-full h-full rounded-full object-cover bg-amber-500"
                 alt="Profile"
               />
             </div>
             <div
-              className={`absolute bottom-1 right-1 w-6 h-6 ${estaHabilitado ? 'bg-emerald-500' : 'bg-amber-500'} border-4 border-[#1a2529] rounded-full`}
+              className={`absolute bottom-1 right-1 w-6 h-6 ${tienePermisosEspeciales ? 'bg-amber-500' : 'bg-emerald-500'} border-4 border-[#1a2529] rounded-full`}
             ></div>
           </div>
           <div className="text-center">
             <h3 className="text-xl font-black text-white uppercase tracking-tighter">
-              {user?.nombresCompletos || 'Usuario'}
+              {user?.nombresCompletos || 'Cargando...'}
             </h3>
             <p
-              className={`text-[10px] font-bold uppercase tracking-[0.3em] ${estaHabilitado ? 'text-amber-500' : 'text-emerald-500'}`}
+              className={`text-[10px] font-bold uppercase tracking-[0.3em] ${tienePermisosEspeciales ? 'text-amber-500' : 'text-emerald-500'}`}
             >
-              {estaHabilitado ? 'Administrador' : 'Contabilidad'}
+              {user?.rol || 'Personal'}
             </p>
           </div>
         </section>
 
-        {/* MENÚ CON INHABILITACIÓN VISUAL MEJORADA */}
+        {/* MENÚ FILTRADO */}
         <section className="flex flex-col overflow-y-auto flex-1 py-4 custom-scrollbar">
           {MENU_DATA.map((item, index) => {
-            const isBlocked = item.onlyAdmin && !estaHabilitado
+            // Bloqueo dinámico basado en el rol actual
+            const isBlocked = item.onlyAdmin && !tienePermisosEspeciales
 
             return (
               <NavLink
@@ -133,58 +131,48 @@ const Aside = ({ hiddenMenu }) => {
                 className={({ isActive }) =>
                   `relative px-8 py-5 flex flex-row items-center justify-between w-full transition-all duration-300 ${
                     isBlocked
-                      ? 'cursor-not-allowed'
+                      ? 'opacity-40 cursor-not-allowed grayscale'
                       : isActive
                         ? 'bg-amber-500/10 border-r-4 border-amber-500 text-amber-500'
                         : 'text-gray-400 hover:bg-white/5 hover:text-white'
                   }`
                 }
               >
-                <div
-                  className={`flex items-center gap-4 transition-colors ${isBlocked ? 'text-white/40' : ''}`}
-                >
-                  <item.icon size={24} className={`${isBlocked ? 'text-amber-900/40' : ''}`} />
-                  <span
-                    className={`text-sm font-black uppercase italic tracking-tight ${isBlocked ? 'text-white/30' : ''}`}
-                  >
+                <div className="flex items-center gap-4 transition-colors">
+                  <item.icon size={24} />
+                  <span className="text-sm font-black uppercase italic tracking-tight">
                     {item.label}
                   </span>
                 </div>
 
                 {isBlocked ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-[7px] font-black text-rose-500/60 uppercase tracking-tighter">
-                      Bloqueado
-                    </span>
-                    <MdLock size={18} className="text-rose-500/40" />
-                  </div>
+                  <MdLock size={18} className="text-rose-500/60" />
                 ) : (
-                  <MdChevronRight size={20} className="opacity-50" />
+                  <MdChevronRight size={20} className="opacity-30" />
                 )}
               </NavLink>
             )
           })}
 
-          {/* MENSAJE DE RESTRICCIÓN AL FINAL */}
-          {!estaHabilitado && (
+          {/* AVISO DE RESTRICCIÓN */}
+          {!tienePermisosEspeciales && (
             <div className="px-8 py-4 mt-auto">
-              <div className="flex items-center gap-2 text-rose-400 bg-rose-500/10 p-3 rounded-lg border border-rose-500/20">
-                <MdLock size={18} />
-                <span className="text-[9px] font-black uppercase tracking-tighter leading-tight">
-                  Acceso restringido: Solo reportes habilitados
+              <div className="flex items-center gap-3 text-rose-400 bg-rose-500/10 p-4 rounded-2xl border border-rose-500/20">
+                <MdLock size={20} />
+                <span className="text-[9px] font-black uppercase tracking-widest leading-tight">
+                  Modo Lectura: <br /> Acceso a Gestión Restringido
                 </span>
               </div>
             </div>
           )}
         </section>
 
-        {/* FOOTER */}
-        <div className="p-6 bg-black/60 border-t border-white/10">
+        <div className="p-6 bg-black/40 border-t border-white/10">
           <button
-            onClick={handleLogoutClick}
-            className="w-full flex items-center justify-center gap-3 py-3 bg-red-600/20 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/50 rounded-lg transition-all font-black uppercase text-xs tracking-widest"
+            onClick={() => setIsLoggingOut(true)}
+            className="w-full flex items-center justify-center gap-3 py-4 bg-red-600/10 hover:bg-red-600 text-red-500 hover:text-white border border-red-600/30 rounded-xl transition-all font-black uppercase text-[10px] tracking-widest"
           >
-            <MdLogout size={18} /> Cerrar Sesión
+            <MdLogout size={18} /> Salir del Sistema
           </button>
         </div>
       </aside>

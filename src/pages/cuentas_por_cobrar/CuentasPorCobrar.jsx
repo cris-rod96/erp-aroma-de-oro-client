@@ -21,7 +21,7 @@ import { useCajaStore } from '../../store/useCajaStore'
 
 const CuentasPorCobrar = () => {
   const token = useAuthStore((state) => state.token)
-  const user = useAuthStore((state) => state.data)
+  const user = useAuthStore((state) => state.user)
   const setCaja = useCajaStore((store) => store.setCaja)
   const caja = useCajaStore((state) => state.caja)
 

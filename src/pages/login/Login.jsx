@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MdBadge, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md'
+import { MdBadge, MdLock, MdVisibility, MdVisibilityOff, MdEmail } from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import authAPI from '../../api/auth/auth.api'
@@ -11,21 +11,66 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
 
   const navigate = useNavigate()
-  const loginStore = useAuthStore((state) => state.login) // Extraemos la acción de login
 
+  // Conexión con tu Store simplificado
+  const loginAction = useAuthStore((state) => state.login)
+
+  // Configuración de alertas con el estilo "Aroma de Oro"
   const toastAroma = Swal.mixin({
     customClass: {
-      popup: 'rounded-[2rem] border-2 border-amber-400 bg-gray-900 text-white',
-      title: 'text-white font-black uppercase italic tracking-tighter',
+      popup: 'rounded-[2rem] border-2 border-amber-400 bg-gray-900 text-white shadow-2xl',
+      title: 'text-white font-black uppercase italic tracking-tighter text-xl',
+      htmlContainer: 'text-gray-400 font-bold text-xs uppercase tracking-widest leading-relaxed',
       confirmButton:
-        'bg-amber-400 text-amber-950 px-8 py-3 rounded-xl font-black uppercase tracking-widest text-xs',
+        'bg-amber-400 hover:bg-amber-500 text-amber-950 px-10 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 mx-2',
+      cancelButton:
+        'bg-gray-800 hover:bg-gray-700 text-gray-400 px-10 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all mx-2',
+      input:
+        'bg-gray-800 border-2 border-gray-700 rounded-2xl px-5 text-amber-400 font-bold outline-none focus:border-amber-400 text-center mx-auto',
     },
     buttonsStyling: false,
   })
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    setCredentials((prev) => ({ ...prev, [name]: value }))
+    // Normalizamos la cédula quitando espacios
+    const cleanValue = name === 'cedula' ? value.trim() : value
+    setCredentials((prev) => ({ ...prev, [name]: cleanValue }))
+  }
+
+  const handleForgotPassword = async () => {
+    const { value: email } = await toastAroma.fire({
+      title: 'Recuperar Acceso',
+      text: 'Ingresa tu correo institucional para enviarte una clave temporal.',
+      input: 'email',
+      inputPlaceholder: 'usuario@aromadeoro.com',
+      showCancelButton: true,
+      confirmButtonText: 'Enviar Código',
+      cancelButtonText: 'Cancelar',
+    })
+
+    if (email) {
+      try {
+        setLoading(true)
+        await authAPI.recoverPassword(email)
+        toastAroma.fire({
+          icon: 'success',
+          title: 'Correo Enviado',
+          text: 'Revisa tu bandeja de entrada para restablecer tu cuenta.',
+          iconColor: '#fbbf24',
+          timer: 3000,
+          showConfirmButton: false,
+        })
+      } catch (error) {
+        toastAroma.fire({
+          icon: 'error',
+          title: 'Error de Envío',
+          text: error.response?.data?.message || 'No se pudo procesar la solicitud.',
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -34,8 +79,8 @@ const Login = () => {
     if (!credentials.cedula || !credentials.clave) {
       return toastAroma.fire({
         icon: 'warning',
-        title: 'Campos Incompletos',
-        text: 'Por favor, ingrese su cédula y contraseña.',
+        title: 'Acceso Denegado',
+        text: 'Cédula y contraseña son requeridas.',
         iconColor: '#fbbf24',
       })
     }
@@ -44,14 +89,15 @@ const Login = () => {
 
     try {
       const response = await authAPI.loginWithCredentials(credentials)
-      console.log(response.data)
-      loginStore(response.data)
+
+      // Guardamos en el store (response.data contiene { token, usuario })
+      loginAction(response.data)
 
       toastAroma
         .fire({
           icon: 'success',
           title: '¡Acceso Concedido!',
-          text: `Bienvenido, ${response.data.usuario.nombresCompletos}`,
+          text: `Bienvenido al sistema, ${response.data.usuario.nombresCompletos}`,
           iconColor: '#fbbf24',
           timer: 1500,
           showConfirmButton: false,
@@ -60,12 +106,10 @@ const Login = () => {
           navigate('/inicio')
         })
     } catch (error) {
-      console.error(error)
-      const message = error.response?.data?.message || 'Error al intentar iniciar sesión'
-
+      const message = error.response?.data?.message || 'Error crítico en el servidor'
       toastAroma.fire({
         icon: 'error',
-        title: 'Error de Acceso',
+        title: 'Error de Autenticación',
         text: message,
         confirmButtonText: 'Reintentar',
       })
@@ -75,95 +119,124 @@ const Login = () => {
   }
 
   return (
-    <main className="relative w-full h-screen flex flex-row overflow-hidden bg-gray-900">
-      <div className="hidden lg:flex lg:w-1/2 relative border-r border-white/10">
+    <main className="relative w-full h-screen flex flex-row overflow-hidden bg-gray-900 font-sans">
+      {/* SECCIÓN IZQUIERDA: BRANDING VISUAL */}
+      <div className="hidden lg:flex lg:w-1/2 relative border-r border-white/5">
         <img
           src="/fondo_cacao.jpg"
-          alt="Cacao"
-          className="absolute inset-0 w-full h-full object-cover"
+          alt="Cacao Export"
+          className="absolute inset-0 w-full h-full object-cover opacity-50 grayscale-[20%]"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent p-12 flex flex-col justify-end">
-          <h2 className="text-white text-5xl font-black italic uppercase leading-none">
-            Sistema de Gestión <br /> <span className="text-amber-400">Aroma de Oro</span>
-          </h2>
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent p-16 flex flex-col justify-end">
+          <div className="border-l-8 border-amber-400 pl-8">
+            <h2 className="text-white text-7xl font-black italic uppercase leading-[0.8] tracking-tighter">
+              Aroma <br /> de <span className="text-amber-400">Oro</span>
+            </h2>
+            <p className="text-gray-400 font-bold text-xs uppercase tracking-[0.6em] mt-6">
+              ERP de Gestión Agrícola | v2.0
+            </p>
+          </div>
         </div>
       </div>
 
-      <div className="relative w-full lg:w-1/2 flex justify-center items-center p-6 md:p-16">
-        <div className="w-full max-w-md bg-white/5 lg:bg-transparent backdrop-blur-md lg:backdrop-blur-none p-8 lg:p-0 rounded-3xl border border-white/10 lg:border-none shadow-2xl lg:shadow-none">
-          <div className="mb-10 text-center lg:text-left">
-            <h1 className="text-3xl font-black text-white italic uppercase">Acceso</h1>
-            <p className="text-amber-400 lg:text-gray-400 font-bold text-[10px] uppercase tracking-[0.3em] mt-2">
-              Panel Administrativo
+      {/* SECCIÓN DERECHA: PANEL DE ACCESO */}
+      <div className="relative w-full lg:w-1/2 flex justify-center items-center p-8">
+        <div className="w-full max-w-md">
+          <div className="mb-12 text-center lg:text-left">
+            <h1 className="text-5xl font-black text-white italic uppercase tracking-tighter">
+              Login<span className="text-amber-400">.</span>
+            </h1>
+            <p className="text-gray-500 font-bold text-[10px] uppercase tracking-[0.4em] mt-3">
+              Administración Central de Productores
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            {/* INPUT CÉDULA */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-300 lg:text-gray-400 uppercase tracking-widest ml-1 italic">
-                Cédula de Identidad
+              <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
+                Identificación (Cédula)
               </label>
-              <div className="flex items-center h-14 bg-white/5 lg:bg-gray-800/50 rounded-2xl border border-white/10 lg:border-gray-700 focus-within:border-amber-400 transition-all">
-                <div className="px-4 text-amber-400">
-                  <MdBadge size={22} />
+              <div className="flex items-center h-16 bg-white/5 rounded-[1.25rem] border border-white/10 focus-within:border-amber-400/50 focus-within:bg-white/10 transition-all group">
+                <div className="px-5 text-gray-500 group-focus-within:text-amber-400 transition-colors">
+                  <MdBadge size={26} />
                 </div>
                 <input
-                  autoComplete="off"
                   type="text"
                   name="cedula"
+                  autoComplete="username"
                   placeholder="09XXXXXXXX"
+                  value={credentials.cedula}
                   onChange={handleChange}
-                  className="flex-1 bg-transparent h-full outline-none text-white font-bold"
+                  className="flex-1 bg-transparent h-full outline-none text-white font-bold text-sm tracking-widest placeholder:text-gray-700"
                 />
               </div>
             </div>
 
+            {/* INPUT CONTRASEÑA */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-gray-300 lg:text-gray-400 uppercase tracking-widest ml-1 italic">
-                Contraseña Segura
-              </label>
-              <div className="flex items-center h-14 bg-white/5 lg:bg-gray-800/50 rounded-2xl border border-white/10 lg:border-gray-700 focus-within:border-amber-400 transition-all">
-                <div className="px-4 text-amber-400">
-                  <MdLock size={22} />
+              <div className="flex justify-between items-end px-1">
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                  Clave de Seguridad
+                </label>
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[9px] font-black text-amber-500/40 hover:text-amber-400 uppercase tracking-widest transition-colors italic"
+                >
+                  ¿Olvidaste tu clave?
+                </button>
+              </div>
+              <div className="flex items-center h-16 bg-white/5 rounded-[1.25rem] border border-white/10 focus-within:border-amber-400/50 focus-within:bg-white/10 transition-all group">
+                <div className="px-5 text-gray-500 group-focus-within:text-amber-400 transition-colors">
+                  <MdLock size={26} />
                 </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="clave"
+                  autoComplete="current-password"
                   placeholder="••••••••"
+                  value={credentials.clave}
                   onChange={handleChange}
-                  className="flex-1 bg-transparent h-full outline-none text-white font-bold"
+                  className="flex-1 bg-transparent h-full outline-none text-white font-bold tracking-[0.3em] placeholder:text-gray-700"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="px-4 text-gray-400 hover:text-amber-400"
+                  className="px-5 text-gray-600 hover:text-amber-400 transition-colors"
                 >
-                  {showPassword ? <MdVisibilityOff size={20} /> : <MdVisibility size={20} />}
+                  {showPassword ? <MdVisibilityOff size={22} /> : <MdVisibility size={22} />}
                 </button>
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 bg-amber-400 hover:bg-amber-500 text-amber-950 rounded-2xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-amber-900/40 active:scale-95 flex justify-center items-center"
-            >
-              {loading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-amber-950 border-t-transparent rounded-full animate-spin" />
-                  Verificando...
-                </div>
-              ) : (
-                'Entrar ahora'
-              )}
-            </button>
+            {/* BOTÓN SUBMIT */}
+            <div className="pt-6">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-5 bg-amber-400 hover:bg-amber-500 text-amber-950 rounded-[1.25rem] font-black uppercase tracking-[0.2em] text-[11px] transition-all shadow-2xl shadow-amber-900/20 active:scale-[0.98] flex justify-center items-center border-b-4 border-amber-600 disabled:opacity-50"
+              >
+                {loading ? (
+                  <div className="flex items-center gap-3">
+                    <div className="w-4 h-4 border-2 border-amber-950 border-t-transparent rounded-full animate-spin" />
+                    Validando...
+                  </div>
+                ) : (
+                  'Ingresar al Panel'
+                )}
+              </button>
+            </div>
           </form>
 
-          <div className="mt-10 text-center">
-            <span className="text-[9px] text-white/30 lg:text-gray-600 font-black uppercase tracking-[0.4em]">
-              Aroma de oro | 2026
-            </span>
-          </div>
+          {/* FOOTER */}
+          <footer className="mt-16 flex flex-col items-center gap-4">
+            <div className="h-px w-16 bg-white/10"></div>
+            <p className="text-[9px] text-white/10 font-black uppercase tracking-[0.6em] text-center leading-loose">
+              © 2026 Exportadora Aroma de Oro <br />
+              El Empalme - Ecuador
+            </p>
+          </footer>
         </div>
       </div>
     </main>

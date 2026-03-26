@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react'
 import { ITEMS_DATA } from '../../data'
 import { NavLink, useOutletContext } from 'react-router-dom'
-import { MdTrendingUp, MdLock, MdSecurity } from 'react-icons/md' // Importamos MdLock
-import Swal from 'sweetalert2'
+import { MdTrendingUp, MdLock, MdSecurity } from 'react-icons/md'
 import { Container, Loading } from '../../components/index.components'
 import { useAuthStore } from '../../store/useAuthStore'
 import {
@@ -24,7 +23,9 @@ const Home = () => {
   const [mensajeLoading, setMensajeLoading] = useState('Iniciando sistema...')
 
   const token = useAuthStore((store) => store.token)
-  const estaHabilitado = useAuthStore((state) => state.estaHabilitado) // Obtenemos el rol
+
+  const user = useAuthStore((state) => state.user)
+  const estaHabilitado = user?.rol === 'Administrador' || user?.rol === 'Contador'
 
   const [stats, setStats] = useState({
     USUARIOS: 'Cargando...',
@@ -53,7 +54,6 @@ const Home = () => {
           respProductores,
           respTrabajadores,
           respLiquidaciones,
-          respProductos,
           respCajaActiva,
           respVentas,
           respCuentasPorPagar,
@@ -63,8 +63,7 @@ const Home = () => {
           productorAPI.listarTodos(token),
           trabajadorAPI.listarTodos(token),
           liquidacionAPI.listarTodas(token),
-          productoAPI.listarProductos(token),
-          cajaAPI.obtenerCajaAbierta(token),
+          cajaAPI.obtenerCajaAbierta(token, user?.id), // Enviamos el ID del user
           ventaAPI.listarVentas(token),
           cuentasPorPagarAPI.listarPendientes(token),
           cuentasPorCobrarAPI.listarPendientes(token),
@@ -76,15 +75,12 @@ const Home = () => {
         const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
         const liquidacionesHoy = (respLiquidaciones.data.liquidaciones || []).filter((liq) => {
-          return new Date(liq.fecha).toISOString().split('T')[0] === hoy
+          const fechaLiq = liq.createdAt || liq.fecha
+          return new Date(fechaLiq).toISOString().split('T')[0] === hoy
         }).length
 
         const cajaData = respCajaActiva.data.caja
-        const dineroEnCaja = cajaData
-          ? parseFloat(
-              parseFloat(cajaData.saldoActual) > 0 ? cajaData.saldoActual : cajaData.saldoActual
-            )
-          : 0
+        const dineroEnCaja = cajaData ? parseFloat(cajaData.saldoActual || 0) : 0
 
         let totalVentasHoy = 0
         ;(respVentas.data.ventas || []).forEach((v) => {
@@ -120,8 +116,8 @@ const Home = () => {
         setLoading(false)
       }
     }
-    if (token) fetchDashboardData()
-  }, [token])
+    if (token && user?.id) fetchDashboardData()
+  }, [token, user?.id])
 
   return (
     <>
@@ -153,6 +149,7 @@ const Home = () => {
             } mx-auto gap-10 px-10 py-28 transition-all duration-500`}
           >
             {ITEMS_DATA.map((item, index) => {
+              // CORRECCIÓN: Usamos la lógica de estaHabilitado calculada
               const isBlocked = item.onlyAdmin && !estaHabilitado
 
               return (

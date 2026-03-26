@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { FaUserEdit, FaPrint, FaIdCard } from 'react-icons/fa'
+import { FaUserEdit, FaPrint, FaIdCard, FaTrashRestore } from 'react-icons/fa'
 import {
   MdDelete,
   MdPayments,
@@ -18,6 +18,7 @@ const NominaTable = ({
   handleEdit,
   handleDelete,
   handleImprimir,
+  handleRestore,
   error,
 }) => {
   // --- LÓGICA DE PAGINACIÓN (IGUAL A INVENTARIO) ---
@@ -98,7 +99,8 @@ const NominaTable = ({
                             {activeTab === 'empleados' ? (
                               <>
                                 {' '}
-                                <MdPhone className="text-amber-500/50" /> {item.telefono}{' '}
+                                <MdPhone className="text-amber-500/50" />{' '}
+                                {item.telefono || 'S/R'}{' '}
                               </>
                             ) : (
                               new Date(item.createdAt).toLocaleDateString('es-EC')
@@ -146,26 +148,42 @@ const NominaTable = ({
                       <div className="flex justify-end gap-2">
                         {activeTab === 'empleados' ? (
                           <>
-                            <button
-                              onClick={() => handleOpenPago(item)}
-                              className="bg-gray-900 text-amber-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all border border-gray-700 shadow-lg active:scale-95 italic"
-                            >
-                              <MdPayments size={14} className="inline mr-1" /> Pagar
-                            </button>
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
-                            >
-                              <FaUserEdit size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
-                            >
-                              <MdDelete size={20} />
-                            </button>
+                            {/* Si el empleado está activo, mostramos flujo normal */}
+                            {item.estaActivo ? (
+                              <>
+                                <button
+                                  onClick={() => handleOpenPago(item)}
+                                  className="bg-gray-900 text-amber-400 px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all border border-gray-700 shadow-lg active:scale-95 italic flex items-center gap-1"
+                                >
+                                  <MdPayments size={14} /> Pagar
+                                </button>
+                                <button
+                                  onClick={() => handleEdit(item)}
+                                  className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
+                                  title="Editar Datos"
+                                >
+                                  <FaUserEdit size={18} />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(item.id)}
+                                  className="p-2.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                  title="Dar de Baja"
+                                >
+                                  <MdDelete size={20} />
+                                </button>
+                              </>
+                            ) : (
+                              /* SI ESTÁ INACTIVO (PAPELERA), MOSTRAMOS RESTAURAR */
+                              <button
+                                onClick={() => handleRestore(item.id)} // Asegúrate de pasar esta prop al componente
+                                className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95 italic"
+                              >
+                                <FaTrashRestore size={12} /> Restaurar Personal
+                              </button>
+                            )}
                           </>
                         ) : (
+                          /* ACCIONES PARA LA PESTAÑA DE HISTORIAL */
                           <button
                             onClick={() => handleImprimir(item)}
                             className="p-3 bg-gray-900 text-amber-400 rounded-xl hover:scale-110 transition-all shadow-xl border border-gray-700"

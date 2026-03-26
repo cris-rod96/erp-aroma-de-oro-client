@@ -7,7 +7,7 @@ import { useCajaStore } from '../store/useCajaStore'
 
 export const usePrestamos = () => {
   const token = useAuthStore((state) => state.token)
-  const usuarioId = useAuthStore((state) => state.data?.id)
+  const usuarioId = useAuthStore((state) => state.user?.id)
   const caja = useCajaStore((store) => store.caja)
   const setCaja = useCajaStore((store) => store.setCaja)
 

@@ -26,6 +26,30 @@ const productoAPI = {
       },
     })
   },
+
+  eliminarProducto: (id, token) => {
+    return instance.patch(
+      `/${model}/eliminar-producto/${id}`,
+      {},
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
+
+  recuperarProducto: (id, token) => {
+    return instance.patch(
+      `/${model}/recuperar-producto/${id}`,
+      {},
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
 }
 
 export default productoAPI

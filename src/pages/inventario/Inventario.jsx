@@ -1,19 +1,14 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Container, Modal } from '../../components/index.components'
-import { FaPlus, FaBoxOpen, FaEdit } from 'react-icons/fa'
+import { Container, InventarioHeader, Modal } from '../../components/index.components'
+import { FaPlus, FaSearch, FaEdit, FaTrashRestore } from 'react-icons/fa'
 import {
   MdDelete,
   MdInventory,
-  MdScale,
-  MdNumbers,
-  MdInbox,
-  MdCheckCircle,
-  MdCancel,
+  MdSwapHoriz,
+  MdRefresh,
   MdChevronLeft,
   MdChevronRight,
   MdCalculate,
-  MdSwapHoriz,
-  MdRefresh,
 } from 'react-icons/md'
 import Swal from 'sweetalert2'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -24,7 +19,9 @@ const Inventario = () => {
   const [productos, setProductos] = useState([])
   const [fetching, setFetching] = useState(true)
   const [loading, setLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('') // NUEVO: Estado para búsqueda
   const token = useAuthStore((state) => state.token)
+  const [verEliminados, setVerEliminados] = useState(false)
 
   // --- ESTADOS MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -37,17 +34,72 @@ const Inventario = () => {
     estaActivo: true,
   })
 
-  // --- ESTADO CONVERSOR GLOBAL (PRO) ---
+  // --- ESTADO CONVERSOR ---
   const [calc, setCalc] = useState({ valor: '', de: 'Kilogramos', a: 'Quintales', resultado: 0 })
 
-  // --- PAGINACIÓN ---
+  // --- LÓGICA DE FILTRADO (NUEVA) ---
+  const productosFiltrados = useMemo(() => {
+    let lista = productos.filter((p) => p.estaActivo === !verEliminados)
+    if (searchTerm) {
+      const busqueda = searchTerm.toLowerCase().trim()
+      return lista.filter((p) => {
+        return (
+          p.nombre?.toLowerCase().includes(busqueda) ||
+          p.unidadMedida?.toLowerCase().includes(busqueda)
+        )
+      })
+    }
+    return lista
+  }, [productos, searchTerm, verEliminados])
+
+  // --- PAGINACIÓN (Actualizada para usar productosFiltrados) ---
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8
-  const totalPages = Math.ceil(productos.length / itemsPerPage)
+  const totalPages = Math.ceil(productosFiltrados.length / itemsPerPage)
+
   const currentProductos = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage
-    return productos.slice(start, start + itemsPerPage)
-  }, [productos, currentPage])
+    return productosFiltrados.slice(start, start + itemsPerPage)
+  }, [productosFiltrados, currentPage])
+
+  const swalConfig = {
+    target: document.getElementById('root'), // O usa document.body si 'root' no funciona
+    customClass: {
+      container: 'my-swal-container',
+    },
+    didOpen: () => {
+      // Forzamos el z-index al máximo posible
+      Swal.getContainer().style.zIndex = '999999'
+    },
+  }
+
+  const handleRestore = async (id) => {
+    const confirm = await Swal.fire({
+      ...swalConfig,
+      title: '¿Restaurar producto?',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981', // Emerald 500
+      confirmButtonText: 'Sí, restaurar',
+    })
+
+    if (confirm.isConfirmed) {
+      try {
+        await productoAPI.recuperarProducto(id, token)
+        fetchProductos()
+        Swal.fire('Recuperación', 'Producto recuperado con éxito', 'success')
+        setVerEliminados(false)
+      } catch (error) {
+        const msg = error.response?.data?.message || 'Error al recuperar producto'
+        Swal.fire('Error', msg, 'error')
+      }
+    }
+  }
+
+  // Resetear página cuando se busca
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
 
   // --- LÓGICA DE CONVERSIÓN ---
   const conversionFactors = {
@@ -112,6 +164,7 @@ const Inventario = () => {
 
   const handleDelete = async (id) => {
     const res = await Swal.fire({
+      ...swalConfig,
       title: '¿Eliminar?',
       icon: 'warning',
       showCancelButton: true,
@@ -121,9 +174,11 @@ const Inventario = () => {
     if (res.isConfirmed) {
       try {
         await productoAPI.eliminarProducto(id, token)
+        Swal.fire('Eliminación', 'Producto archivado con éxito', 'success')
         fetchProductos()
       } catch (e) {
-        Swal.fire('Error', 'No se puede eliminar', 'error')
+        const msg = e.response?.data?.message || 'No se puede eliminar'
+        Swal.fire('Error', msg, 'error')
       }
     }
   }
@@ -147,30 +202,18 @@ const Inventario = () => {
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-6 space-y-8">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-          <div className="border-l-4 border-amber-400 pl-4">
-            <h1 className="text-3xl font-black text-gray-900 uppercase italic tracking-tighter">
-              Inventario Aroma de Oro
-            </h1>
-            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">
-              Control de Bodega y Pesos
-            </p>
-          </div>
-          <button
-            onClick={() => handleOpenModal(false)}
-            className="bg-gray-900 text-amber-400 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl active:scale-95 flex items-center gap-2 border-b-4 border-amber-600 transition-all italic"
-          >
-            <FaPlus size={14} /> Registrar Producto
-          </button>
-        </div>
-
+        {/* HEADER REDISEÑADO PARA FILTRO */}
+        <InventarioHeader
+          handleOpenModal={handleOpenModal}
+          searchTerm={searchTerm}
+          setSearchTerm={setSearchTerm}
+          verEliminados={verEliminados}
+          setVerEliminados={setVerEliminados}
+        />
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* COLUMNA 1: CONVERSOR PRO (LAYOUT FIJO) */}
-          {/* COLUMNA 1: CONVERSOR REDISEÑADO */}
+          {/* COLUMNA 1: CONVERSOR (Diseño intacto) */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-8 sticky top-10">
-              {/* Header del Widget */}
               <div className="flex items-center justify-between mb-8 border-b border-gray-50 pb-4">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-amber-50 rounded-xl text-amber-600">
@@ -191,7 +234,6 @@ const Inventario = () => {
               </div>
 
               <div className="space-y-6">
-                {/* Campo de Entrada */}
                 <div className="space-y-2">
                   <label className="text-[10px] text-gray-400 font-black uppercase tracking-widest ml-1">
                     Cantidad Base
@@ -205,40 +247,32 @@ const Inventario = () => {
                   />
                 </div>
 
-                {/* Selectores con estilo de la tabla */}
                 <div className="flex flex-col gap-2">
-                  <div className="relative">
-                    <select
-                      className="w-full h-12 bg-white border border-gray-100 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer appearance-none text-gray-500 focus:border-amber-200 shadow-sm"
-                      value={calc.de}
-                      onChange={(e) => handleCalcChange('de', e.target.value)}
-                    >
-                      <option>Kilogramos</option>
-                      <option>Quintales</option>
-                      <option>Libras</option>
-                    </select>
+                  <select
+                    className="w-full h-12 bg-white border border-gray-100 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-gray-500 focus:border-amber-200 shadow-sm"
+                    value={calc.de}
+                    onChange={(e) => handleCalcChange('de', e.target.value)}
+                  >
+                    <option>Kilogramos</option>
+                    <option>Quintales</option>
+                    <option>Libras</option>
+                  </select>
+
+                  <div className="flex justify-center py-1 text-amber-500">
+                    <MdSwapHoriz size={20} className="rotate-90 lg:rotate-0" />
                   </div>
 
-                  <div className="flex justify-center py-1">
-                    <div className="bg-gray-50 p-2 rounded-full border border-gray-100 text-amber-500 shadow-sm">
-                      <MdSwapHoriz size={20} className="rotate-90 lg:rotate-0" />
-                    </div>
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      className="w-full h-12 bg-white border border-gray-100 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer appearance-none text-gray-500 focus:border-amber-200 shadow-sm"
-                      value={calc.a}
-                      onChange={(e) => handleCalcChange('a', e.target.value)}
-                    >
-                      <option>Quintales</option>
-                      <option>Kilogramos</option>
-                      <option>Libras</option>
-                    </select>
-                  </div>
+                  <select
+                    className="w-full h-12 bg-white border border-gray-100 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-gray-500 focus:border-amber-200 shadow-sm"
+                    value={calc.a}
+                    onChange={(e) => handleCalcChange('a', e.target.value)}
+                  >
+                    <option>Quintales</option>
+                    <option>Kilogramos</option>
+                    <option>Libras</option>
+                  </select>
                 </div>
 
-                {/* Resultado con estilo de celda de Stock */}
                 <div className="mt-10 pt-8 border-t border-gray-50">
                   <div className="bg-amber-50/50 rounded-[2rem] p-8 border border-amber-100/50 text-center">
                     <p className="text-[9px] text-amber-600 font-black uppercase tracking-[0.3em] mb-2">
@@ -258,7 +292,7 @@ const Inventario = () => {
             </div>
           </div>
 
-          {/* COLUMNAS 2-4: TABLA DE PRODUCTOS */}
+          {/* COLUMNAS 2-4: TABLA (Diseño intacto con datos filtrados) */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col min-h-[600px]">
               <div className="overflow-x-auto flex-1">
@@ -287,6 +321,15 @@ const Inventario = () => {
                           className="py-20 text-center animate-pulse text-gray-300 font-black uppercase text-xs italic"
                         >
                           Cargando Bodega...
+                        </td>
+                      </tr>
+                    ) : currentProductos.length === 0 ? (
+                      <tr>
+                        <td
+                          colSpan="4"
+                          className="py-20 text-center text-gray-300 font-black uppercase text-[10px] tracking-widest"
+                        >
+                          No se encontraron coincidencias
                         </td>
                       </tr>
                     ) : (
@@ -328,18 +371,29 @@ const Inventario = () => {
                           </td>
                           <td className="px-8 py-5 text-right">
                             <div className="flex justify-end gap-2">
-                              <button
-                                onClick={() => handleOpenModal(true, p)}
-                                className="p-3 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-2xl transition-all"
-                              >
-                                <FaEdit size={16} />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(p.id)}
-                                className="p-3 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
-                              >
-                                <MdDelete size={18} />
-                              </button>
+                              {p.estaActivo ? (
+                                <>
+                                  <button
+                                    onClick={() => handleOpenModal(true, p)}
+                                    className="p-3 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-2xl transition-all"
+                                  >
+                                    <FaEdit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDelete(p.id)}
+                                    className="p-3 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
+                                  >
+                                    <MdDelete size={18} />
+                                  </button>
+                                </>
+                              ) : (
+                                <button
+                                  onClick={() => handleRestore(p.id)} // Necesitas crear esta función similar a handleDelete
+                                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
+                                >
+                                  <FaTrashRestore size={12} /> Restaurar
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -349,7 +403,7 @@ const Inventario = () => {
                 </table>
               </div>
 
-              {/* PAGINACIÓN */}
+              {/* PAGINACIÓN DINÁMICA */}
               <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                   Página <span className="text-gray-900">{currentPage}</span> de{' '}
@@ -359,14 +413,14 @@ const Inventario = () => {
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="p-2.5 rounded-xl border bg-white text-gray-400 disabled:opacity-20 hover:border-amber-400 transition-all"
+                    className="p-2.5 rounded-xl border bg-white text-gray-400 disabled:opacity-20 hover:border-amber-400 transition-all shadow-sm"
                   >
                     <MdChevronLeft size={22} />
                   </button>
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="p-2.5 rounded-xl border bg-white text-gray-400 disabled:opacity-20 hover:border-amber-400 transition-all"
+                    disabled={currentPage === totalPages || totalPages === 0}
+                    className="p-2.5 rounded-xl border bg-white text-gray-400 disabled:opacity-20 hover:border-amber-400 transition-all shadow-sm"
                   >
                     <MdChevronRight size={22} />
                   </button>
@@ -377,7 +431,7 @@ const Inventario = () => {
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* MODAL (Diseño intacto) */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -399,10 +453,11 @@ const Inventario = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
-                U. Medida
+                U. Medida {isEdit && '(No editable)'}
               </label>
               <select
                 value={formData.unidadMedida}
+                disabled={isEdit}
                 onChange={(e) => setFormData({ ...formData, unidadMedida: e.target.value })}
                 className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 text-[10px] font-black uppercase outline-none"
               >
@@ -414,15 +469,16 @@ const Inventario = () => {
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
-                Stock Inicial
+                Stock {`${isEdit ? 'Total (No editable)' : 'Inicial'}`}
               </label>
               <input
                 type="number"
                 step="0.01"
                 required
+                disabled={isEdit}
                 value={formData.stock}
                 onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 text-sm font-black outline-none"
+                className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 text-sm font-black outline-none focus:border-amber-400 transition-all"
               />
             </div>
           </div>

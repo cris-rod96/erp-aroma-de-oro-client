@@ -48,9 +48,27 @@ export const useLiquidacion = () => {
   const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
   const [pagos, setPagos] = useState({ efectivo: 0, cheque: 0, transferencia: 0 })
 
-  const { token, data: user } = useAuthStore()
+  const { token, user } = useAuthStore()
   const { caja, setCaja } = useCajaStore()
   const { empresa, setEmpresa } = useEmpresaStore()
+
+  const [filtros, setFiltros] = useState({
+    fecha: '',
+    productorId: 'todos',
+    estado: 'todos',
+  })
+
+  const liquidacionesFiltradas = useMemo(() => {
+    return liquidaciones.filter((liq) => {
+      const coincidirFecha = !filtros.fecha || liq.createdAt.startsWith(filtros.fecha)
+      const coincidirProductor =
+        filtros.productorId === 'todos' || liq.ProductorId === filtros.productorId
+
+      const coinciderEstado = filtros.estado === 'todos' || liq.estado === filtros.estado
+
+      return coincidirFecha && coincidirProductor && coinciderEstado
+    })
+  }, [liquidaciones, filtros])
 
   const fetchInicial = async () => {
     setError(null)
@@ -69,6 +87,11 @@ export const useLiquidacion = () => {
       const msg = error.response?.data?.message || 'Error al cargar la información'
       setError(msg)
     }
+  }
+
+  const resetFiltros = async () => {
+    setFiltros({ fecha: '', productorId: 'todos', estado: 'todos' })
+    fetchInicial()
   }
 
   useEffect(() => {
@@ -333,6 +356,7 @@ export const useLiquidacion = () => {
     productoSeleccionado,
     setProductoSeleccionado,
     calificacion,
+    resetFiltros,
     setCalificacion,
     unidad,
     setUnidad,
@@ -354,6 +378,10 @@ export const useLiquidacion = () => {
     handleRegistrarProductor,
     handleGuardar,
     error,
+    productores,
+    filtros,
+    setFiltros,
+    liquidacionesFiltradas,
     isFormDisabled: !empresa?.id || !caja || caja.estado !== 'Abierta',
   }
 }

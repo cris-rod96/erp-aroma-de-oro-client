@@ -28,7 +28,7 @@ const trabajadorAPI = {
   },
 
   eliminarTrabajador: (id, token) => {
-    return instance.delete(`/${model}/trabajadores/borrar-persona/${id}`, {
+    return instance.delete(`/${model}/borrar-persona/${id}`, {
       headers: {
         'x-token': token,
       },
