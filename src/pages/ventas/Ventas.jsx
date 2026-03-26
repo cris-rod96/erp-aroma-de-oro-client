@@ -13,6 +13,7 @@ import {
   MdSecurity,
   MdChevronLeft,
   MdChevronRight,
+  MdRequestPage,
 } from 'react-icons/md'
 import { Container } from '../../components/index.components'
 import { useVentas } from '../../hooks/useVentas'
@@ -82,17 +83,14 @@ const Ventas = () => {
   // --- LÓGICA DE FILTRADO REAL (MEMOIZADA) ---
   const ventasFiltradas = useMemo(() => {
     return ventas.filter((v) => {
-      // Filtro Cliente
       const matchCliente = v.Persona?.nombreCompleto
         ?.toLowerCase()
         .includes(filtrosHistorial.clienteNombre.toLowerCase())
 
-      // Filtro Producto
       const matchProducto = filtrosHistorial.productoId
         ? v.ProductoId?.toString() === filtrosHistorial.productoId.toString()
         : true
 
-      // Filtro Fechas (Normalizando a medianoche para comparar solo días)
       const fechaVenta = new Date(v.createdAt).setHours(0, 0, 0, 0)
       const desde = filtrosHistorial.fechaDesde
         ? new Date(filtrosHistorial.fechaDesde).setHours(0, 0, 0, 0)
@@ -107,7 +105,6 @@ const Ventas = () => {
     })
   }, [ventas, filtrosHistorial])
 
-  // --- LÓGICA DE PAGINACIÓN ---
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
   const currentVentas = ventasFiltradas.slice(indexOfFirstItem, indexOfLastItem)
@@ -408,8 +405,14 @@ const Ventas = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+              {/* SECCIÓN 02: FORMA DE PAGO Y RETENCIONES */}
               <div className="border border-black p-4 bg-gray-50 rounded-none">
-                <h3 className="text-[11px] font-black mb-3 underline italic">02. FORMA DE PAGO</h3>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-[11px] font-black underline italic uppercase">
+                    02. FORMA DE PAGO Y RETENCIONES
+                  </h3>
+                </div>
+
                 <div className="grid grid-cols-2 gap-2 mb-4">
                   <button
                     onClick={() => setFormData({ ...formData, esCredito: false })}
@@ -426,6 +429,39 @@ const Ventas = () => {
                 </div>
 
                 <div className="space-y-3">
+                  {/* BLOQUE RETENCIÓN SRI */}
+                  <div className="bg-white border border-black p-3">
+                    <label className="text-[10px] font-black block mb-1.5 text-red-600 uppercase flex items-center gap-1">
+                      <MdRequestPage /> Retención SRI (Concepto / %)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="CONCEPTO (EJ: IR 1%)"
+                        className="w-full border border-gray-200 p-2 text-[10px] font-black outline-none bg-gray-50 uppercase"
+                        value={formData.retencionConcepto}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            retencionConcepto: e.target.value.toUpperCase(),
+                          })
+                        }
+                      />
+                      <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 px-2 min-w-[100px]">
+                        <input
+                          type="number"
+                          placeholder="0"
+                          className="w-full text-center font-black outline-none bg-transparent text-sm"
+                          value={formData.retencionPorcentaje || ''}
+                          onChange={(e) =>
+                            setFormData({ ...formData, retencionPorcentaje: e.target.value })
+                          }
+                        />
+                        <span className="font-black text-xs">%</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="bg-white border border-black p-3">
                     <label className="text-[10px] font-black block mb-1.5 text-blue-700">
                       (-) ABONO ANTICIPO (POR PRÉSTAMO PREVIO)
@@ -444,8 +480,8 @@ const Ventas = () => {
 
                   {formData.esCredito && (
                     <div className="bg-white border border-dashed border-black p-3 animate-in slide-in-from-top-2 rounded-none">
-                      <label className="text-[10px] font-black block mb-1.5 text-gray-600">
-                        ABONO DEL DÍA (LO QUE PAGA HOY)
+                      <label className="text-[10px] font-black block mb-1.5 text-emerald-600 uppercase">
+                        Abono de hoy (Entra a Caja)
                       </label>
                       <div className="flex items-center gap-2">
                         <span className="font-black text-lg">$</span>
@@ -464,35 +500,44 @@ const Ventas = () => {
                 </div>
               </div>
 
+              {/* RESUMEN FINANCIERO FINAL */}
               <div className="border border-black flex flex-col rounded-none">
                 <div className="p-4 flex-grow space-y-2.5 bg-white text-[11px] font-black uppercase">
                   <div className="flex justify-between">
-                    <span>TOTAL BRUTO:</span>
+                    <span>TOTAL MERCADERÍA (BRUTO):</span>
                     <span>${calculos.subtotalBruto.toFixed(2)}</span>
                   </div>
+
+                  {calculos.valorRetenido > 0 && (
+                    <div className="flex justify-between text-red-600 italic">
+                      <span>(-) VALOR RETENIDO ({formData.retencionPorcentaje}%):</span>
+                      <span>-${calculos.valorRetenido.toFixed(2)}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between text-blue-600 italic">
                     <span>(-) ABONO POR ANTICIPO:</span>
                     <span>-${parseFloat(formData.anticipo || 0).toFixed(2)}</span>
                   </div>
+
+                  <div className="flex justify-between border-t border-dashed border-gray-300 pt-2 font-black text-sm text-gray-900">
+                    <span>TOTAL A LIQUIDAR:</span>
+                    <span>${calculos.totalALiquidar.toFixed(2)}</span>
+                  </div>
+
                   {formData.esCredito && (
-                    <div className="flex justify-between text-amber-700 italic">
+                    <div className="flex justify-between text-emerald-700 italic">
                       <span>(-) ABONO DEL DÍA:</span>
                       <span>-${parseFloat(formData.abonoManual || 0).toFixed(2)}</span>
                     </div>
                   )}
-                  <div className="border-t border-gray-200 pt-2.5">
+
+                  <div className="border-t border-black pt-2.5">
                     <div className="flex justify-between text-2xl font-black bg-gray-800 text-white p-3.5 mt-1">
-                      <span className="text-xs self-center tracking-widest italic">
-                        SALDO FINAL:
+                      <span className="text-xs self-center tracking-widest italic uppercase">
+                        Saldo por Cobrar:
                       </span>
-                      <span>
-                        $
-                        {(
-                          calculos.totalFactura -
-                          parseFloat(formData.anticipo || 0) -
-                          (formData.esCredito ? parseFloat(formData.abonoManual || 0) : 0)
-                        ).toFixed(2)}
-                      </span>
+                      <span>${calculos.saldo.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
