@@ -166,7 +166,7 @@ const Login = () => {
                 <input
                   type="text"
                   name="cedula"
-                  autoComplete="username"
+                  autoComplete="off"
                   placeholder="09XXXXXXXX"
                   value={credentials.cedula}
                   onChange={handleChange}
@@ -195,7 +195,7 @@ const Login = () => {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="clave"
-                  autoComplete="current-password"
+                  autoComplete="off"
                   placeholder="••••••••"
                   value={credentials.clave}
                   onChange={handleChange}
