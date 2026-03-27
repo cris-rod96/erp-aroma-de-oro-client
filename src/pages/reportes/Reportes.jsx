@@ -68,7 +68,7 @@ const Reportes = () => {
   const [categoriaFiltro, setCategoriaFiltro] = useState('TODOS')
 
   const [paginaActual, setPaginaActual] = useState(1)
-  const registrosPorPagina = 10
+  const registrosPorPagina = 6
 
   useEffect(() => {
     const hoy = new Date()

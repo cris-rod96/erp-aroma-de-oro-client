@@ -72,6 +72,9 @@ const CuentasPorPagar = () => {
         item.Liquidacion?.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.Liquidacion?.Persona?.nombreCompleto || '')
           .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
+        item.Liquidacion?.Persona.numeroIdentificacion
+          .toLowerCase()
           .includes(searchTerm.toLowerCase())
     )
   }, [deudas, searchTerm])

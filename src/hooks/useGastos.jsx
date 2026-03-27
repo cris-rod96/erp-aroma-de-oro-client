@@ -5,6 +5,7 @@ import { useAuthStore } from '../store/useAuthStore'
 import { useCajaStore } from '../store/useCajaStore'
 import { FaGasPump, FaUtensils, FaTools, FaShoppingCart, FaBoxes } from 'react-icons/fa'
 import { useEffect } from 'react'
+import { useMemo } from 'react'
 
 export const useGastos = () => {
   const [gastos, setGastos] = useState([])
@@ -34,11 +35,30 @@ export const useGastos = () => {
     }
   }, [token])
 
-  const filtered = gastos.filter(
-    (g) =>
-      g.codigo?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      g.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  const filtered = useMemo(() => {
+    const termino = searchTerm.trim().toLowerCase()
+
+    if (!termino) return gastos
+
+    return gastos.filter((g) => {
+      const codigo = (g.codigo || '').toLowerCase()
+      const descripcion = (g.descripcion || '').toLowerCase()
+      const categoria = (g.categoria || '').toLowerCase()
+      const monto = parseFloat(g.monto || 0)
+        .toFixed(2)
+        .toString()
+      const fecha = new Date(g.createdAt).toLocaleDateString('es-EC')
+
+      // Retorna true si el término coincide con CUALQUIER campo
+      return (
+        codigo.includes(termino) ||
+        descripcion.includes(termino) ||
+        categoria.includes(termino) ||
+        monto.includes(termino) ||
+        fecha.includes(termino)
+      )
+    })
+  }, [gastos, searchTerm])
 
   const [formData, setFormData] = useState({
     monto: '',

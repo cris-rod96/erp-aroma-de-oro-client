@@ -21,6 +21,10 @@ export const useVentas = () => {
   const [cedulaBusqueda, setCedulaBusqueda] = useState('')
   const [compradorInfo, setCompradorInfo] = useState(null)
 
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
+  const [saldoDeudaComprador, setSaldoDeudaComprador] = useState(0)
+  const [ventasGlobales, setVentasGlobales] = useState([])
+
   const [formData, setFormData] = useState({
     ProductoId: '',
     unidad: 'Quintales',
@@ -234,11 +238,60 @@ export const useVentas = () => {
     }
   }
 
+  const compradoresFiltrados = useMemo(() => {
+    const termino = cedulaBusqueda.trim().toLowerCase()
+    if (termino.length < 2) return []
+    return compradores
+      .filter(
+        (c) =>
+          (c.numeroIdentificacion || '').toLowerCase().includes(termino) ||
+          (c.nombreCompleto || '').toLowerCase().includes(termino)
+      )
+      .slice(0, 8)
+  }, [cedulaBusqueda, compradores])
+
+  const seleccionarComprador = (comprador) => {
+    // Buscamos deudas en ventas previas (estado PENDIENTE)
+    const ventasPendientes = ventasGlobales.filter(
+      (v) => v.PersonaId === comprador.id && v.estado === 'Pendiente'
+    )
+    const deuda = ventasPendientes.reduce(
+      (acc, curr) => acc + parseFloat(curr.montoPendiente || 0),
+      0
+    )
+
+    setSaldoDeudaComprador(deuda)
+    setCompradorInfo(comprador)
+    setCedulaBusqueda(comprador.nombreCompleto.toUpperCase())
+    setMostrarSugerencias(false)
+
+    if (deuda > 0) {
+      Swal.fire({
+        title: 'CLIENTE CON DEUDA',
+        text: `El cliente tiene un saldo pendiente de $${deuda.toFixed(2)}.`,
+        icon: 'warning',
+        confirmButtonColor: '#000',
+      })
+    }
+  }
+
   const registrarNuevoComprador = async (data) => {
     setLoading(true)
+    if (data.tipoIdentificacion === 'Cédula' && data.numeroIdentificacion.length !== 10)
+      return Swal.fire('Error', 'La cédula debe tener 10 dígitos válidos', 'error')
+    if (data.tipoIdentificacion === 'RUC' && data.numeroIdentificacion.length !== 13)
+      return Swal.fire('Error', 'El RUC debe tener 13 dígitos válidos', 'error')
+
+    if (!data.nombreCompleto.trim()) return Swal.fire('Error', 'El nombre es obligatorio', 'error')
+
     try {
       const res = await compradorAPI.agregarComprador(
-        { ...data, UsuarioId: usuarioId, tipo: 'Comprador', tipoIdentificacion: tipoBusqueda },
+        {
+          ...data,
+          UsuarioId: usuarioId,
+          tipo: 'Comprador',
+          tipoIdentificacion: data.tipoIdentificacion,
+        },
         token
       )
       await fetchVentasData()
@@ -271,5 +324,13 @@ export const useVentas = () => {
     buscarComprador,
     handleFinalizarVenta,
     registrarNuevoComprador,
+    compradoresFiltrados,
+    mostrarSugerencias,
+    setMostrarSugerencias,
+    seleccionarComprador,
+    saldoDeudaComprador,
+    ventasGlobales,
+    setCompradorInfo,
+    compradores,
   }
 }

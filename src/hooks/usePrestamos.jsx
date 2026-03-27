@@ -1,136 +1,112 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Swal from 'sweetalert2'
 import { useAuthStore } from '../store/useAuthStore'
-import { cajaAPI, trabajadorAPI } from '../api/index.api' // Asegúrate de importar trabajadorAPI
+import { trabajadorAPI } from '../api/index.api'
 import prestamoAPI from '../api/prestamo/prestamo.api'
 import { useCajaStore } from '../store/useCajaStore'
 
 export const usePrestamos = () => {
   const token = useAuthStore((state) => state.token)
   const usuarioId = useAuthStore((state) => state.user?.id)
-  const caja = useCajaStore((store) => store.caja)
-  const setCaja = useCajaStore((store) => store.setCaja)
+  const { caja, setCaja } = useCajaStore()
 
-  // Estados de carga y datos
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
   const [prestamosGlobales, setPrestamosGlobales] = useState([])
-  const [trabajadores, setTrabajadores] = useState([]) // Lista para búsqueda local
+  const [trabajadores, setTrabajadores] = useState([])
 
-  // Estados del Formulario
   const [cedulaBusqueda, setCedulaBusqueda] = useState('')
   const [empleadoInfo, setEmpleadoInfo] = useState(null)
   const [montoTotal, setMontoTotal] = useState('')
   const [cuotasPactadas, setCuotasPactadas] = useState(1)
   const [comentario, setComentario] = useState('')
+  const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
+  const [saldoDeudaEmpleado, setSaldoDeudaEmpleado] = useState(0)
 
-  // 1. Cargar datos iniciales (Caja, Préstamos y la lista de Trabajadores)
   const fetchDatosIniciales = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
       const [resPrestamos, resTrabajadores] = await Promise.all([
         prestamoAPI.listarTodos(token),
-        trabajadorAPI.listarTodos(token), // Traemos todos los trabajadores
+        trabajadorAPI.listarTodos(token),
       ])
-
-      if (resPrestamos.data) setPrestamosGlobales(resPrestamos.data.prestamos)
-      if (resTrabajadores.data) setTrabajadores(resTrabajadores.data.trabajadores)
+      setPrestamosGlobales(resPrestamos.data.prestamos || [])
+      setTrabajadores(resTrabajadores.data.trabajadores || [])
     } catch (error) {
-      const msg = error.response?.data?.message || 'Error al obtener préstamos'
-      setError(msg)
+      setError(error.response?.data?.message || 'Error al obtener datos')
     } finally {
       setLoading(false)
     }
   }, [token])
 
   useEffect(() => {
-    fetchDatosIniciales()
-  }, [fetchDatosIniciales])
+    if (token) fetchDatosIniciales()
+  }, [fetchDatosIniciales, token])
 
-  // 2. Buscar Trabajador localmente por numeroIdentificacion
-  const buscarEmpleado = () => {
-    if (!cedulaBusqueda) return
+  const trabajadoresFiltrados = useMemo(() => {
+    const termino = cedulaBusqueda.trim().toLowerCase()
+    if (termino.length < 2) return []
+    return trabajadores
+      .filter(
+        (t) =>
+          (t.numeroIdentificacion || '').toLowerCase().includes(termino) ||
+          (t.nombreCompleto || '').toLowerCase().includes(termino)
+      )
+      .slice(0, 8)
+  }, [cedulaBusqueda, trabajadores])
 
-    // Buscamos en la lista cargada previamente
-    const encontrado = trabajadores.find((t) => t.numeroIdentificacion === cedulaBusqueda.trim())
+  const seleccionarEmpleado = (empleado) => {
+    const pendientes = prestamosGlobales.filter(
+      (p) => p.PersonaId === empleado.id && p.estado === 'Pendiente'
+    )
+    const deuda = pendientes.reduce((acc, curr) => acc + parseFloat(curr.saldoPendiente || 0), 0)
 
-    if (encontrado) {
-      setEmpleadoInfo(encontrado)
-    } else {
+    setSaldoDeudaEmpleado(deuda)
+    setEmpleadoInfo(empleado)
+    setCedulaBusqueda(empleado.nombreCompleto.toUpperCase())
+    setMostrarSugerencias(false)
+
+    if (deuda > 0) {
       Swal.fire({
-        title: 'No encontrado',
-        text: 'No existe un trabajador registrado con esa identificación',
+        title: 'EMPLEADO CON DEUDA',
+        text: `Deuda activa: $${deuda.toFixed(2)}`,
         icon: 'warning',
         confirmButtonColor: '#111827',
       })
-      setEmpleadoInfo(null)
     }
   }
 
-  // 3. Guardar el Préstamo
   const handleGuardarPrestamo = async () => {
-    if (caja.estado !== 'Abierta') {
-      return Swal.fire('Caja Cerrada', 'Debes abrir una caja para realizar desembolsos', 'error')
-    }
+    if (!caja || caja.estado !== 'Abierta') return Swal.fire('Error', 'Caja cerrada', 'error')
 
-    if (!empleadoInfo) {
-      return Swal.fire('Error', 'Debe seleccionar un trabajador válido', 'error')
-    }
-
-    if (parseFloat(montoTotal) > parseFloat(caja.saldoActual)) {
-      return Swal.fire('Saldo Insuficiente', 'La caja no tiene fondos suficientes', 'error')
-    }
-
-    const confirm = await Swal.fire({
-      title: '¿Confirmar Préstamo?',
-      text: `Se entregará $${montoTotal} a ${empleadoInfo.nombreCompleto} en ${cuotasPactadas} cuotas.`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: '#111827',
-      confirmButtonText: 'Sí, entregar dinero',
-      cancelButtonText: 'Cancelar',
-    })
-
-    if (confirm.isConfirmed) {
+    try {
       setLoading(true)
-      try {
-        const data = {
-          // Usamos la ID de la Persona vinculada al Trabajador
-          PersonaId: empleadoInfo.id,
-          CajaId: caja.id,
-          UsuarioId: usuarioId,
-          montoTotal: parseFloat(montoTotal),
-          cuotasPactadas: parseInt(cuotasPactadas),
-          comentario: comentario.toUpperCase(),
-        }
-
-        const res = await prestamoAPI.crearPrestamo(token, data)
-        const { caja: cajaData } = res.data
-        console.log(cajaData)
-        setCaja(cajaData)
-
-        if (res.status === 201) {
-          Swal.fire('¡Éxito!', 'Préstamo registrado correctamente', 'success')
-          // Reset de formulario
-          setEmpleadoInfo(null)
-          setCedulaBusqueda('')
-          setMontoTotal('')
-          setCuotasPactadas(1)
-          setComentario('')
-          // Refrescar lista de préstamos y saldo de caja
-          fetchDatosIniciales()
-        }
-      } catch (error) {
-        console.log(error.message)
-        Swal.fire(
-          'Error',
-          error.response?.data?.message || 'No se pudo procesar el préstamo',
-          'error'
-        )
-      } finally {
-        setLoading(false)
+      const data = {
+        PersonaId: empleadoInfo.id,
+        CajaId: caja.id,
+        UsuarioId: usuarioId,
+        montoTotal: parseFloat(montoTotal),
+        cuotasPactadas: parseInt(cuotasPactadas),
+        comentario: comentario.trim().toUpperCase(),
       }
+
+      const res = await prestamoAPI.crearPrestamo(token, data)
+      if (res.status === 201) {
+        Swal.fire('¡Éxito!', 'Préstamo registrado', 'success')
+        setCaja(res.data.caja)
+        setEmpleadoInfo(null)
+        setCedulaBusqueda('')
+        setMontoTotal('')
+        setCuotasPactadas(1)
+        setComentario('')
+        setSaldoDeudaEmpleado(0)
+        fetchDatosIniciales()
+      }
+    } catch (error) {
+      Swal.fire('Error', error.response?.data?.message || 'Fallo', 'error')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -141,7 +117,6 @@ export const usePrestamos = () => {
     cedulaBusqueda,
     setCedulaBusqueda,
     empleadoInfo,
-    buscarEmpleado,
     montoTotal,
     setMontoTotal,
     cuotasPactadas,
@@ -149,7 +124,11 @@ export const usePrestamos = () => {
     comentario,
     setComentario,
     handleGuardarPrestamo,
-    refreshData: fetchDatosIniciales,
     error,
+    trabajadoresFiltrados,
+    mostrarSugerencias,
+    setMostrarSugerencias,
+    seleccionarEmpleado,
+    saldoDeudaEmpleado,
   }
 }

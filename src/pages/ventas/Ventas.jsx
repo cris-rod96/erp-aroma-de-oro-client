@@ -41,11 +41,18 @@ const Ventas = () => {
     formData,
     setFormData,
     buscarComprador,
+    setCompradorInfo,
     error,
     handleFinalizarVenta,
     calculos,
     isFormDisabled,
     registrarNuevoComprador,
+    compradoresFiltrados,
+    mostrarSugerencias,
+    setMostrarSugerencias,
+    seleccionarComprador,
+    saldoDeudaComprador,
+    compradores,
   } = useVentas()
 
   // --- ESTADOS LOCALES PARA FILTROS DEL HISTORIAL ---
@@ -72,31 +79,29 @@ const Ventas = () => {
     exportarVentaPDF(venta, empresa)
   }
 
-  const handleBuscarCliente = async () => {
-    if (!cedulaBusqueda) return
-    if (!buscarComprador()) {
-      setNuevoComprador({ ...nuevoComprador, numeroIdentificacion: cedulaBusqueda })
-      setMostrarFormComprador(true)
-    } else setMostrarFormComprador(false)
-  }
-
   // --- LÓGICA DE FILTRADO REAL (MEMOIZADA) ---
   const ventasFiltradas = useMemo(() => {
     return ventas.filter((v) => {
-      const matchCliente = v.Persona?.nombreCompleto
-        ?.toLowerCase()
-        .includes(filtrosHistorial.clienteNombre.toLowerCase())
+      // 1. Filtro por Cliente (Nombre o Cédula/RUC)
+      const nombreCliente = v.Persona?.nombreCompleto?.toLowerCase() || ''
+      const idCliente = v.Persona?.numeroIdentificacion?.toLowerCase() || ''
+      const busqueda = filtrosHistorial.clienteNombre.toLowerCase()
+      const matchCliente = nombreCliente.includes(busqueda) || idCliente.includes(busqueda)
 
+      // 2. Filtro por Producto
       const matchProducto = filtrosHistorial.productoId
         ? v.ProductoId?.toString() === filtrosHistorial.productoId.toString()
         : true
 
-      const fechaVenta = new Date(v.createdAt).setHours(0, 0, 0, 0)
+      // 3. Filtro por Fechas (Ajustado para evitar desfases de 1 día)
+      const fechaVenta = new Date(v.createdAt)
+      fechaVenta.setHours(0, 0, 0, 0)
+
       const desde = filtrosHistorial.fechaDesde
-        ? new Date(filtrosHistorial.fechaDesde).setHours(0, 0, 0, 0)
+        ? new Date(filtrosHistorial.fechaDesde + 'T00:00:00')
         : null
       const hasta = filtrosHistorial.fechaHasta
-        ? new Date(filtrosHistorial.fechaHasta).setHours(0, 0, 0, 0)
+        ? new Date(filtrosHistorial.fechaHasta + 'T23:59:59')
         : null
 
       const matchFecha = (!desde || fechaVenta >= desde) && (!hasta || fechaVenta <= hasta)
@@ -175,38 +180,108 @@ const Ventas = () => {
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="md:col-span-3 flex border border-gray-800">
-                <select
-                  value={tipoBusqueda}
-                  onChange={(e) => setTipoBusqueda(e.target.value)}
-                  className="bg-gray-100 border-r border-gray-800 px-3 text-[11px] font-black outline-none cursor-pointer"
-                >
-                  <option value="Cédula">CÉDULA</option>
-                  <option value="RUC">RUC</option>
-                </select>
-                <input
-                  disabled={isFormDisabled}
-                  type="text"
-                  className="w-full p-2 text-md font-bold outline-none uppercase"
-                  value={cedulaBusqueda}
-                  onChange={(e) => setCedulaBusqueda(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleBuscarCliente()}
-                  placeholder={`INGRESAR NÚMERO DE ${tipoBusqueda.toUpperCase()}...`}
-                />
-                <button
-                  onClick={handleBuscarCliente}
-                  className="px-6 bg-gray-800 text-white hover:bg-black transition-colors"
-                >
-                  <MdSearch size={22} />
-                </button>
+              {/* BUSCADOR DINÁMICO */}
+              <div className="md:col-span-3 relative group">
+                <div className="flex border border-gray-800 h-full">
+                  <div className="bg-gray-100 border-r border-gray-800 px-4 flex items-center text-[10px] font-black">
+                    <MdSearch size={18} />
+                  </div>
+                  <input
+                    disabled={isFormDisabled}
+                    type="text"
+                    className="w-full p-2 text-md font-bold outline-none uppercase"
+                    value={cedulaBusqueda}
+                    onChange={(e) => {
+                      setCedulaBusqueda(e.target.value)
+                      setMostrarSugerencias(true)
+                      // Si el usuario empieza a escribir de nuevo, borramos la selección previa de la derecha
+                      if (compradorInfo) setCompradorInfo(null)
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+
+                        // 1. Intentamos buscar si lo que escribió coincide exactamente con alguien
+                        const encontrado = compradores.find(
+                          (c) =>
+                            c.numeroIdentificacion === cedulaBusqueda.trim() ||
+                            c.nombreCompleto.toUpperCase() === cedulaBusqueda.toUpperCase()
+                        )
+
+                        if (encontrado) {
+                          seleccionarComprador(encontrado)
+                          setMostrarSugerencias(false)
+                        } else {
+                          // 2. SI NO EXISTE: Reseteamos y abrimos TU formulario de nuevo registro
+                          setCompradorInfo(null)
+                          setNuevoComprador({
+                            ...nuevoComprador,
+                            nombreCompleto: isNaN(cedulaBusqueda)
+                              ? cedulaBusqueda.toUpperCase()
+                              : '',
+                            numeroIdentificacion: !isNaN(cedulaBusqueda) ? cedulaBusqueda : '',
+                            tipoIdentificacion: tipoBusqueda, // Usa el select de afuera
+                          })
+                          setMostrarFormComprador(true)
+                          setMostrarSugerencias(false)
+                        }
+                      }
+                    }}
+                    placeholder={`INGRESAR NÚMERO O NOMBRE...`}
+                  />
+                </div>
+
+                {/* LISTA DE SUGERENCIAS FLOTANTE */}
+                {mostrarSugerencias && compradoresFiltrados.length > 0 && (
+                  <div className="absolute z-[110] w-full bg-white border-2 border-black mt-1 shadow-[8px_8px_0px_rgba(0,0,0,0.1)] max-h-60 overflow-y-auto">
+                    {compradoresFiltrados.map((c) => (
+                      <div
+                        key={c.id}
+                        onClick={() => seleccionarComprador(c)}
+                        className="p-3 border-b border-gray-100 last:border-0 hover:bg-amber-50 cursor-pointer transition-colors"
+                      >
+                        <p className="text-[11px] font-black text-gray-800 uppercase leading-none">
+                          {c.nombreCompleto}
+                        </p>
+                        <p className="text-[9px] text-gray-400 font-mono mt-1 font-bold">
+                          ID: {c.numeroIdentificacion}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* ESTADO DEL COMPRADOR Y ALERTA DE DEUDA */}
               <div
-                className={`border p-2 flex items-center justify-between transition-all ${compradorInfo ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'bg-gray-50 border-gray-200 opacity-60'}`}
+                className={`border p-2 flex flex-col justify-center relative transition-all ${
+                  compradorInfo
+                    ? saldoDeudaComprador > 0
+                      ? 'border-rose-500 bg-rose-50'
+                      : 'border-emerald-500 bg-emerald-50'
+                    : 'bg-gray-50 border-gray-200 opacity-60'
+                }`}
               >
-                <span className="text-xs font-black truncate mr-2">
-                  {compradorInfo?.nombreCompleto || 'Esperando identificación...'}
-                </span>
-                {compradorInfo && <MdFactCheck className="text-emerald-600 shrink-0" size={20} />}
+                <div
+                  className={`border p-2 flex items-center justify-between transition-all ${
+                    compradorInfo
+                      ? 'border-emerald-500 bg-emerald-50 text-emerald-800 opacity-100'
+                      : 'bg-gray-50 border-gray-200 opacity-0 pointer-events-none' // Se hace invisible si no hay info
+                  }`}
+                >
+                  <span className="text-xs font-black truncate mr-2">
+                    {compradorInfo?.nombreCompleto}
+                  </span>
+                  {compradorInfo && <MdFactCheck className="text-emerald-600 shrink-0" size={20} />}
+                </div>
+                {saldoDeudaComprador > 0 && (
+                  <div className="mt-1 flex items-center gap-1">
+                    <MdErrorOutline className="text-rose-600" size={12} />
+                    <span className="text-[9px] font-black text-rose-600 italic">
+                      DEUDA: ${saldoDeudaComprador.toFixed(2)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -214,17 +289,47 @@ const Ventas = () => {
               <div className="mb-8 border border-black bg-gray-50 p-5 animate-in fade-in slide-in-from-top-2 duration-300 rounded-none">
                 <div className="flex justify-between items-center border-b border-gray-200 pb-2 mb-4">
                   <span className="flex items-center gap-2 font-black text-sm text-blue-600 uppercase">
-                    <MdPersonAdd size={20} /> Nuevo {tipoBusqueda}
+                    <MdPersonAdd size={20} /> Nuevo{' '}
+                    {nuevoComprador.tipoIdentificacion || 'Comprador'}
                   </span>
                   <button onClick={() => setMostrarFormComprador(false)}>
                     <MdClose size={22} />
                   </button>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-black">
+
+                {/* SECCIÓN DE DATOS PRINCIPALES */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 font-black mb-4">
+                  {/* TIPO Y NÚMERO DE DOCUMENTO */}
+                  <div className="flex border border-gray-300 bg-white">
+                    <select
+                      className="bg-gray-100 border-r border-gray-300 px-2 text-[10px] font-black outline-none cursor-pointer"
+                      value={nuevoComprador.tipoIdentificacion || 'Cédula'}
+                      onChange={(e) =>
+                        setNuevoComprador({ ...nuevoComprador, tipoIdentificacion: e.target.value })
+                      }
+                    >
+                      <option value="Cédula">CÉDULA</option>
+                      <option value="RUC">RUC</option>
+                    </select>
+                    <input
+                      type="text"
+                      placeholder="NÚMERO DE DOC."
+                      className="w-full p-2.5 text-xs outline-none bg-transparent"
+                      value={nuevoComprador.numeroIdentificacion}
+                      onChange={(e) =>
+                        setNuevoComprador({
+                          ...nuevoComprador,
+                          numeroIdentificacion: e.target.value,
+                        })
+                      }
+                    />
+                  </div>
+
                   <input
                     type="text"
-                    placeholder="NOMBRE COMPLETO"
-                    className="border border-gray-300 p-2.5 text-xs outline-none focus:border-gray-500 bg-white uppercase"
+                    placeholder="NOMBRE COMPLETO / RAZÓN SOCIAL"
+                    className="border border-gray-300 p-2.5 text-xs outline-none focus:border-gray-500 bg-white uppercase md:col-span-2"
+                    value={nuevoComprador.nombreCompleto}
                     onChange={(e) =>
                       setNuevoComprador({
                         ...nuevoComprador,
@@ -232,10 +337,15 @@ const Ventas = () => {
                       })
                     }
                   />
+                </div>
+
+                {/* SECCIÓN DE CONTACTO */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-black">
                   <input
                     type="text"
                     placeholder="TELÉFONO"
                     className="border border-gray-300 p-2.5 text-xs outline-none focus:border-gray-500 bg-white"
+                    value={nuevoComprador.telefono}
                     onChange={(e) =>
                       setNuevoComprador({ ...nuevoComprador, telefono: e.target.value })
                     }
@@ -244,6 +354,7 @@ const Ventas = () => {
                     type="text"
                     placeholder="DIRECCIÓN"
                     className="border border-gray-300 p-2.5 text-xs outline-none focus:border-gray-500 bg-white uppercase"
+                    value={nuevoComprador.direccion}
                     onChange={(e) =>
                       setNuevoComprador({
                         ...nuevoComprador,
@@ -252,13 +363,14 @@ const Ventas = () => {
                     }
                   />
                 </div>
+
                 <button
                   onClick={() =>
                     registrarNuevoComprador(nuevoComprador).then(
                       (res) => res && setMostrarFormComprador(false)
                     )
                   }
-                  className="mt-4 bg-black text-white px-6 py-2 text-[10px] font-black uppercase hover:bg-gray-800 rounded-none"
+                  className="mt-4 bg-black text-white px-6 py-2 text-[10px] font-black uppercase hover:bg-gray-800 rounded-none w-full md:w-auto"
                 >
                   Registrar y Seleccionar
                 </button>
@@ -571,6 +683,44 @@ const Ventas = () => {
                 </button>
               </div>
 
+              {ventasFiltradas.length > 0 && (
+                <div className="flex flex-wrap gap-4 mb-4 bg-gray-900 text-white p-4 border-l-4 border-emerald-500">
+                  <div>
+                    <p className="text-[8px] text-gray-400 uppercase font-black tracking-tighter">
+                      Total Volumen Filtrado
+                    </p>
+                    <p className="text-sm font-mono font-black text-emerald-400">
+                      {ventasFiltradas
+                        .reduce((acc, v) => acc + parseFloat(v.cantidadNeta || 0), 0)
+                        .toFixed(2)}{' '}
+                      QQ
+                    </p>
+                  </div>
+                  <div className="border-l border-gray-700 pl-4">
+                    <p className="text-[8px] text-gray-400 uppercase font-black tracking-tighter">
+                      Monto Total Bruto
+                    </p>
+                    <p className="text-sm font-mono font-black text-white">
+                      $
+                      {ventasFiltradas
+                        .reduce((acc, v) => acc + parseFloat(v.totalFactura || 0), 0)
+                        .toFixed(2)}
+                    </p>
+                  </div>
+                  <div className="border-l border-gray-700 pl-4">
+                    <p className="text-[8px] text-rose-400 uppercase font-black tracking-tighter">
+                      Cartera Pendiente (Filtro)
+                    </p>
+                    <p className="text-sm font-mono font-black text-rose-500">
+                      $
+                      {ventasFiltradas
+                        .reduce((acc, v) => acc + parseFloat(v.montoPendiente || 0), 0)
+                        .toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="bg-gray-100 border border-gray-800 p-3 mb-5 grid grid-cols-1 md:grid-cols-4 gap-3 rounded-none">
                 <div className="flex items-center border border-gray-300 bg-white">
                   <div className="px-3 border-r border-gray-200 bg-gray-50 text-gray-500">
@@ -625,9 +775,12 @@ const Ventas = () => {
                     ))}
                   </select>
                 </div>
-                <button className="bg-gray-800 text-white text-[10px] font-black py-2.5 px-4 hover:bg-black rounded-none flex items-center justify-center gap-2 uppercase">
+                {/* <button
+                  className="bg-gray-800 text-white text-[10px] font-black py-2.5 px-4 hover:bg-black rounded-none flex items-center justify-center gap-2 uppercase"
+                  onClick={() => setCurrentPage(1)}
+                >
                   <MdFilterList /> Aplicar Filtros
-                </button>
+                </button> */}
               </div>
 
               <div className="border border-black overflow-hidden bg-white shadow-inner">

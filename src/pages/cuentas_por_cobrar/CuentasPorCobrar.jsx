@@ -69,6 +69,7 @@ const CuentasPorCobrar = () => {
           detalle: 'ANTICIPO DE COSECHA',
           color: 'text-emerald-600',
           fecha: c.Anticipo?.fechaEmision,
+          identificacion: c.Anticipo?.Persona?.numeroIdentificacion,
         }
       case 'Préstamo':
         return {
@@ -76,6 +77,7 @@ const CuentasPorCobrar = () => {
           detalle: `CUOTAS: ${c.Prestamo?.cuotasPagadas}/${c.Prestamo?.cuotasPactadas}`,
           color: 'text-blue-600',
           fecha: c.Prestamo?.fechaPrestamo,
+          identificacion: c.Prestamo?.Persona?.numeroIdentificacion,
         }
       case 'Venta':
         return {
@@ -83,6 +85,7 @@ const CuentasPorCobrar = () => {
           detalle: 'VENTA DE INSUMOS',
           color: 'text-amber-600',
           fecha: c.Ventum?.createdAt,
+          identificacion: c.Ventum?.Persona?.numeroIdentificacion,
         }
       default:
         return { sujeto: 'N/A', detalle: '', color: 'text-gray-400' }
@@ -91,12 +94,14 @@ const CuentasPorCobrar = () => {
 
   // 1. Filtrado General
   const filtered = useMemo(() => {
+    console.log(cuentas)
     const term = searchTerm.toLowerCase()
     setPaginaActual(1) // Resetear página al buscar
     return cuentas.filter(
       (c) =>
         getDetallesOrigen(c).sujeto.toLowerCase().includes(term) ||
-        c.origen.toLowerCase().includes(term)
+        c.origen.toLowerCase().includes(term) ||
+        getDetallesOrigen(c).identificacion.toLowerCase().includes(term)
     )
   }, [cuentas, searchTerm])
 
