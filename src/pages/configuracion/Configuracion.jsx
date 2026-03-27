@@ -411,9 +411,10 @@ const Configuracion = () => {
                   <button
                     onClick={actualizarEmpresa}
                     disabled={loading}
-                    className="w-full bg-gray-900 hover:bg-black text-amber-400 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl transition-all uppercase tracking-[0.2em] border-b-4 border-amber-600 active:scale-95 disabled:opacity-50"
+                    className="w-full bg-[#111827] hover:bg-black text-amber-400 py-5 rounded-[1.5rem] text-[10px] font-black shadow-2xl transition-all uppercase tracking-[0.2em] border-b-4 border-amber-600 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
                   >
-                    <MdSave size={20} /> {loading ? 'Guardando...' : 'Sincronizar Empresa'}
+                    <MdSave size={20} className={loading ? 'animate-spin' : ''} />
+                    <span>{loading ? 'Guardando...' : 'Sincronizar Empresa'}</span>
                   </button>
                 </div>
               </div>

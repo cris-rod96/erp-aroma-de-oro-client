@@ -263,7 +263,7 @@ export const useLiquidacion = () => {
         pagoEfectivo: toNum(pagos.efectivo),
         pagoCheque: toNum(pagos.cheque),
         pagoTransferencia: toNum(pagos.transferencia),
-        montoAbonado: toNum(calculos.montoAbonadoTotal + totalAnticipoAplicado),
+        montoAbonado: toNum(calculos.montoAbonadoTotal),
         montoPorPagar: toNum(calculos.saldoADeber),
       },
       detalle: {
