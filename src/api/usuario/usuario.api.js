@@ -58,6 +58,10 @@ const usuarioAPI = {
       }
     )
   },
+
+  recuperarClave: (correo) => {
+    return instance.patch(`/${model}/recuperar-clave`, { correo })
+  },
 }
 
 export default usuarioAPI

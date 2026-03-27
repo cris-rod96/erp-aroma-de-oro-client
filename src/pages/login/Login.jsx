@@ -1,21 +1,33 @@
 import { useState } from 'react'
-import { MdBadge, MdLock, MdVisibility, MdVisibilityOff, MdEmail } from 'react-icons/md'
+import {
+  MdBadge,
+  MdLock,
+  MdVisibility,
+  MdVisibilityOff,
+  MdEmail,
+  MdClose,
+  MdSend,
+} from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import authAPI from '../../api/auth/auth.api'
 import { useAuthStore } from '../../store/useAuthStore'
+import usuarioAPI from '../../api/usuario/usuario.api'
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ cedula: '', clave: '' })
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
+  // NUEVOS ESTADOS PARA EL MODAL AGRANDADO
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false)
+  const [recoveryEmail, setRecoveryEmail] = useState('')
+  const [sendingEmail, setSendingEmail] = useState(false)
+
   const navigate = useNavigate()
 
-  // Conexión con tu Store simplificado
   const loginAction = useAuthStore((state) => state.login)
 
-  // Configuración de alertas con el estilo "Aroma de Oro"
   const toastAroma = Swal.mixin({
     customClass: {
       popup: 'rounded-[2rem] border-2 border-amber-400 bg-gray-900 text-white shadow-2xl',
@@ -33,43 +45,36 @@ const Login = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target
-    // Normalizamos la cédula quitando espacios
     const cleanValue = name === 'cedula' ? value.trim() : value
     setCredentials((prev) => ({ ...prev, [name]: cleanValue }))
   }
 
-  const handleForgotPassword = async () => {
-    const { value: email } = await toastAroma.fire({
-      title: 'Recuperar Acceso',
-      text: 'Ingresa tu correo institucional para enviarte una clave temporal.',
-      input: 'email',
-      inputPlaceholder: 'usuario@aromadeoro.com',
-      showCancelButton: true,
-      confirmButtonText: 'Enviar Código',
-      cancelButtonText: 'Cancelar',
-    })
+  // LÓGICA DE ENVÍO DEL MODAL
+  const handleSendRecovery = async (e) => {
+    e.preventDefault()
+    if (!recoveryEmail) return
 
-    if (email) {
-      try {
-        setLoading(true)
-        await authAPI.recoverPassword(email)
-        toastAroma.fire({
-          icon: 'success',
-          title: 'Correo Enviado',
-          text: 'Revisa tu bandeja de entrada para restablecer tu cuenta.',
-          iconColor: '#fbbf24',
-          timer: 3000,
-          showConfirmButton: false,
-        })
-      } catch (error) {
-        toastAroma.fire({
-          icon: 'error',
-          title: 'Error de Envío',
-          text: error.response?.data?.message || 'No se pudo procesar la solicitud.',
-        })
-      } finally {
-        setLoading(false)
-      }
+    setSendingEmail(true)
+    try {
+      const resp = await usuarioAPI.recuperarClave(recoveryEmail)
+      setShowRecoveryModal(false)
+      setRecoveryEmail('')
+      toastAroma.fire({
+        icon: 'success',
+        title: 'Correo Enviado',
+        text: resp.data?.message || 'Revisa tu bandeja de entrada.',
+        iconColor: '#fbbf24',
+        timer: 3000,
+        showConfirmButton: false,
+      })
+    } catch (error) {
+      toastAroma.fire({
+        icon: 'error',
+        title: 'Error de Envío',
+        text: error.response?.data?.message || 'No se pudo procesar la solicitud.',
+      })
+    } finally {
+      setSendingEmail(false)
     }
   }
 
@@ -89,8 +94,6 @@ const Login = () => {
 
     try {
       const response = await authAPI.loginWithCredentials(credentials)
-
-      // Guardamos en el store (response.data contiene { token, usuario })
       loginAction(response.data)
 
       toastAroma
@@ -152,7 +155,6 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* INPUT CÉDULA */}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">
                 Identificación (Cédula)
@@ -173,7 +175,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* INPUT CONTRASEÑA */}
             <div className="space-y-2">
               <div className="flex justify-between items-end px-1">
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
@@ -181,7 +182,7 @@ const Login = () => {
                 </label>
                 <button
                   type="button"
-                  onClick={handleForgotPassword}
+                  onClick={() => setShowRecoveryModal(true)}
                   className="text-[9px] font-black text-amber-500/40 hover:text-amber-400 uppercase tracking-widest transition-colors italic"
                 >
                   ¿Olvidaste tu clave?
@@ -210,7 +211,6 @@ const Login = () => {
               </div>
             </div>
 
-            {/* BOTÓN SUBMIT */}
             <div className="pt-6">
               <button
                 type="submit"
@@ -229,7 +229,6 @@ const Login = () => {
             </div>
           </form>
 
-          {/* FOOTER */}
           <footer className="mt-16 flex flex-col items-center gap-4">
             <div className="h-px w-16 bg-white/10"></div>
             <p className="text-[9px] text-white/10 font-black uppercase tracking-[0.6em] text-center leading-loose">
@@ -239,6 +238,69 @@ const Login = () => {
           </footer>
         </div>
       </div>
+
+      {/* MODAL DE RECUPERACIÓN AGRANDADO Y LIMPIO */}
+      {showRecoveryModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-gray-950/80 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-14 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-2 bg-amber-400"></div>
+
+            <button
+              onClick={() => setShowRecoveryModal(false)}
+              className="absolute top-8 right-8 text-gray-400 hover:text-gray-900 transition-colors"
+            >
+              <MdClose size={28} />
+            </button>
+
+            <div className="mb-12 text-left">
+              <h3 className="text-gray-900 font-black text-4xl italic uppercase tracking-tighter">
+                Recuperar <span className="text-amber-500">Acceso</span>
+              </h3>
+              <p className="text-gray-500 text-base font-medium mt-3 leading-relaxed">
+                Ingresa tu correo electrónico. Te enviaremos una clave temporal para que puedas
+                volver a ingresar.
+              </p>
+            </div>
+
+            <form onSubmit={handleSendRecovery} className="space-y-8">
+              <div className="space-y-3 text-left">
+                <label className="text-sm font-black text-gray-400 uppercase tracking-widest ml-1">
+                  Correo Electrónico
+                </label>
+                <div className="flex items-center h-18 bg-gray-50 rounded-2xl border-2 border-gray-200 focus-within:border-amber-400 focus-within:bg-white transition-all group">
+                  <div className="px-5 text-gray-400 group-focus-within:text-amber-500 transition-colors">
+                    <MdEmail size={26} />
+                  </div>
+                  <input
+                    autoFocus
+                    type="email"
+                    placeholder="ejemplo@correo.com"
+                    autoComplete="off"
+                    value={recoveryEmail}
+                    onChange={(e) => setRecoveryEmail(e.target.value)}
+                    className="flex-1 bg-transparent outline-none text-gray-700 text-lg font-semibold placeholder:text-gray-300 pr-5"
+                    required
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={sendingEmail}
+                className="w-full py-5 bg-gray-900 hover:bg-black text-amber-400 rounded-2xl font-black uppercase text-xs tracking-widest transition-all active:scale-95 disabled:opacity-50 flex justify-center items-center gap-4 shadow-2xl shadow-gray-200"
+              >
+                {sendingEmail ? (
+                  <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    Restablecer Cuenta <MdSend size={18} />
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
