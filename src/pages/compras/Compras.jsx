@@ -5,9 +5,6 @@ import {
   MdPayments,
   MdMoneyOff,
   MdAccountBalanceWallet,
-  MdAttachMoney,
-  MdAccountBalance,
-  MdConfirmationNumber,
   MdReceipt,
   MdClose,
   MdLocationOn,
@@ -17,11 +14,10 @@ import {
 } from 'react-icons/md'
 import { ComprasHeader, ComprasTable, Container } from '../../components/index.components'
 import { useLiquidacion } from '../../hooks/useLiquidacion'
+import { useEffect } from 'react'
 
 const Compras = () => {
   const {
-    // Estados y Datos
-    liquidaciones,
     resetFiltros,
     productos,
     loading,
@@ -30,6 +26,7 @@ const Compras = () => {
     cedulaBusqueda,
     setCedulaBusqueda,
     productorInfo,
+    deudaAnterior,
     mostrarFormProductor,
     setMostrarFormProductor,
     nuevoProductor,
@@ -52,8 +49,6 @@ const Compras = () => {
     setPagos,
     setSelectedLiq,
     setShowModal,
-
-    // Valores Calculados
     pesoNeto,
     totalMerma,
     mermaCalificacion,
@@ -66,8 +61,6 @@ const Compras = () => {
     isFormDisabled,
     anticiposPendientes,
     montoAplicarAnticipo,
-
-    // Funciones
     setMontoAplicarAnticipo,
     buscarProductor,
     handleRegistrarProductor,
@@ -87,15 +80,19 @@ const Compras = () => {
     productores,
   } = useLiquidacion()
 
-  // Función para procesar registro y limpiar la vista
   const ejecutarRegistro = async () => {
     await handleRegistrarProductor()
     setMostrarFormProductor(false)
   }
 
+  useEffect(() => {
+    console.log(deudaAnterior)
+  }, [])
+
   return (
     <Container fullWidth={true}>
       <div className="w-full px-2 md:px-6 py-4 text-gray-800 bg-white font-sans relative">
+        {/* HEADER */}
         <div className="flex flex-col md:flex-row justify-between items-center border-b-2 border-gray-800 pb-4 mb-6 gap-4 font-black ">
           <div className="flex items-center gap-4">
             <div className="bg-gray-800 text-white p-2 rounded ">
@@ -124,6 +121,7 @@ const Compras = () => {
             </div>
           </div>
         </div>
+
         {error ? (
           <div className="flex flex-col items-center justify-center bg-white py-10 text-center rounded-2xl">
             <div className="bg-rose-50 p-4 rounded-3xl mb-4 border border-rose-100">
@@ -135,12 +133,10 @@ const Compras = () => {
             <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase max-w-xs mx-auto leading-relaxed">
               {error}
             </p>
-            <span className="text-[8px] bg-gray-100 text-gray-500 px-3 py-1 rounded-full mt-4 font-black uppercase italic">
-              Seguridad Aroma de Oro
-            </span>
           </div>
         ) : (
           <>
+            {/* MODAL EXPEDIENTE (REDUCIDO POR ESPACIO, MANTÉN TU LÓGICA) */}
             {showModal && selectedLiq && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
                 <div className="bg-white border-[3px] border-black w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-[15px_15px_0px_0px_rgba(0,0,0,1)]">
@@ -620,8 +616,6 @@ const Compras = () => {
             {/* BUSCADOR DE PRODUCTOR */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 uppercase font-black">
               <div className="md:col-span-2 relative">
-                {' '}
-                {/* RELATIVE es clave aquí */}
                 <div className="flex border-2 border-gray-800 group">
                   <input
                     disabled={isFormDisabled}
@@ -632,7 +626,7 @@ const Compras = () => {
                       setCedulaBusqueda(e.target.value)
                       setMostrarSugerencias(true)
                     }}
-                    onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)} // Delay para permitir el click
+                    onBlur={() => setTimeout(() => setMostrarSugerencias(false), 200)}
                     onFocus={() => setMostrarSugerencias(true)}
                     placeholder="ESCRIBA NOMBRE, CÉDULA O RUC..."
                   />
@@ -643,62 +637,53 @@ const Compras = () => {
                     <MdSearch size={24} />
                   </button>
                 </div>
-                {/* LISTA DE SUGERENCIAS */}
                 {mostrarSugerencias && productoresFiltrados.length > 0 && (
                   <div className="absolute z-50 w-full bg-white border-2 border-black mt-1 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] max-h-60 overflow-y-auto">
-                    {productoresFiltrados.map((p) => {
-                      // Definimos si el item es clicable
-                      const esActivo = p.estaActivo !== false
-
-                      return (
-                        <div
-                          key={p.id}
-                          // Solo ejecuta la función si está activo
-                          onClick={() => esActivo && seleccionarProductor(p)}
-                          className={`p-3 border-b border-gray-100 flex justify-between items-center transition-colors ${
-                            esActivo
-                              ? 'hover:bg-emerald-50 cursor-pointer'
-                              : 'bg-gray-50 opacity-60 cursor-not-allowed'
-                          }`}
-                        >
-                          <div className="flex flex-col">
-                            <span
-                              className={`text-sm font-black ${!esActivo && 'line-through text-gray-400'}`}
-                            >
-                              {p.nombreCompleto}
-                            </span>
-                            <span className="text-[10px] text-gray-500">
-                              {p.numeroIdentificacion}
-                            </span>
-                          </div>
-
-                          {esActivo ? (
-                            <span className="text-[10px] bg-emerald-500 text-white px-2 py-1 border border-black font-black italic">
-                              SELECCIONAR
-                            </span>
-                          ) : (
-                            <span className="text-[8px] bg-red-100 text-red-600 px-2 py-1 border border-red-200 font-black uppercase">
-                              Inactivo
-                            </span>
-                          )}
+                    {productoresFiltrados.map((p) => (
+                      <div
+                        key={p.id}
+                        onClick={() => p.estaActivo !== false && seleccionarProductor(p)}
+                        className="p-3 border-b border-gray-100 flex justify-between items-center hover:bg-emerald-50 cursor-pointer transition-colors"
+                      >
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black">{p.nombreCompleto}</span>
+                          <span className="text-[10px] text-gray-500">
+                            {p.numeroIdentificacion}
+                          </span>
                         </div>
-                      )
-                    })}
+                        <span className="text-[10px] bg-emerald-500 text-white px-2 py-1 border border-black font-black italic">
+                          SELECCIONAR
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
 
-              <div
-                className={`border-2 p-3 flex items-center justify-between transition-all ${productorInfo ? 'border-emerald-500 bg-emerald-50 text-emerald-800 ' : 'bg-gray-50 opacity-50 border-gray-300'}`}
-              >
-                <span className={productorInfo ? 'text-sm font-black' : 'text-[10px]'}>
-                  {productorInfo?.nombreCompleto || 'Esperando identificación...'}
-                </span>
-                {productorInfo && <MdReceipt className="text-emerald-600" size={20} />}
+              <div className="flex flex-col gap-1">
+                <div
+                  className={`border-2 p-3 flex items-center justify-between transition-all ${productorInfo ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'bg-gray-50 opacity-50 border-gray-300'}`}
+                >
+                  <span className={productorInfo ? 'text-sm font-black' : 'text-[10px]'}>
+                    {productorInfo?.nombreCompleto || 'Esperando identificación...'}
+                  </span>
+                  {productorInfo && <MdReceipt className="text-emerald-600" size={20} />}
+                </div>
+                {/* ALERTA DE DEUDA ARRASTRADA */}
+                {productorInfo && deudaAnterior > 0 && (
+                  <div className="bg-amber-400 border-2 border-black p-1 px-3 flex justify-between items-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+                    <span className="text-[9px] font-black tracking-tighter">
+                      DEUDA ANTERIOR DETECTADA
+                    </span>
+                    <span className="text-xs font-mono font-black">
+                      ${deudaAnterior.toFixed(2)}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* FORMULARIO DE NUEVO PRODUCTOR (INTEGRADO ARRIBA DE LA TABLA) */}
+            {/* FORMULARIO NUEVO PRODUCTOR */}
             {mostrarFormProductor && (
               <div className="mb-8 border-4 border-gray-800 bg-white p-6  animate-in fade-in slide-in-from-top-4 duration-300">
                 <div className="flex justify-between items-center border-b-2 border-gray-800 pb-3 mb-6">
@@ -793,14 +778,13 @@ const Compras = () => {
               </div>
             )}
 
-            {/* TABLA DE PRODUCTO (ANCHOS ESTÁTICOS) */}
+            {/* TABLA TÉCNICA */}
             <div className="overflow-x-auto mb-8 border-2 border-gray-800 ">
               <table className="w-full min-w-[1200px] border-collapse font-black uppercase text-sm ">
                 <thead className="bg-gray-800 text-white text-[10px] tracking-widest">
                   <tr>
                     <th className="p-3 text-left w-[220px]">Producto</th>
                     <th className="p-3 w-[120px] bg-gray-700 text-center">Cant. Bruta</th>
-                    {/* NUEVA COLUMNA */}
                     <th className="p-3 w-[130px] bg-gray-600 text-center">Unidad</th>
                     <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Calif % (H)</th>
                     <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Imp %</th>
@@ -817,29 +801,17 @@ const Compras = () => {
                       <select
                         value={productoSeleccionado}
                         onChange={(e) => setProductoSeleccionado(e.target.value)}
-                        className={`w-full p-2 outline-none text-xs font-black cursor-pointer bg-transparent ${
-                          !productoSeleccionado ? 'text-gray-400' : 'text-gray-900'
-                        }`}
+                        className="w-full p-2 outline-none text-xs font-black bg-transparent"
                       >
-                        <option value="" className="text-gray-400">
-                          -- SELECCIONAR PRODUCTO --
-                        </option>
+                        <option value="">-- SELECCIONAR PRODUCTO --</option>
                         {productos.map((p) => (
-                          <option
-                            key={p.id}
-                            value={p.id}
-                            disabled={!p.estaActivo}
-                            className={p.estaActivo ? 'text-gray-900' : 'text-gray-400 italic'}
-                          >
-                            {/* Si no está activo, añadimos el prefijo [INACTIVO] y el sufijo de aviso */}
-                            {p.estaActivo
-                              ? p.nombre.toUpperCase()
-                              : `[INACTIVO] ${p.nombre.toUpperCase()} - NO DISPONIBLE`}
+                          <option key={p.id} value={p.id}>
+                            {p.nombre.toUpperCase()}
                           </option>
                         ))}
                       </select>
                     </td>
-                    <td className="p-2 border-r border-gray-800 bg-gray-50 w-[120px]">
+                    <td className="p-2 border-r border-gray-800 bg-gray-50 text-center">
                       <input
                         type="number"
                         value={cantidad}
@@ -847,20 +819,17 @@ const Compras = () => {
                         className="w-full text-center font-mono text-xl outline-none bg-transparent"
                       />
                     </td>
-                    {/* CELDA DE UNIDAD */}
-                    <td className="p-2 border-r border-gray-800 bg-gray-100 w-[130px]">
+                    <td className="p-2 border-r border-gray-800 bg-gray-100">
                       <select
                         value={unidad}
                         onChange={(e) => setUnidad(e.target.value)}
-                        className="w-full p-2 outline-none text-xs font-black cursor-pointer bg-transparent text-center"
+                        className="w-full p-2 outline-none text-xs font-black text-center bg-transparent"
                       >
                         <option value="Quintales">Quintales</option>
                         <option value="Kilogramos">Kilogramos</option>
-                        <option value="Libras">Libras</option>
-                        <option value="Unidades">Unidades</option>
                       </select>
                     </td>
-                    <td className="p-2 border-r border-gray-800 bg-blue-50 w-[100px]">
+                    <td className="p-2 border-r border-gray-800 bg-blue-50">
                       <input
                         type="number"
                         value={calificacion}
@@ -868,7 +837,7 @@ const Compras = () => {
                         className="w-full text-center font-mono text-xl outline-none bg-transparent text-blue-800"
                       />
                     </td>
-                    <td className="p-2 border-r border-gray-800 bg-blue-50 w-[100px]">
+                    <td className="p-2 border-r border-gray-800 bg-blue-50">
                       <input
                         type="number"
                         value={impurezas}
@@ -876,10 +845,10 @@ const Compras = () => {
                         className="w-full text-center font-mono text-xl outline-none bg-transparent text-blue-800"
                       />
                     </td>
-                    <td className="p-2 border-r border-gray-800 bg-emerald-50 text-center font-mono text-xl text-emerald-800 font-black w-[120px]">
+                    <td className="p-2 border-r border-gray-800 bg-emerald-50 text-center font-mono text-xl text-emerald-800 font-black">
                       {Number(pesoNeto || 0).toFixed(2)}
                     </td>
-                    <td className="p-2 border-r border-gray-800 bg-gray-50 w-[120px]">
+                    <td className="p-2 border-r border-gray-800 bg-gray-50">
                       <input
                         type="number"
                         value={precio}
@@ -887,14 +856,13 @@ const Compras = () => {
                         className="w-full text-center font-mono text-xl outline-none bg-transparent"
                       />
                     </td>
-                    <td className="p-4 text-right font-mono text-2xl bg-gray-100 text-gray-900 font-black w-[180px]">
+                    <td className="p-4 text-right font-mono text-2xl bg-gray-100 text-gray-900 font-black">
                       ${Number(bruto || 0).toFixed(2)}
                     </td>
                   </tr>
                 </tbody>
               </table>
-
-              <div className="bg-gray-800 text-white p-2 text-[9px] flex justify-end gap-6  px-6 uppercase font-black">
+              <div className="bg-gray-800 text-white p-2 text-[9px] flex justify-end gap-6 px-6 uppercase font-black">
                 <span className="opacity-70">
                   Merma Calidad: -{Number(mermaCalificacion || 0).toFixed(2)}
                 </span>
@@ -902,14 +870,14 @@ const Compras = () => {
                   Merma Impurezas: -{Number(mermaImpurezas || 0).toFixed(2)}
                 </span>
                 <span className="text-amber-400">
-                  Total Merma Aplicada: -{Number(totalMerma || 0).toFixed(2)}
+                  Total Merma: -{Number(totalMerma || 0).toFixed(2)}
                 </span>
               </div>
             </div>
 
-            {/* SECCIÓN DE ANTICIPOS */}
+            {/* SECCIÓN ANTICIPOS */}
             {anticiposPendientes && anticiposPendientes.length > 0 && (
-              <div className="mb-8 border-2 border-gray-800 bg-gray-50  overflow-hidden font-black uppercase ">
+              <div className="mb-8 border-2 border-gray-800 bg-gray-50 overflow-hidden font-black uppercase ">
                 <div className="bg-gray-800 p-2 flex items-center gap-2 text-white">
                   <MdAccountBalanceWallet size={18} className="text-emerald-400" />
                   <span className="text-[10px] tracking-widest">Cruce de Anticipos Pendientes</span>
@@ -920,11 +888,11 @@ const Compras = () => {
                       Deuda Total del Productor
                     </span>
                     <span className="text-xl font-mono text-red-600 bg-white px-3 py-1 border-2 border-gray-300">
-                      $
+                      ${' '}
                       {anticiposPendientes
                         .reduce((acc, a) => acc + (parseFloat(a.saldoPendiente) || 0), 0)
                         .toFixed(2)}
-                    </span>
+                    </span>{' '}
                   </div>
                   <div className="flex items-center gap-4 bg-white border-2 border-gray-800 p-3">
                     <label className="text-[10px]">Cruce a Aplicar Hoy:</label>
@@ -944,52 +912,32 @@ const Compras = () => {
               </div>
             )}
 
+            {/* PAGOS Y TOTALES */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8 font-black uppercase ">
-              {/* PAGOS Y RETENCIONES */}
               <div className="space-y-4">
-                <div className="border-2 border-gray-800 p-5 bg-white relative ">
+                {/* METODOS DE PAGO */}
+                <div className="border-2 border-gray-800 p-5 bg-white relative">
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
                   <p className="text-[11px] border-b-2 border-gray-800 pb-2 mb-4 flex items-center gap-2 font-black">
-                    <MdPayments size={18} /> Detalle de Pagos (Salida de Caja)
+                    <MdPayments size={18} /> Detalle de Pagos
                   </p>
                   <div className="grid grid-cols-3 gap-3 font-mono">
-                    <div className="space-y-1 text-center">
-                      <label className="text-[9px] text-gray-400 block">
-                        <MdAttachMoney className="inline" /> Efectivo
-                      </label>
-                      <input
-                        type="number"
-                        value={pagos.efectivo}
-                        onChange={(e) => setPagos({ ...pagos, efectivo: e.target.value })}
-                        className="w-full border-2 border-gray-800 p-2 text-center text-lg outline-none focus:bg-emerald-50"
-                      />
-                    </div>
-                    <div className="space-y-1 text-center">
-                      <label className="text-[9px] text-gray-400 block">
-                        <MdConfirmationNumber className="inline" /> Cheque
-                      </label>
-                      <input
-                        type="number"
-                        value={pagos.cheque}
-                        onChange={(e) => setPagos({ ...pagos, cheque: e.target.value })}
-                        className="w-full border-2 border-gray-800 p-2 text-center text-lg outline-none focus:bg-emerald-50"
-                      />
-                    </div>
-                    <div className="space-y-1 text-center">
-                      <label className="text-[9px] text-gray-400 block">
-                        <MdAccountBalance className="inline" /> Transf.
-                      </label>
-                      <input
-                        type="number"
-                        value={pagos.transferencia}
-                        onChange={(e) => setPagos({ ...pagos, transferencia: e.target.value })}
-                        className="w-full border-2 border-gray-800 p-2 text-center text-lg outline-none focus:bg-emerald-50"
-                      />
-                    </div>
+                    {['efectivo', 'cheque', 'transferencia'].map((m) => (
+                      <div key={m} className="space-y-1 text-center">
+                        <label className="text-[9px] text-gray-400 block capitalize">{m}</label>
+                        <input
+                          type="number"
+                          value={pagos[m]}
+                          onChange={(e) => setPagos({ ...pagos, [m]: e.target.value })}
+                          className="w-full border-2 border-gray-800 p-2 text-center text-lg outline-none focus:bg-emerald-50"
+                        />
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="border-2 border-gray-800 p-5 bg-white relative ">
+                {/* RETENCIONES */}
+                <div className="border-2 border-gray-800 p-5 bg-white relative">
                   <div className="absolute top-0 left-0 w-1.5 h-full bg-red-600"></div>
                   <p className="text-[11px] border-b-2 border-gray-800 pb-2 mb-4 flex items-center gap-2 font-black">
                     <MdMoneyOff size={18} /> Retención Legal
@@ -999,8 +947,8 @@ const Compras = () => {
                       type="text"
                       value={retencionConcepto}
                       onChange={(e) => setRetencionConcepto(e.target.value.toUpperCase())}
-                      className="w-full border-2 border-gray-200 p-2 text-[10px] outline-none focus:border-gray-800 font-black"
-                      placeholder="CONCEPTO (EJ: RETENCION 1%)"
+                      className="w-full border-2 border-gray-200 p-2 text-[10px] outline-none font-black"
+                      placeholder="CONCEPTO"
                     />
                     <div className="flex gap-4 items-end font-mono">
                       <div className="w-1/3">
@@ -1015,7 +963,7 @@ const Compras = () => {
                         />
                       </div>
                       <div className="flex-1 bg-gray-50 p-2 border border-dashed border-gray-400 text-right">
-                        <span className="text-[10px] text-gray-400 block  mb-1 uppercase font-black">
+                        <span className="text-[10px] text-gray-400 block mb-1 font-black">
                           Valor Retenido:
                         </span>
                         <span className="text-2xl font-black text-red-600">
@@ -1028,20 +976,25 @@ const Compras = () => {
               </div>
 
               {/* TOTALES FINALES */}
-              <div className="border-[4px] border-gray-900 p-6 bg-gray-50  flex flex-col justify-between">
+              <div className="border-[4px] border-gray-900 p-6 bg-gray-50 flex flex-col justify-between">
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center text-sm border-b border-gray-300 pb-2">
-                    <span className="text-gray-500 font-black ">Subtotal Liquidación:</span>
-                    <span className="font-mono font-black text-lg">
-                      ${Number(bruto || 0).toFixed(2)}
-                    </span>
+                  <div className="flex justify-between items-center text-sm border-b border-gray-300 pb-2 font-black">
+                    <span className="text-gray-500">Subtotal Liquidación:</span>
+                    <span className="font-mono text-lg">${Number(bruto || 0).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm border-b border-gray-300 pb-2 text-red-600  font-black">
+                  <div className="flex justify-between items-center text-sm border-b border-gray-300 pb-2 text-red-600 font-black">
                     <span>(-) Retenciones:</span>
                     <span className="font-mono">-${Number(valorRetenido || 0).toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center text-xl font-black border-b-2 border-gray-900 pb-2 mb-4  tracking-tighter">
-                    <span>Total Neto a Pagar:</span>
+                  {/* LÍNEA DE DEUDA ANTERIOR EN RESUMEN */}
+                  {deudaAnterior > 0 && (
+                    <div className="flex justify-between items-center text-sm border-b border-gray-300 pb-2 text-amber-600 font-black">
+                      <span>(+) Deuda Anterior:</span>
+                      <span className="font-mono">${deudaAnterior.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center text-xl font-black border-b-2 border-gray-900 pb-2 mb-4 tracking-tighter">
+                    <span>Total a Pagar:</span>
                     <span className="text-3xl font-mono text-emerald-700">
                       ${Number(totalAPagar || 0).toFixed(2)}
                     </span>
@@ -1049,13 +1002,13 @@ const Compras = () => {
 
                   <div className="grid grid-cols-2 gap-4 mb-4">
                     <div className="bg-white border-2 border-gray-800 p-2 text-center">
-                      <p className="text-[8px] text-emerald-600  font-black">(-) Cruce Anticipo</p>
+                      <p className="text-[8px] text-emerald-600 font-black">(-) Cruce Anticipo</p>
                       <p className="text-xl font-mono font-black">
                         -${Number(montoAplicarAnticipo || 0).toFixed(2)}
                       </p>
                     </div>
                     <div className="bg-white border-2 border-gray-800 p-2 text-center">
-                      <p className="text-[8px] text-gray-400  font-black">(-) Abono Hoy</p>
+                      <p className="text-[8px] text-gray-400 font-black">(-) Abono Hoy</p>
                       <p className="text-xl font-mono font-black">
                         -${Number(montoAbonadoTotal || 0).toFixed(2)}
                       </p>
@@ -1082,19 +1035,19 @@ const Compras = () => {
                   ) : (
                     <MdReceipt size={30} className="text-amber-400" />
                   )}
-                  <span className="text-xl uppercase  tracking-tighter">
+                  <span className="text-xl uppercase tracking-tighter">
                     {loading ? 'Procesando...' : 'Finalizar Transacción'}
                   </span>
                 </button>
               </div>
             </div>
 
-            {/* LISTADO DE LIQUIDACIONES RECIENTES */}
+            {/* HISTORIAL */}
             <div className="mt-12 pt-8 border-t-[4px] border-gray-800">
-              <div className="flex items-center gap-2 mb-6 font-black uppercase  tracking-tighter">
+              <div className="flex items-center gap-2 mb-6 font-black uppercase tracking-tighter">
                 <div className="w-2 h-8 bg-emerald-500"></div>
                 <h3 className="text-xl underline decoration-gray-800 underline-offset-8 font-black">
-                  Historial de Movimientos Aroma de Oro
+                  Historial de Movimientos
                 </h3>
               </div>
               <ComprasHeader

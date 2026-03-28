@@ -10,7 +10,7 @@ const RootLayout = () => {
   const toggleHiddenMenu = () => setHiddenMenu(!hiddenMenu)
   return (
     <>
-      <Aside hiddenMenu={hiddenMenu} />
+      <Aside hiddenMenu={hiddenMenu} toggleHiddenMenu={toggleHiddenMenu} />
       <main className="h-screen w-full bg-[#F5F9FF]">
         <section className="flex-1 bg-[#F5F5F5] overflow-x-hidden flex flex-col">
           <header

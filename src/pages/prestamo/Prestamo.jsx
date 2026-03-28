@@ -267,13 +267,13 @@ const Prestamos = () => {
                   />
                 </div>
                 <div className="flex gap-2">
-                  {['Todos', 'PENDIENTE', 'PAGADO'].map((estado) => (
+                  {['Todos', 'Pendiente', 'Pagado'].map((estado) => (
                     <button
                       key={estado}
                       onClick={() => setFiltroEstado(estado)}
                       className={`px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${filtroEstado === estado ? 'bg-gray-900 text-amber-400 shadow-lg' : 'bg-white text-gray-400 border border-gray-100'}`}
                     >
-                      {estado}
+                      {estado.toUpperCase()}
                     </button>
                   ))}
                 </div>

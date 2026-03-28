@@ -12,6 +12,8 @@ import {
 } from '../api/index.api'
 
 export const useLiquidacion = () => {
+  const [deudaAnterior, setDeudaAnterior] = useState(0)
+  const [idCuentaPorPagarPendiente, setIdCuentaPorPagarPendiente] = useState(null) // ID para saldar
   const [liquidaciones, setLiquidaciones] = useState([])
   const [error, setError] = useState(null)
   const [productores, setProductores] = useState([])
@@ -52,6 +54,25 @@ export const useLiquidacion = () => {
   const { caja, setCaja } = useCajaStore()
   const { empresa, setEmpresa } = useEmpresaStore()
 
+  // MODIFICADO: Extrae tanto el monto como el ID de la cuenta por pagar pendiente
+  const calcularDeudaAProductor = (productor) => {
+    if (!productor?.Liquidacions) return { monto: 0, id: null }
+
+    let totalPendiente = 0
+    let cxpId = null
+
+    // Buscamos en las liquidaciones del productor si hay CxP pendientes
+    productor.Liquidacions.forEach((liq) => {
+      const pendiente = liq.CuentasPorPagars?.find((cxp) => cxp.estado === 'Pendiente')
+      if (pendiente) {
+        totalPendiente += parseFloat(pendiente.saldoPendiente)
+        cxpId = pendiente.id // Capturamos el ID de la cuenta que se va a saldar
+      }
+    })
+
+    return { monto: totalPendiente, id: cxpId }
+  }
+
   const [filtros, setFiltros] = useState({
     fecha: '',
     productorId: 'todos',
@@ -63,9 +84,7 @@ export const useLiquidacion = () => {
       const coincidirFecha = !filtros.fecha || liq.createdAt.startsWith(filtros.fecha)
       const coincidirProductor =
         filtros.productorId === 'todos' || liq.ProductorId === filtros.productorId
-
       const coinciderEstado = filtros.estado === 'todos' || liq.estado === filtros.estado
-
       return coincidirFecha && coincidirProductor && coinciderEstado
     })
   }, [liquidaciones, filtros])
@@ -115,6 +134,12 @@ export const useLiquidacion = () => {
     setCedulaBusqueda(productor.numeroIdentificacion)
     setMostrarSugerencias(false)
     setMostrarFormProductor(false)
+
+    // Obtenemos los datos de la deuda arrastrada
+    const { monto, id } = calcularDeudaAProductor(productor)
+    setDeudaAnterior(monto)
+    setIdCuentaPorPagarPendiente(id)
+
     try {
       const respAnt = await anticipoAPI.obtenerPendientesPorPersona(productor.id, token)
       setAnticiposPendientes(respAnt.data.anticipos || [])
@@ -148,6 +173,7 @@ export const useLiquidacion = () => {
     const pUnit = parseFloat(precio) || 0
     const rPorc = parseFloat(retencionPorcentaje) || 0
     const antic = parseFloat(montoAplicarAnticipo) || 0
+    const deudaVieja = parseFloat(deudaAnterior) || 0
 
     const mermaH = q * (h / 100)
     const mermaI = q * (i / 100)
@@ -156,7 +182,9 @@ export const useLiquidacion = () => {
 
     const valBruto = pNeto * pUnit
     const valRetenido = valBruto * (rPorc / 100)
-    const netoAPagar = valBruto - valRetenido
+
+    const netoHoy = valBruto - valRetenido
+    const totalaPagarConDeuda = netoHoy + deudaVieja
 
     const montoPagosHoy = Object.values(pagos).reduce(
       (a, b) => parseFloat(a || 0) + parseFloat(b || 0),
@@ -164,7 +192,7 @@ export const useLiquidacion = () => {
     )
 
     const abonadoTotal = montoPagosHoy + antic
-    const saldo = netoAPagar - abonadoTotal
+    const saldo = totalaPagarConDeuda - abonadoTotal
 
     return {
       pesoBruto: q,
@@ -174,11 +202,22 @@ export const useLiquidacion = () => {
       pesoNeto: pNeto,
       bruto: valBruto,
       valorRetenido: valRetenido,
-      totalAPagar: netoAPagar,
+      netoHoy: netoHoy,
+      totalAPagar: totalaPagarConDeuda,
       montoAbonadoTotal: montoPagosHoy,
       saldoADeber: saldo,
+      deudaAnterior: deudaVieja,
     }
-  }, [cantidad, calificacion, impurezas, precio, retencionPorcentaje, pagos, montoAplicarAnticipo])
+  }, [
+    cantidad,
+    calificacion,
+    impurezas,
+    precio,
+    retencionPorcentaje,
+    pagos,
+    montoAplicarAnticipo,
+    deudaAnterior,
+  ])
 
   const handleRegistrarProductor = async () => {
     if (!nuevoProductor.nombreCompleto) {
@@ -200,53 +239,33 @@ export const useLiquidacion = () => {
   }
 
   const handleGuardar = async () => {
-    // 1. Validaciones de presencia
-    if (!caja || caja.estado !== 'Abierta') {
-      return Swal.fire('Caja Cerrada', 'Debe abrir la caja para realizar transacciones', 'warning')
-    }
-    if (!productorInfo) {
-      return Swal.fire('Falta Productor', 'Identifique a un productor antes de continuar', 'error')
-    }
-    if (calculos.pesoNeto <= 0) {
-      return Swal.fire('Peso Inválido', 'El peso neto debe ser mayor a 0 para liquidar', 'warning')
-    }
-    if (!productoSeleccionado) {
-      return Swal.fire('Falta Producto', 'Seleccione un producto de la lista', 'warning')
-    }
+    if (!caja || caja.estado !== 'Abierta')
+      return Swal.fire('Caja Cerrada', 'Debe abrir la caja', 'warning')
 
-    // 2. VALIDACIÓN DE PAGOS (LA CLAVE)
+    if (parseFloat(caja.saldoActual) < parseFloat(pagos.efectivo))
+      return Swal.fire(
+        'Fondos insuficientes',
+        'No hay fondos suficientes para ejecutar esta liquidación',
+        'warning'
+      )
+    if (!productorInfo) return Swal.fire('Falta Productor', 'Identifique a un productor', 'error')
+    if (calculos.pesoNeto <= 0)
+      return Swal.fire('Peso Inválido', 'El peso neto debe ser mayor a 0', 'warning')
+    if (!productoSeleccionado)
+      return Swal.fire('Falta Producto', 'Seleccione un producto', 'warning')
+
     const totalPagosDirectos = Object.values(pagos).reduce(
       (a, b) => parseFloat(a || 0) + parseFloat(b || 0),
       0
     )
     const totalAnticipoAplicado = parseFloat(montoAplicarAnticipo) || 0
 
-    // Si la suma de dinero real + anticipos es CERO, detenemos la liquidación.
-    // Esto obliga a que el usuario escriba ALGO en efectivo, cheque o transferencia.
     if (totalPagosDirectos === 0 && totalAnticipoAplicado === 0) {
       return Swal.fire({
         title: 'Pago Requerido',
-        text: 'No ha ingresado ningún monto de pago (Efectivo, Cheque o Transferencia) ni aplicado anticipos. No se puede liquidar en blanco.',
+        text: 'No se puede liquidar sin montos de pago.',
         icon: 'error',
-        confirmButtonColor: '#000',
       })
-    }
-
-    // 3. Bloqueos de coherencia
-    if (calculos.totalAPagar <= 0) {
-      return Swal.fire(
-        'Valor en Cero',
-        'El valor neto a pagar es 0. Revise cantidades y precios.',
-        'warning'
-      )
-    }
-
-    if (totalAnticipoAplicado > calculos.totalAPagar + 0.01) {
-      return Swal.fire(
-        'Error en Anticipo',
-        'El anticipo no puede ser mayor al total neto.',
-        'error'
-      )
     }
 
     const toNum = (val) => Number(Number(val || 0).toFixed(2))
@@ -265,6 +284,10 @@ export const useLiquidacion = () => {
         pagoTransferencia: toNum(pagos.transferencia),
         montoAbonado: toNum(calculos.montoAbonadoTotal),
         montoPorPagar: toNum(calculos.saldoADeber),
+
+        // ENVIAMOS EL ID DE LA CUENTA QUE ESTAMOS PAGANDO HOY
+        cuentaPorPagarSaldadaId: idCuentaPorPagarPendiente,
+        montoDeudaAnterior: toNum(deudaAnterior),
       },
       detalle: {
         ProductoId: productoSeleccionado,
@@ -298,10 +321,9 @@ export const useLiquidacion = () => {
       setLoading(true)
       const resp = await liquidacionAPI.crearLiquidacion(token, data)
       await Swal.fire({
-        title: '¡Liquidación Guardada!',
-        text: 'El registro se ha procesado con éxito',
+        title: '¡Éxito!',
+        text: 'Liquidación guardada correctamente',
         icon: 'success',
-        confirmButtonColor: '#10b981',
       })
       resetForm()
       fetchInicial()
@@ -328,6 +350,8 @@ export const useLiquidacion = () => {
     setMostrarFormProductor(false)
     setRetencionPorcentaje(0)
     setRetencionConcepto('')
+    setDeudaAnterior(0)
+    setIdCuentaPorPagarPendiente(null) // Reset del ID
   }
 
   return {
@@ -383,5 +407,6 @@ export const useLiquidacion = () => {
     setFiltros,
     liquidacionesFiltradas,
     isFormDisabled: !empresa?.id || !caja || caja.estado !== 'Abierta',
+    deudaAnterior,
   }
 }

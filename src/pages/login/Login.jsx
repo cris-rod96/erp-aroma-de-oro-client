@@ -1,18 +1,10 @@
 import { useState } from 'react'
-import {
-  MdBadge,
-  MdLock,
-  MdVisibility,
-  MdVisibilityOff,
-  MdEmail,
-  MdClose,
-  MdSend,
-} from 'react-icons/md'
+import { MdBadge, MdLock, MdVisibility, MdVisibilityOff } from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
 import Swal from 'sweetalert2'
 import authAPI from '../../api/auth/auth.api'
 import { useAuthStore } from '../../store/useAuthStore'
-import usuarioAPI from '../../api/usuario/usuario.api'
+// import usuarioAPI from '../../api/usuario/usuario.api'
 
 const Login = () => {
   const [credentials, setCredentials] = useState({ cedula: '', clave: '' })
@@ -20,9 +12,9 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false)
 
   // NUEVOS ESTADOS PARA EL MODAL AGRANDADO
-  const [showRecoveryModal, setShowRecoveryModal] = useState(false)
-  const [recoveryEmail, setRecoveryEmail] = useState('')
-  const [sendingEmail, setSendingEmail] = useState(false)
+  // const [showRecoveryModal, setShowRecoveryModal] = useState(false)
+  // const [recoveryEmail, setRecoveryEmail] = useState('')
+  // const [sendingEmail, setSendingEmail] = useState(false)
 
   const navigate = useNavigate()
 
@@ -50,33 +42,33 @@ const Login = () => {
   }
 
   // LÓGICA DE ENVÍO DEL MODAL
-  const handleSendRecovery = async (e) => {
-    e.preventDefault()
-    if (!recoveryEmail) return
+  // const handleSendRecovery = async (e) => {
+  //   e.preventDefault()
+  //   if (!recoveryEmail) return
 
-    setSendingEmail(true)
-    try {
-      const resp = await usuarioAPI.recuperarClave(recoveryEmail)
-      setShowRecoveryModal(false)
-      setRecoveryEmail('')
-      toastAroma.fire({
-        icon: 'success',
-        title: 'Correo Enviado',
-        text: resp.data?.message || 'Revisa tu bandeja de entrada.',
-        iconColor: '#fbbf24',
-        timer: 3000,
-        showConfirmButton: false,
-      })
-    } catch (error) {
-      toastAroma.fire({
-        icon: 'error',
-        title: 'Error de Envío',
-        text: error.response?.data?.message || 'No se pudo procesar la solicitud.',
-      })
-    } finally {
-      setSendingEmail(false)
-    }
-  }
+  //   setSendingEmail(true)
+  //   try {
+  //     const resp = await usuarioAPI.recuperarClave(recoveryEmail)
+  //     setShowRecoveryModal(false)
+  //     setRecoveryEmail('')
+  //     toastAroma.fire({
+  //       icon: 'success',
+  //       title: 'Correo Enviado',
+  //       text: resp.data?.message || 'Revisa tu bandeja de entrada.',
+  //       iconColor: '#fbbf24',
+  //       timer: 3000,
+  //       showConfirmButton: false,
+  //     })
+  //   } catch (error) {
+  //     toastAroma.fire({
+  //       icon: 'error',
+  //       title: 'Error de Envío',
+  //       text: error.response?.data?.message || 'No se pudo procesar la solicitud.',
+  //     })
+  //   } finally {
+  //     setSendingEmail(false)
+  //   }
+  // }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -136,7 +128,7 @@ const Login = () => {
               Aroma <br /> de <span className="text-amber-400">Oro</span>
             </h2>
             <p className="text-gray-400 font-bold text-xs uppercase tracking-[0.6em] mt-6">
-              ERP de Gestión Agrícola | v2.0
+              ERP de Gestión Agrícola | v1.0
             </p>
           </div>
         </div>
@@ -150,7 +142,7 @@ const Login = () => {
               Login<span className="text-amber-400">.</span>
             </h1>
             <p className="text-gray-500 font-bold text-[10px] uppercase tracking-[0.4em] mt-3">
-              Administración Central de Productores
+              Sistema de Gestion
             </p>
           </div>
 
@@ -180,13 +172,13 @@ const Login = () => {
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
                   Clave de Seguridad
                 </label>
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setShowRecoveryModal(true)}
                   className="text-[9px] font-black text-amber-500/40 hover:text-amber-400 uppercase tracking-widest transition-colors italic"
                 >
                   ¿Olvidaste tu clave?
-                </button>
+                </button> */}
               </div>
               <div className="flex items-center h-16 bg-white/5 rounded-[1.25rem] border border-white/10 focus-within:border-amber-400/50 focus-within:bg-white/10 transition-all group">
                 <div className="px-5 text-gray-500 group-focus-within:text-amber-400 transition-colors">
@@ -231,8 +223,8 @@ const Login = () => {
 
           <footer className="mt-16 flex flex-col items-center gap-4">
             <div className="h-px w-16 bg-white/10"></div>
-            <p className="text-[9px] text-white/10 font-black uppercase tracking-[0.6em] text-center leading-loose">
-              © 2026 Exportadora Aroma de Oro <br />
+            <p className="text-[9px] text-white/30 font-black uppercase tracking-[0.6em] text-center leading-loose">
+              © 2026 Aroma de Oro <br />
               El Empalme - Ecuador
             </p>
           </footer>
@@ -240,7 +232,7 @@ const Login = () => {
       </div>
 
       {/* MODAL DE RECUPERACIÓN AGRANDADO Y LIMPIO */}
-      {showRecoveryModal && (
+      {/* {showRecoveryModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-gray-950/80 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-14 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-2 bg-amber-400"></div>
@@ -300,7 +292,7 @@ const Login = () => {
             </form>
           </div>
         </div>
-      )}
+      )} */}
     </main>
   )
 }
