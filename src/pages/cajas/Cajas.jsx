@@ -155,7 +155,14 @@ const Cajas = () => {
   const saldoInicial = parseFloat(cajaActiva?.montoApertura || 0)
 
   const saldoEsperado = saldoInicial + totalIngresosEfectivo - totalEgresosEfectivo
-  const diferenciaActual = montoFisicoCierre ? parseFloat(montoFisicoCierre) - saldoEsperado : 0
+  const diferenciaActual = useMemo(() => {
+    if (!montoFisicoCierre) return 0
+
+    const diff = parseFloat(montoFisicoCierre) - saldoEsperado
+
+    // Forzamos el redondeo a 2 decimales para eliminar residuos infinitesimales
+    return Number(diff.toFixed(2))
+  }, [montoFisicoCierre, saldoEsperado])
 
   const handleVentaRapidaSubmit = async (e) => {
     e.preventDefault()
