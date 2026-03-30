@@ -804,9 +804,7 @@ const Compras = () => {
                     <th className="p-3 w-[120px] bg-emerald-700 text-emerald-100 font-black">
                       Cant. Neta
                     </th>
-                    <th className="p-3 w-[120px]">
-                      Precio {UNIDADES_INICIALES[unidadProductoSeleccionado]}
-                    </th>
+                    <th className="p-3 w-[120px]">Precio</th>
                     <th className="p-4 text-right w-[180px] bg-gray-900">Subtotal</th>
                   </tr>
                 </thead>
