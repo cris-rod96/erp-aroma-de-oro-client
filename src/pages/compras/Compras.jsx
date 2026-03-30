@@ -78,6 +78,8 @@ const Compras = () => {
     setFiltros,
     liquidacionesFiltradas,
     productores,
+    unidadPago,
+    setUnidadPago,
   } = useLiquidacion()
 
   const ejecutarRegistro = async () => {
@@ -786,6 +788,8 @@ const Compras = () => {
                     <th className="p-3 text-left w-[220px]">Producto</th>
                     <th className="p-3 w-[120px] bg-gray-700 text-center">Cant. Bruta</th>
                     <th className="p-3 w-[130px] bg-gray-600 text-center">Unidad</th>
+                    <th className="p-3 w-[130px] bg-gray-600 text-center">Unidad Pago</th>
+
                     <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Calif % (H)</th>
                     <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Imp %</th>
                     <th className="p-3 w-[120px] bg-emerald-700 text-emerald-100 font-black">
@@ -827,6 +831,18 @@ const Compras = () => {
                       >
                         <option value="Quintales">Quintales</option>
                         <option value="Kilogramos">Kilogramos</option>
+                        <option value="Libras">Libras</option>
+                      </select>
+                    </td>
+                    <td className="p-2 border-r border-gray-800 bg-gray-100">
+                      <select
+                        value={unidadPago}
+                        onChange={(e) => setUnidadPago(e.target.value)}
+                        className="w-full p-2 outline-none text-xs font-black text-center bg-transparent"
+                      >
+                        <option value="Quintales">Quintales</option>
+                        <option value="Kilogramos">Kilogramos</option>
+                        <option value="Libras">Libras</option>
                       </select>
                     </td>
                     <td className="p-2 border-r border-gray-800 bg-blue-50">
@@ -846,7 +862,7 @@ const Compras = () => {
                       />
                     </td>
                     <td className="p-2 border-r border-gray-800 bg-emerald-50 text-center font-mono text-xl text-emerald-800 font-black">
-                      {Number(pesoNeto || 0).toFixed(2)}
+                      {Number(pesoNeto || 0)}
                     </td>
                     <td className="p-2 border-r border-gray-800 bg-gray-50">
                       <input

@@ -45,6 +45,7 @@ export const useLiquidacion = () => {
   const [cantidad, setCantidad] = useState(0)
   const [precio, setPrecio] = useState(0)
   const [unidad, setUnidad] = useState('Quintales')
+  const [unidadPago, setUnidadPago] = useState('Quintales')
 
   const [retencionConcepto, setRetencionConcepto] = useState('')
   const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
@@ -166,24 +167,95 @@ export const useLiquidacion = () => {
     }
   }
 
+  const CONVERSIONES = {
+    Libras: 1,
+    Kilogramos: 2.2, // 1 kg = 2.20462 lbs
+    Quintales: 100, // 1 qq = 100 lbs
+  }
+
+  // const calculos = useMemo(() => {
+  //   const q = parseFloat(cantidad) || 0
+  //   const h = parseFloat(calificacion) || 0
+  //   const i = parseFloat(impurezas) || 0
+  //   const pUnit = parseFloat(precio) || 0
+  //   const rPorc = parseFloat(retencionPorcentaje) || 0
+  //   const antic = parseFloat(montoAplicarAnticipo) || 0
+  //   const deudaVieja = parseFloat(deudaAnterior) || 0
+
+  //   const mermaH = q * (h / 100)
+  //   const mermaI = q * (i / 100)
+  //   const totalM = mermaH + mermaI
+  //   const pNeto = q - totalM
+
+  //   const valBruto = pNeto * pUnit
+  //   const valRetenido = valBruto * (rPorc / 100)
+
+  //   const netoHoy = valBruto - valRetenido
+  //   const totalaPagarConDeuda = netoHoy + deudaVieja
+
+  //   const montoPagosHoy = Object.values(pagos).reduce(
+  //     (a, b) => parseFloat(a || 0) + parseFloat(b || 0),
+  //     0
+  //   )
+
+  //   const abonadoTotal = montoPagosHoy + antic
+  //   const saldo = totalaPagarConDeuda - abonadoTotal
+
+  //   return {
+  //     pesoBruto: q,
+  //     mermaCalificacion: mermaH,
+  //     mermaImpurezas: mermaI,
+  //     totalMerma: totalM,
+  //     pesoNeto: pNeto,
+  //     bruto: valBruto,
+  //     valorRetenido: valRetenido,
+  //     netoHoy: netoHoy,
+  //     totalAPagar: totalaPagarConDeuda,
+  //     montoAbonadoTotal: montoPagosHoy,
+  //     saldoADeber: saldo,
+  //     deudaAnterior: deudaVieja,
+  //   }
+  // }, [
+  //   cantidad,
+  //   calificacion,
+  //   impurezas,
+  //   precio,
+  //   retencionPorcentaje,
+  //   pagos,
+  //   montoAplicarAnticipo,
+  //   deudaAnterior,
+  // ])
   const calculos = useMemo(() => {
-    const q = parseFloat(cantidad) || 0
+    // 1. Entradas base
+    const qOriginal = parseFloat(cantidad) || 0
+    const pUnit = parseFloat(precio) || 0
     const h = parseFloat(calificacion) || 0
     const i = parseFloat(impurezas) || 0
-    const pUnit = parseFloat(precio) || 0
+
+    // 2. LÓGICA DE CONVERSIÓN
+    // Convertimos todo a una unidad base (Libras) y luego a la unidad de pago
+    const factorEntrada = CONVERSIONES[unidad] || 1
+    const factorPago = CONVERSIONES[unidadPago] || 1
+
+    // Fórmula: (Cantidad * Factor de la unidad que recibo) / Factor de la unidad que pago
+    // Ejemplo: (368 lbs * 1) / 2.20462 = 166.92 kg
+    const qConvertida = (qOriginal * factorEntrada) / factorPago
+
+    // 3. Cálculos de Merma (sobre el peso ya convertido)
+    const mermaH = qConvertida * (h / 100)
+    const mermaI = qConvertida * (i / 100)
+    const totalM = mermaH + mermaI
+    const pNeto = Math.floor(qConvertida - totalM)
+
+    // 4. Cálculos Monetarios
+    const valBruto = pNeto * pUnit
     const rPorc = parseFloat(retencionPorcentaje) || 0
+    const valRetenido = valBruto * (rPorc / 100)
+    const netoHoy = valBruto - valRetenido
+
+    // 5. Deudas y Pagos
     const antic = parseFloat(montoAplicarAnticipo) || 0
     const deudaVieja = parseFloat(deudaAnterior) || 0
-
-    const mermaH = q * (h / 100)
-    const mermaI = q * (i / 100)
-    const totalM = mermaH + mermaI
-    const pNeto = q - totalM
-
-    const valBruto = pNeto * pUnit
-    const valRetenido = valBruto * (rPorc / 100)
-
-    const netoHoy = valBruto - valRetenido
     const totalaPagarConDeuda = netoHoy + deudaVieja
 
     const montoPagosHoy = Object.values(pagos).reduce(
@@ -195,7 +267,8 @@ export const useLiquidacion = () => {
     const saldo = totalaPagarConDeuda - abonadoTotal
 
     return {
-      pesoBruto: q,
+      pesoBrutoOriginal: qOriginal, // El que digitaste (ej: 368)
+      pesoBruto: qConvertida, // El convertido para el pago (ej: 166.92)
       mermaCalificacion: mermaH,
       mermaImpurezas: mermaI,
       totalMerma: totalM,
@@ -210,6 +283,8 @@ export const useLiquidacion = () => {
     }
   }, [
     cantidad,
+    unidad, // Importante añadir estos a las dependencias
+    unidadPago, // Importante añadir estos a las dependencias
     calificacion,
     impurezas,
     precio,
@@ -294,7 +369,7 @@ export const useLiquidacion = () => {
         descripcionProducto:
           productos.find((p) => p.id === productoSeleccionado)?.nombre || 'PRODUCTO',
         calificacion: calificacion,
-        unidad: unidad || 'Quintales',
+        unidad: unidadPago || 'Quintales',
         cantidad: toNum(calculos.pesoBruto),
         cantidadNeta: toNum(calculos.pesoNeto),
         precio: toNum(precio),
@@ -408,5 +483,7 @@ export const useLiquidacion = () => {
     liquidacionesFiltradas,
     isFormDisabled: !empresa?.id || !caja || caja.estado !== 'Abierta',
     deudaAnterior,
+    unidadPago,
+    setUnidadPago,
   }
 }
