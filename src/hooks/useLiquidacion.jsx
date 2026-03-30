@@ -41,6 +41,7 @@ export const useLiquidacion = () => {
 
   const [productoSeleccionado, setProductoSeleccionado] = useState('')
   const [unidadProductoSeleccionado, setUnidadProductoSeleccionado] = useState({})
+  const [nombreProductoSeleccionado, setNombreProductoSeleccionado] = useState('')
 
   const [calificacion, setCalificacion] = useState(0)
   const [impurezas, setImpurezas] = useState(0)
@@ -245,11 +246,8 @@ export const useLiquidacion = () => {
     const factorEntrada = CONVERSIONES[unidad] || 1
     const factorPago = CONVERSIONES[unidadPago] || 1
 
-    console.log(factorEntrada, factorPago)
-
     // Convertimos la cantidad recibida a la unidad en la que se va a pagar
     const qConvertida = (qOriginal * factorEntrada) / factorPago
-    console.log(qOriginal, factorEntrada, factorPago)
 
     // 3. Cálculos de Merma
     const mermaH = qConvertida * (h / 100)
@@ -261,10 +259,12 @@ export const useLiquidacion = () => {
     // Usamos Math.floor para no "regalar" decimales de peso al productor.
     // Si el resultado es muy pequeño (menor a 1), permitimos decimales para que no sea 0.
     const pNetoCalculado = qConvertida - totalM
-    const pNeto =
-      pNetoCalculado > 1 ? Math.floor(pNetoCalculado) : Math.round(pNetoCalculado * 100) / 100
 
-    console.log(unidadProductoSeleccionado)
+    const pNeto = nombreProductoSeleccionado.toLowerCase().includes('baba')
+      ? pNetoCalculado
+      : pNetoCalculado > 1
+        ? Math.floor(pNetoCalculado)
+        : Math.floor(pNetoCalculado * 100) / 100
 
     // 4. CÁLCULOS MONETARIOS (Regla del Quintal)
     // El precio (pUnit) se asume por Quintal, por eso dividimos para 100
@@ -318,6 +318,7 @@ export const useLiquidacion = () => {
     montoAplicarAnticipo,
     deudaAnterior,
     unidadProductoSeleccionado,
+    nombreProductoSeleccionado,
   ])
 
   const handleRegistrarProductor = async () => {
@@ -513,5 +514,6 @@ export const useLiquidacion = () => {
     setUnidadPago,
     setUnidadProductoSeleccionado,
     unidadProductoSeleccionado,
+    setNombreProductoSeleccionado,
   }
 }

@@ -82,6 +82,7 @@ const Compras = () => {
     setUnidadPago,
     setUnidadProductoSeleccionado,
     unidadProductoSeleccionado,
+    setNombreProductoSeleccionado,
   } = useLiquidacion()
 
   const ejecutarRegistro = async () => {
@@ -826,6 +827,7 @@ const Compras = () => {
                           if (productoReal) {
                             // Ahora sí puedes acceder a las propiedades del objeto
                             setUnidadProductoSeleccionado(productoReal.unidadMedida)
+                            setNombreProductoSeleccionado(productoReal.nombre)
 
                             // // TIP EXTRA: Si el producto es Cacao y se paga en Quintales,
                             // // puedes setear la unidad de pago de una vez:
