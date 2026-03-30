@@ -245,8 +245,11 @@ export const useLiquidacion = () => {
     const factorEntrada = CONVERSIONES[unidad] || 1
     const factorPago = CONVERSIONES[unidadPago] || 1
 
+    console.log(factorEntrada, factorPago)
+
     // Convertimos la cantidad recibida a la unidad en la que se va a pagar
     const qConvertida = (qOriginal * factorEntrada) / factorPago
+    console.log(qOriginal, factorEntrada, factorPago)
 
     // 3. Cálculos de Merma
     const mermaH = qConvertida * (h / 100)
@@ -266,7 +269,7 @@ export const useLiquidacion = () => {
     // 4. CÁLCULOS MONETARIOS (Regla del Quintal)
     // El precio (pUnit) se asume por Quintal, por eso dividimos para 100
     const brutoCalculado =
-      unidadProductoSeleccionado === 'Quintales' ? (pNeto * pUnit) / 100 : pNeto * pUnit
+      unidadProductoSeleccionado === 'Quintales' ? pNeto * pUnit : pNeto * pUnit
 
     // Truncamos el valor monetario a 2 decimales para evitar el redondeo de .toFixed(2)
     const valBruto = Math.trunc(brutoCalculado * 100) / 100
