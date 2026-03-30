@@ -80,11 +80,19 @@ const Compras = () => {
     productores,
     unidadPago,
     setUnidadPago,
+    setUnidadProductoSeleccionado,
+    unidadProductoSeleccionado,
   } = useLiquidacion()
 
   const ejecutarRegistro = async () => {
     await handleRegistrarProductor()
     setMostrarFormProductor(false)
+  }
+
+  const UNIDADES_INICIALES = {
+    Kilogramos: 'KG',
+    Libras: 'LB',
+    Quintales: 'QQ',
   }
 
   useEffect(() => {
@@ -795,7 +803,9 @@ const Compras = () => {
                     <th className="p-3 w-[120px] bg-emerald-700 text-emerald-100 font-black">
                       Cant. Neta
                     </th>
-                    <th className="p-3 w-[120px]">Precio U.</th>
+                    <th className="p-3 w-[120px]">
+                      Precio {UNIDADES_INICIALES[unidadProductoSeleccionado]}
+                    </th>
                     <th className="p-4 text-right w-[180px] bg-gray-900">Subtotal</th>
                   </tr>
                 </thead>
@@ -803,8 +813,25 @@ const Compras = () => {
                   <tr className="border-b-2 border-gray-100">
                     <td className="p-2 border-r border-gray-800 w-[220px]">
                       <select
-                        value={productoSeleccionado}
-                        onChange={(e) => setProductoSeleccionado(e.target.value)}
+                        value={productoSeleccionado} // Suponiendo que aquí guardas el ID
+                        onChange={(e) => {
+                          const idSeleccionado = e.target.value
+                          setProductoSeleccionado(idSeleccionado) // Guardas el ID
+
+                          // BUSCAMOS EL OBJETO COMPLETO EN TU LISTA DE PRODUCTOS
+                          const productoReal = productos.find(
+                            (p) => String(p.id) === String(idSeleccionado)
+                          )
+
+                          if (productoReal) {
+                            // Ahora sí puedes acceder a las propiedades del objeto
+                            setUnidadProductoSeleccionado(productoReal.unidadMedida)
+
+                            // // TIP EXTRA: Si el producto es Cacao y se paga en Quintales,
+                            // // puedes setear la unidad de pago de una vez:
+                            // setUnidadPago(productoReal.unidadMedida || 'Quintales')
+                          }
+                        }}
                         className="w-full p-2 outline-none text-xs font-black bg-transparent"
                       >
                         <option value="">-- SELECCIONAR PRODUCTO --</option>
