@@ -787,7 +787,7 @@ const Compras = () => {
                   <tr>
                     <th className="p-3 text-left w-[220px]">Producto</th>
                     <th className="p-3 w-[120px] bg-gray-700 text-center">Cant. Bruta</th>
-                    <th className="p-3 w-[130px] bg-gray-600 text-center">Unidad</th>
+                    <th className="p-3 w-[130px] bg-gray-600 text-center">Unidad Rec.</th>
                     <th className="p-3 w-[130px] bg-gray-600 text-center">Unidad Pago</th>
 
                     <th className="p-3 w-[100px] bg-blue-900 text-blue-100 ">Calif % (H)</th>
