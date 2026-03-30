@@ -261,7 +261,7 @@ export const useLiquidacion = () => {
     const pNetoCalculado = qConvertida - totalM
 
     const pNeto = nombreProductoSeleccionado.toLowerCase().includes('baba')
-      ? pNetoCalculado
+      ? pNetoCalculado.toFixed(2)
       : pNetoCalculado > 1
         ? Math.floor(pNetoCalculado)
         : Math.floor(pNetoCalculado * 100) / 100
