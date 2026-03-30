@@ -19,7 +19,7 @@ const Inventario = () => {
   const [productos, setProductos] = useState([])
   const [fetching, setFetching] = useState(true)
   const [loading, setLoading] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('') // NUEVO: Estado para búsqueda
+  const [searchTerm, setSearchTerm] = useState('')
   const token = useAuthStore((state) => state.token)
   const [verEliminados, setVerEliminados] = useState(false)
 
@@ -37,7 +37,7 @@ const Inventario = () => {
   // --- ESTADO CONVERSOR ---
   const [calc, setCalc] = useState({ valor: '', de: 'Kilogramos', a: 'Quintales', resultado: 0 })
 
-  // --- LÓGICA DE FILTRADO (NUEVA) ---
+  // --- LÓGICA DE FILTRADO ---
   const productosFiltrados = useMemo(() => {
     let lista = productos.filter((p) => p.estaActivo === !verEliminados)
     if (searchTerm) {
@@ -52,7 +52,7 @@ const Inventario = () => {
     return lista
   }, [productos, searchTerm, verEliminados])
 
-  // --- PAGINACIÓN (Actualizada para usar productosFiltrados) ---
+  // --- PAGINACIÓN ---
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8
   const totalPages = Math.ceil(productosFiltrados.length / itemsPerPage)
@@ -63,12 +63,11 @@ const Inventario = () => {
   }, [productosFiltrados, currentPage])
 
   const swalConfig = {
-    target: document.getElementById('root'), // O usa document.body si 'root' no funciona
+    target: document.getElementById('root'),
     customClass: {
       container: 'my-swal-container',
     },
     didOpen: () => {
-      // Forzamos el z-index al máximo posible
       Swal.getContainer().style.zIndex = '999999'
     },
   }
@@ -79,7 +78,7 @@ const Inventario = () => {
       title: '¿Restaurar producto?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#10b981', // Emerald 500
+      confirmButtonColor: '#10b981',
       confirmButtonText: 'Sí, restaurar',
     })
 
@@ -96,19 +95,43 @@ const Inventario = () => {
     }
   }
 
-  // Resetear página cuando se busca
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm])
 
-  // --- LÓGICA DE CONVERSIÓN ---
+  // --- LÓGICA DE CONVERSIÓN (ACTUALIZADO A 2.2) ---
   const conversionFactors = {
-    Kilogramos_Libras: 2.20462,
-    Kilogramos_Quintales: 0.0220462,
+    Kilogramos_Libras: 2.2,
+    Kilogramos_Quintales: 2.2 / 100,
     Quintales_Libras: 100,
-    Quintales_Kilogramos: 45.3592,
-    Libras_Kilogramos: 0.453592,
+    Quintales_Kilogramos: 100 / 2.2,
+    Libras_Kilogramos: 1 / 2.2,
     Libras_Quintales: 0.01,
+  }
+
+  // NUEVA FUNCIÓN PARA CAMBIO DE UNIDAD EN EL FORMULARIO
+  const handleUnidadChange = (nuevaUnidad) => {
+    const unidadAnterior = formData.unidadMedida
+    const stockActual = parseFloat(formData.stock) || 0
+
+    if (unidadAnterior === nuevaUnidad || stockActual === 0) {
+      setFormData({ ...formData, unidadMedida: nuevaUnidad })
+      return
+    }
+
+    const key = `${unidadAnterior}_${nuevaUnidad}`
+    const factor = conversionFactors[key]
+
+    if (factor) {
+      const nuevoStock = (stockActual * factor).toFixed(2)
+      setFormData({
+        ...formData,
+        unidadMedida: nuevaUnidad,
+        stock: nuevoStock,
+      })
+    } else {
+      setFormData({ ...formData, unidadMedida: nuevaUnidad })
+    }
   }
 
   const handleCalcChange = (field, value) => {
@@ -202,7 +225,6 @@ const Inventario = () => {
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-6 space-y-8">
-        {/* HEADER REDISEÑADO PARA FILTRO */}
         <InventarioHeader
           handleOpenModal={handleOpenModal}
           searchTerm={searchTerm}
@@ -211,7 +233,6 @@ const Inventario = () => {
           setVerEliminados={setVerEliminados}
         />
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* COLUMNA 1: CONVERSOR (Diseño intacto) */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-8 sticky top-10">
               <div className="flex items-center justify-between mb-8 border-b border-gray-50 pb-4">
@@ -292,7 +313,6 @@ const Inventario = () => {
             </div>
           </div>
 
-          {/* COLUMNAS 2-4: TABLA (Diseño intacto con datos filtrados) */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col min-h-[600px]">
               <div className="overflow-x-auto flex-1">
@@ -388,7 +408,7 @@ const Inventario = () => {
                                 </>
                               ) : (
                                 <button
-                                  onClick={() => handleRestore(p.id)} // Necesitas crear esta función similar a handleDelete
+                                  onClick={() => handleRestore(p.id)}
                                   className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
                                 >
                                   <FaTrashRestore size={12} /> Restaurar
@@ -403,7 +423,6 @@ const Inventario = () => {
                 </table>
               </div>
 
-              {/* PAGINACIÓN DINÁMICA */}
               <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                   Página <span className="text-gray-900">{currentPage}</span> de{' '}
@@ -431,7 +450,6 @@ const Inventario = () => {
         </div>
       </div>
 
-      {/* MODAL (Diseño intacto) */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -457,14 +475,12 @@ const Inventario = () => {
               </label>
               <select
                 value={formData.unidadMedida}
-                disabled={isEdit}
-                onChange={(e) => setFormData({ ...formData, unidadMedida: e.target.value })}
+                onChange={(e) => handleUnidadChange(e.target.value)}
                 className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 text-[10px] font-black uppercase outline-none"
               >
                 <option>Quintales</option>
                 <option>Kilogramos</option>
                 <option>Libras</option>
-                <option>Unidades</option>
               </select>
             </div>
             <div className="space-y-1.5">
