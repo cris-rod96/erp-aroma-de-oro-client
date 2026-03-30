@@ -50,6 +50,14 @@ const cajaAPI = {
       },
     })
   },
+
+  registrarVentaRapida: (token, data) => {
+    return instance.post(`/${model}/inyectar-venta`, data, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
 }
 
 export default cajaAPI

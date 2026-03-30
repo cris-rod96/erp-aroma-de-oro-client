@@ -3,6 +3,7 @@ import {
   MdAccountBalanceWallet,
   MdInfoOutline,
   MdAccountBalance,
+  MdShoppingBasket,
 } from 'react-icons/md'
 import { formatMoney } from '../../utils/fromatters'
 import { useMemo } from 'react'
@@ -13,6 +14,7 @@ const CajasHeader = ({
   setIsModalOpen,
   setIsBancoModalOpen,
   user,
+  setIsVentaModalOpen,
 }) => {
   const mensajeFechaCaja = useMemo(() => {
     if (!cajaActiva?.fechaApertura) return ''
@@ -55,6 +57,14 @@ const CajasHeader = ({
                 className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2"
               >
                 <MdAccessTime size={18} /> Cerrar Turno
+              </button>
+
+              <button
+                onClick={() => setIsVentaModalOpen(true)}
+                className="bg-emerald-600 text-white px-4 py-2 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-emerald-700 transition-all flex items-center gap-2"
+              >
+                <MdShoppingBasket size={18} />
+                Venta Rápida
               </button>
             </>
           )}

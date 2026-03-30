@@ -9,6 +9,7 @@ import {
   MdInfo,
   MdAccountBalance,
   MdSecurity,
+  MdInventory2,
 } from 'react-icons/md'
 import cajaAPI from '../../api/caja/caja.api'
 import Swal from 'sweetalert2'
@@ -17,16 +18,14 @@ import { useCajaStore } from '../../store/useCajaStore'
 import { useCajas } from '../../hooks/useCajas'
 import { formatMoney } from '../../utils/fromatters'
 import { useEffect } from 'react'
+import { productoAPI } from '../../api/index.api'
+import { useMemo } from 'react'
 
 const Cajas = () => {
   const token = useAuthStore((state) => state.token)
   const setCaja = useCajaStore((state) => state.setCaja)
   const user = useAuthStore((store) => store.user)
   const [observacionesCierre, setObservacionesCierre] = useState('')
-
-  const [isBancoModalOpen, setIsBancoModalOpen] = useState(false)
-  const [montoBanco, setMontoBanco] = useState('')
-  const [descBanco, setDescBanco] = useState('')
 
   const {
     cajaActiva,
@@ -44,7 +43,75 @@ const Cajas = () => {
     setMontoFisicoCierre,
     isClosingModal,
     error,
+    isVentaModalOpen,
+    setIsVentaModalOpen,
+    ejecutarVentaRapida,
   } = useCajas(token)
+
+  // Estado de venta rápida
+  const [productos, setProductos] = useState([])
+  const [ventaData, setVentaData] = useState({
+    ProductoId: '',
+    cantidad: '',
+    unidadVenta: 'Libras',
+    precio: '',
+    descripcion: '',
+  })
+
+  useEffect(() => {
+    if (isVentaModalOpen)
+      productoAPI.listarProductos(token).then((res) => setProductos(res.data.productos) || [])
+  }, [isVentaModalOpen, token])
+
+  const infoVenta = useMemo(() => {
+    const prod = productos.find((p) => p.id === ventaData.ProductoId)
+    const cantIngresada = parseFloat(ventaData.cantidad) || 0
+    const precio = parseFloat(ventaData.precioUnitario) || 0
+
+    const unidadBase = prod?.unidadMedida // Lo que tienes en bodega (QQ, Kg, Lb)
+    const unidadVenta = ventaData.unidadVenta // Lo que pide el cliente (Kg, Lb)
+
+    console.log(unidadBase, unidadVenta)
+
+    let cantARestar = cantIngresada
+
+    // --- ESCENARIO 1: STOCK EN QUINTALES ---
+    if (unidadBase === 'Quintales') {
+      if (unidadVenta === 'Libras') cantARestar = cantIngresada / 100
+      if (unidadVenta === 'Kilogramos') cantARestar = cantIngresada / 45.45
+    }
+
+    // --- ESCENARIO 2: STOCK EN KILOGRAMOS ---
+    else if (unidadBase === 'Kilogramos') {
+      if (unidadVenta === 'Libras') cantARestar = cantIngresada / 2.2
+      // (Si pide en QQ y base es Kg, se multiplica por 45.45 pero usualmente vendes en unidades menores)
+      if (unidadVenta === 'Quintales') cantARestar = cantIngresada * 45.45
+    }
+
+    // --- ESCENARIO 3: STOCK EN LIBRAS (Lo que te faltaba) ---
+    else if (unidadBase === 'Libras') {
+      if (unidadVenta === 'Kilogramos') cantARestar = cantIngresada * 2.2 // 1kg son 2.2lb
+      // Si por alguna razón vendieras un Quintal y tu base es Libras:
+      if (unidadVenta === 'Quintales') cantARestar = cantIngresada * 100
+    }
+
+    // --- LIMPIEZA DE DATOS ---
+    const cantFinal = Number(cantARestar.toFixed(2)) // Redondeo a 2 decimales y conversión a número
+    const stockActual = parseFloat(prod?.stock || 0)
+    const stockResultante = Number((stockActual - cantFinal).toFixed(2))
+
+    return {
+      totalDinero: (cantIngresada * precio).toFixed(2),
+      cantARestar: cantFinal,
+      stockResultante,
+      unidadBase: unidadBase || '',
+      stockSuficiente: stockActual >= cantFinal,
+    }
+  }, [ventaData, productos])
+
+  const [isBancoModalOpen, setIsBancoModalOpen] = useState(false)
+  const [montoBanco, setMontoBanco] = useState('')
+  const [descBanco, setDescBanco] = useState('')
 
   // --- LÓGICA DE AUDITORÍA BASADA EN TU ESTRUCTURA DE DATOS ---
   const movimientos = cajaActiva?.Movimientos || []
@@ -61,9 +128,6 @@ const Cajas = () => {
     })
     .reduce((acc, curr) => acc + parseFloat(curr.monto), 0)
 
-  useEffect(() => {
-    console.log('Movimientos: ', movimientos)
-  }, [movimientos])
   // 2. EGRESOS FÍSICOS (Lo que el cajero pagó en billetes)
   const totalEgresosEfectivo = movimientos
     .filter((m) => {
@@ -92,6 +156,33 @@ const Cajas = () => {
 
   const saldoEsperado = saldoInicial + totalIngresosEfectivo - totalEgresosEfectivo
   const diferenciaActual = montoFisicoCierre ? parseFloat(montoFisicoCierre) - saldoEsperado : 0
+
+  const handleVentaRapidaSubmit = async (e) => {
+    e.preventDefault()
+    if (infoVenta.cantARestar <= 0) return
+    const prod = productos.find((p) => p.id === ventaData.ProductoId)
+    const payload = {
+      monto: parseFloat(infoVenta.totalDinero),
+      descripcion: `VENTA; ${ventaData.cantidad} ${ventaData.unidadVenta} ${prod.nombre} - ${ventaData.descripcion}`,
+      CajaId: cajaActiva.id,
+      ProductoId: prod.id,
+      cantidad: infoVenta.cantARestar,
+    }
+
+    const res = await ejecutarVentaRapida(payload)
+    if (res.success) {
+      setIsVentaModalOpen(false)
+      setVentaData({
+        ProductoId: '',
+        cantidad: '',
+        unidadVenta: 'Libras',
+        precio: '',
+        descripcion: '',
+      })
+      setCaja(res.data?.caja)
+      Swal.fire('Éxito', 'Venta e Inventario actualizados', 'success')
+    }
+  }
 
   const handleAbrirCaja = async (e) => {
     e.preventDefault()
@@ -186,7 +277,7 @@ const Cajas = () => {
             <div class="flex justify-between text-xs mb-1 text-slate-500 uppercase font-black"><span>Reportado:</span> <span>${formatMoney(resumen.contado)}</span></div>
             <div class="h-px bg-slate-200 my-2"></div>
             <div class="flex justify-between text-lg font-black ${resumen.diferencia < 0 ? 'text-rose-600' : 'text-emerald-600'}">
-              <span>Diferencia:</span> 
+              <span>Diferencia:</span>
               <span>${formatMoney(resumen.diferencia)}</span>
             </div>
           </div>`,
@@ -216,6 +307,7 @@ const Cajas = () => {
           setIsClosingModal={setIsClosingModal}
           setIsModalOpen={setIsModalOpen}
           setIsBancoModalOpen={setIsBancoModalOpen}
+          setIsVentaModalOpen={setIsVentaModalOpen}
           user={user}
         />
         <div className="mt-6">
@@ -260,6 +352,129 @@ const Cajas = () => {
           )}
         </div>
       </div>
+
+      <Modal
+        isOpen={isVentaModalOpen}
+        onClose={() => setIsVentaModalOpen(false)}
+        title="Venta de Mostrador"
+      >
+        <form onSubmit={handleVentaRapidaSubmit} className="p-4 space-y-4">
+          <div className="space-y-1">
+            <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">
+              Producto
+            </label>
+            <select
+              required
+              className="w-full h-12 bg-gray-50 border-2 border-gray-100 rounded-xl px-4 text-xs font-black uppercase outline-none focus:border-emerald-500 transition-all"
+              value={ventaData.ProductoId}
+              onChange={(e) => setVentaData({ ...ventaData, ProductoId: e.target.value })}
+            >
+              <option value="">-- Seleccionar --</option>
+              {productos.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre} (Disp: {p.stock} {p.unidadMedida})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div className="col-span-1 space-y-1">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                Cant.
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                className="w-full h-12 bg-gray-50 border-2 border-gray-100 rounded-xl px-4 font-mono font-black outline-none focus:border-emerald-500"
+                value={ventaData.cantidad}
+                onChange={(e) => setVentaData({ ...ventaData, cantidad: e.target.value })}
+              />
+            </div>
+            <div className="col-span-1 space-y-1">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                Unidad
+              </label>
+              <select
+                className="w-full h-12 bg-gray-50 border-2 border-gray-100 rounded-xl px-2 text-[10px] font-black uppercase outline-none"
+                value={ventaData.unidadVenta}
+                onChange={(e) => setVentaData({ ...ventaData, unidadVenta: e.target.value })}
+              >
+                <option value="Libras">Libras</option>
+                <option value="Kilogramos">Kilos</option>
+              </select>
+            </div>
+            <div className="col-span-1 space-y-1">
+              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                P. Unit
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                required
+                className="w-full h-12 bg-gray-50 border-2 border-gray-100 rounded-xl px-4 font-mono font-black outline-none focus:border-emerald-500"
+                value={ventaData.precioUnitario}
+                onChange={(e) => setVentaData({ ...ventaData, precioUnitario: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* --- PANEL DE IMPACTO EN STOCK (LO QUE PEDISTE) --- */}
+          {ventaData.ProductoId && ventaData.cantidad && (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col gap-2">
+              <div className="flex items-center gap-2 text-slate-500">
+                <MdInventory2 size={14} />
+                <span className="text-[9px] font-black uppercase">Resumen de Inventario</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <div className="text-center">
+                  <span className="text-[8px] text-gray-400 uppercase block leading-tight">
+                    Se restarán
+                  </span>
+                  <p className="text-sm font-black text-rose-500 font-mono">
+                    -{infoVenta.cantARestar}{' '}
+                    <span className="text-[9px]">{infoVenta.unidadBase}</span>
+                  </p>
+                </div>
+                <div className="h-8 w-px bg-slate-200"></div>
+                <div className="text-center">
+                  <span className="text-[8px] text-gray-400 uppercase block leading-tight">
+                    Quedarán
+                  </span>
+                  <p
+                    className={`text-sm font-black font-mono ${infoVenta.stockResultante < 0 ? 'text-rose-600 animate-pulse' : 'text-emerald-600'}`}
+                  >
+                    {infoVenta.stockResultante}{' '}
+                    <span className="text-[9px]">{infoVenta.unidadBase}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-gray-900 rounded-2xl p-5 flex justify-between items-center shadow-xl">
+            <span className="text-gray-400 text-[10px] font-black uppercase tracking-[0.2em]">
+              Total Cobrado
+            </span>
+            <span className="text-amber-400 text-3xl font-black font-mono italic">
+              ${infoVenta.totalDinero}
+            </span>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading || !ventaData.ProductoId || infoVenta.stockResultante < 0}
+            className={`w-full py-5 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em] shadow-lg transition-all ${infoVenta.stockResultante < 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95'}`}
+          >
+            {infoVenta.stockResultante < 0
+              ? 'STOCK INSUFICIENTE'
+              : loading
+                ? 'PROCESANDO...'
+                : 'REGISTRAR VENTA'}
+          </button>
+        </form>
+      </Modal>
 
       {/* APERTURA */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Apertura de Turno">
