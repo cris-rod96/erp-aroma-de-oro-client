@@ -221,7 +221,11 @@ const Cajas = () => {
 
     setLoading(true)
     try {
-      const data = { monto: montoNum, descripcion: descBanco, CajaId: cajaActiva.id }
+      const data = {
+        monto: montoNum,
+        descripcion: `INYECCIÓN: ${descBanco}`.toUpperCase(),
+        CajaId: cajaActiva.id,
+      }
       const resp = await cajaAPI.registrarInyeccionBanco(token, data)
       if (resp.status === 201) {
         if (resp.data?.caja) setCaja(resp.data.caja)

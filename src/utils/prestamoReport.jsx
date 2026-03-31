@@ -6,7 +6,7 @@ import { formatMoney } from './fromatters'
 export const exportarPrestamoPDF = (prestamo, empresa) => {
   Swal.fire({
     title: 'Generando Documento',
-    text: 'Preparando comprobante de crédito Aroma de Oro...',
+    text: 'Espere un momento...',
     allowOutsideClick: false,
     didOpen: () => {
       Swal.showLoading()
@@ -66,7 +66,7 @@ export const exportarPrestamoPDF = (prestamo, empresa) => {
                 {
                   content: 'COMPROBANTE DE CRÉDITO / PRÉSTAMO',
                   rowSpan: 2,
-                  styles: { fontSize: 10, fontStyle: 'bold', cellWidth: 50, halign: 'left' },
+                  styles: { fontSize: 10, fontStyle: 'bold', cellWidth: 50, halign: 'center' },
                 },
                 {
                   content: 'ID CRÉDITO',
@@ -119,7 +119,7 @@ export const exportarPrestamoPDF = (prestamo, empresa) => {
                 },
                 {
                   content: (prestamo.Persona?.nombreCompleto || 'N/A').toUpperCase(),
-                  styles: { halign: 'left', fontStyle: 'bold', cellWidth: 70 },
+                  styles: { halign: 'center', fontStyle: 'bold', cellWidth: 70 },
                 },
                 {
                   content: 'IDENTIFICACIÓN:',
@@ -127,7 +127,7 @@ export const exportarPrestamoPDF = (prestamo, empresa) => {
                 },
                 {
                   content: prestamo.Persona?.numeroIdentificacion || 'N/A',
-                  styles: { cellWidth: 70, fontStyle: 'bold' },
+                  styles: { cellWidth: 70, fontStyle: 'bold', halign: 'center' },
                 },
               ],
             ],
@@ -159,7 +159,7 @@ export const exportarPrestamoPDF = (prestamo, empresa) => {
                 formatMoney(montoCuotaSugerido),
                 {
                   content: formatMoney(prestamo.montoTotal),
-                  styles: { halign: 'right', fontStyle: 'bold', fillColor: [245, 245, 245] },
+                  styles: { halign: 'center', fontStyle: 'bold', fillColor: [245, 245, 245] },
                 },
               ],
             ],
@@ -180,7 +180,7 @@ export const exportarPrestamoPDF = (prestamo, empresa) => {
           // Nota de compromiso
           doc.setFontSize(6.5).setTextColor(50).setFont('helvetica', 'italic')
           doc.text(
-            'Autorizo expresamente a AROMA DE ORO a descontar de mis haberes mensuales las cuotas pactadas en este documento.',
+            'Autorizo expresamente a AROMA DE ORO a descontar de mis haberes las cuotas pactadas en este documento.',
             margen,
             doc.lastAutoTable.finalY + 4
           )

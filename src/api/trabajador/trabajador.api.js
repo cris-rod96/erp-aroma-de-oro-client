@@ -11,6 +11,14 @@ const trabajadorAPI = {
     })
   },
 
+  listarProximosCumples: (token) => {
+    return instance.get(`/${model}/listar/cumples-trabajadores`, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
+
   agregarTrabajador: (data, token) => {
     return instance.post(`/${model}/agregar`, data, {
       headers: {

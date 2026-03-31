@@ -1,50 +1,60 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
-import { compradorAPI, productoAPI, ventaAPI } from '../api/index.api'
+import { compradorAPI, productoAPI, ventaAPI, anticipoAPI } from '../api/index.api'
 import { useAuthStore } from '../store/useAuthStore'
 import { useCajaStore } from '../store/useCajaStore'
-import Swal from 'sweetalert2'
 import { useEmpresaStore } from '../store/useEmpresaStore'
+import Swal from 'sweetalert2'
 
 export const useVentas = () => {
-  const token = useAuthStore((state) => state.token)
-  const [error, setError] = useState(null)
-  const usuarioId = useAuthStore((state) => state.user?.id)
-  const { caja } = useCajaStore()
+  const { token, user } = useAuthStore()
+  const { caja, setCaja } = useCajaStore()
+  console.log('Caja: ', caja)
+  const { empresa } = useEmpresaStore()
+  const [nuevoComprador, setNuevoComprador] = useState({
+    nombreCompleto: '',
+    tipoIdentificacion: 'Cédula',
+    numeroIdentificacion: '',
+    tipo: 'Comprador',
+    telefono: '',
+    direccion: '',
+  })
 
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // Datos de Listado
   const [compradores, setCompradores] = useState([])
   const [productos, setProductos] = useState([])
   const [ventas, setVentas] = useState([])
-  const empresa = useEmpresaStore((store) => store.empresa)
-  const [loading, setLoading] = useState(false)
 
-  const [tipoBusqueda, setTipoBusqueda] = useState('Cédula')
+  // Gestión de Comprador y Deuda
   const [cedulaBusqueda, setCedulaBusqueda] = useState('')
   const [compradorInfo, setCompradorInfo] = useState(null)
-
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
-  const [saldoDeudaComprador, setSaldoDeudaComprador] = useState(0)
-  const [ventasGlobales, setVentasGlobales] = useState([])
+  const [deudaAnterior, setDeudaAnterior] = useState(0)
+  const [idCuentaPorCobrarPendiente, setIdCuentaPorCobrarPendiente] = useState(null)
+  const [mostrarFormComprador, setMostrarFormComprador] = useState(false)
 
-  const [formData, setFormData] = useState({
-    ProductoId: '',
-    unidad: 'Quintales',
-    cantidad: '', // Peso Bruto
-    calificacion: 0,
-    impurezas: 0,
-    descuentoMerma: 0,
-    precio: '',
-    // --- NUEVOS CAMPOS DE RETENCIÓN ---
-    retencionConcepto: '',
-    retencionPorcentaje: 0,
-    // ----------------------------------
-    anticipo: 0, // Dinero recibido previamente
-    esCredito: false,
-    abonoManual: '', // Lo que paga en el momento
-  })
+  // Formulario de Venta
+  const [productoSeleccionado, setProductoSeleccionado] = useState('')
+  const [unidad, setUnidad] = useState('Quintales') // Unidad de entrada (física)
+  const [unidadPago, setUnidadPago] = useState('Quintales') // Unidad de cálculo (precio)
+  const [cantidad, setCantidad] = useState(0)
+  const [precio, setPrecio] = useState(0)
+  const [calificacion, setCalificacion] = useState(0)
+  const [impurezas, setImpurezas] = useState(0)
 
+  const [retencionConcepto, setRetencionConcepto] = useState('')
+  const [retencionPorcentaje, setRetencionPorcentaje] = useState(0)
+
+  const [pagos, setPagos] = useState({ efectivo: 0, cheque: 0, transferencia: 0 })
+  const [montoAplicarAnticipo, setMontoAplicarAnticipo] = useState(0)
+  const [anticiposPendientes, setAnticiposPendientes] = useState([])
+
+  // --- LÓGICA DE CARGA INICIAL ---
   const fetchVentasData = useCallback(async () => {
+    if (!token) return
     setLoading(true)
-    setError(null)
     try {
       const [resComp, resProd, resVent] = await Promise.all([
         compradorAPI.listarTodos(token),
@@ -54,13 +64,8 @@ export const useVentas = () => {
       setCompradores(resComp.data.compradores || [])
       setProductos(resProd.data.productos || [])
       setVentas(resVent.data.ventas || [])
-
-      if (resProd.data.productos?.length > 0 && !formData.ProductoId) {
-        setFormData((prev) => ({ ...prev, ProductoId: resProd.data.productos[0].id }))
-      }
-    } catch (error) {
-      const msg = error.response?.data?.message || 'Error al obtener ventas'
-      setError(msg)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error al obtener datos')
     } finally {
       setLoading(false)
     }
@@ -70,267 +75,294 @@ export const useVentas = () => {
     fetchVentasData()
   }, [fetchVentasData])
 
-  const calculos = useMemo(() => {
-    const bruto = parseFloat(formData.cantidad) || 0
-    const calif = parseFloat(formData.calificacion) || 0
-    const impur = parseFloat(formData.impurezas) || 0
-    const merma = parseFloat(formData.descuentoMerma) || 0
-    const prec = parseFloat(formData.precio) || 0
+  // --- LÓGICA DE DEUDA ARRASTRADA (CxC) ---
+  const calcularDeudaComprador = (comprador) => {
+    if (!comprador?.Ventas) return { monto: 0, id: null }
+    let totalPendiente = 0
+    let cxcId = null
 
-    // Valores financieros
-    const retPorcentaje = parseFloat(formData.retencionPorcentaje) || 0
-    const anticipoRecibido = parseFloat(formData.anticipo) || 0
-
-    // 1. Cálculo de Merma y Peso Neto
-    const descCalif = (bruto * calif) / 100
-    const descImpur = (bruto * impur) / 100
-    const cantidadNeta = bruto - (descCalif + descImpur + merma)
-
-    // 2. Cálculo Monetario Base
-    const subtotalBruto = cantidadNeta > 0 ? cantidadNeta * prec : 0
-
-    // 3. Cálculo de Retenciones y Líquido
-    const valorRetenido = (subtotalBruto * retPorcentaje) / 100
-    const totalALiquidar = subtotalBruto - valorRetenido - anticipoRecibido
-
-    // 4. Lo que el cliente abona físicamente hoy
-    // (si es crédito usa el input, si es contado asume que paga todo el líquido restante)
-    const abonoHoy = formData.esCredito ? parseFloat(formData.abonoManual) || 0 : totalALiquidar
-
-    // 5. Saldo final adeudado
-    const saldoFinal = totalALiquidar - abonoHoy
-
-    const productoActual = productos.find((p) => p.id === formData.ProductoId)
-    const stockExcedido = productoActual ? bruto > productoActual.stock : false
-
-    return {
-      cantidadNeta: cantidadNeta > 0 ? cantidadNeta : 0,
-      subtotalBruto,
-      totalFactura: subtotalBruto,
-      valorRetenido, // <-- Nuevo
-      totalALiquidar: totalALiquidar > 0 ? totalALiquidar : 0, // <-- Nuevo
-      abonado: abonoHoy,
-      anticipo: anticipoRecibido,
-      saldo: saldoFinal > 0 ? saldoFinal : 0,
-      stockExcedido,
-    }
-  }, [formData, productos])
-
-  const buscarComprador = () => {
-    const encontrado = compradores.find(
-      (c) =>
-        c.numeroIdentificacion === cedulaBusqueda.trim() && c.tipoIdentificacion === tipoBusqueda
-    )
-    setCompradorInfo(encontrado || null)
-    return encontrado
-  }
-
-  const handleFinalizarVenta = async () => {
-    if (!caja) return Swal.fire('Caja Cerrada', 'Debe abrir caja primero', 'error')
-    if (!compradorInfo) return Swal.fire('Atención', 'Seleccione un comprador', 'warning')
-
-    const confirm = await Swal.fire({
-      title:
-        '<span style="font-size: 14px; font-weight: 900; letter-spacing: 1px;">RESUMEN DE LIQUIDACIÓN</span>',
-      html: `
-        <div style="padding: 10px; border: 1px solid #000; font-family: monospace; text-transform: uppercase;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
-            <span>PESO NETO:</span>
-            <span style="font-weight: 900;">${calculos.cantidadNeta.toFixed(2)} ${formData.unidad}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px;">
-            <span>TOTAL MERCADERÍA:</span>
-            <span style="font-weight: 900;">$${calculos.totalFactura.toFixed(2)}</span>
-          </div>
-
-          ${
-            parseFloat(formData.retencionPorcentaje) > 0
-              ? `
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; color: #dc2626;">
-            <span>(-) RETENCIÓN (${formData.retencionPorcentaje}%):</span>
-            <span style="font-weight: 900;">-$${calculos.valorRetenido.toFixed(2)}</span>
-          </div>
-          `
-              : ''
-          }
-
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; color: #2563eb;">
-            <span>(-) ANTICIPO PREVIO:</span>
-            <span style="font-weight: 900;">-$${calculos.anticipo.toFixed(2)}</span>
-          </div>
-
-          <div style="border-top: 1px solid #ccc; margin-top: 5px; padding-top: 5px; display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #000;">
-            <span style="font-weight: 900;">TOTAL A LIQUIDAR:</span>
-            <span style="font-weight: 900;">$${calculos.totalALiquidar.toFixed(2)}</span>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 11px; color: #059669;">
-            <span>(-) ABONO RECIBIDO HOY:</span>
-            <span style="font-weight: 900;">-$${calculos.abonado.toFixed(2)}</span>
-          </div>
-          <div style="border-top: 1px dashed #000; margin-top: 8px; padding-top: 8px; display: flex; justify-content: space-between; font-size: 15px; background: #f3f4f6;">
-            <span style="font-weight: 900;">SALDO PENDIENTE:</span>
-            <span style="font-weight: 900;">$${calculos.saldo.toFixed(2)}</span>
-          </div>
-        </div>
-      `,
-      showCancelButton: true,
-      confirmButtonColor: '#000000',
-      cancelButtonColor: '#6b7280',
-      confirmButtonText: 'CONFIRMAR DESPACHO',
-      cancelButtonText: 'CORREGIR',
-      reverseButtons: true,
-      customClass: {
-        popup: 'border-2 border-black rounded-none shadow-none',
-      },
-    })
-
-    if (confirm.isConfirmed) {
-      setLoading(true)
-      try {
-        const payload = {
-          PersonaId: compradorInfo.id,
-          ProductoId: formData.ProductoId,
-          UsuarioId: usuarioId,
-          CajaId: caja.id,
-          cantidadBruta: parseFloat(formData.cantidad),
-          cantidadNeta: calculos.cantidadNeta,
-          calificacion: parseFloat(formData.calificacion),
-          impurezas: parseFloat(formData.impurezas),
-          descuentoMerma: parseFloat(formData.descuentoMerma),
-          precioUnitario: parseFloat(formData.precio),
-          unidad: formData.unidad,
-          // --- DATOS FINANCIEROS Y RETENCIONES ---
-          totalFactura: calculos.totalFactura,
-          retencionConcepto: formData.retencionConcepto,
-          retencionPorcentaje: parseFloat(formData.retencionPorcentaje) || 0,
-          valorRetenido: calculos.valorRetenido,
-          montoAnticipo: calculos.anticipo,
-          totalALiquidar: calculos.totalALiquidar,
-          montoAbonado: calculos.abonado,
-          montoPendiente: calculos.saldo,
-          tipoVenta: formData.esCredito ? 'Crédito' : 'Contado',
-        }
-
-        await ventaAPI.registrarVenta({ venta: payload, CajaId: caja.id }, token)
-
-        // Limpiar formulario tras éxito
-        setFormData({
-          ...formData,
-          cantidad: '',
-          precio: '',
-          abonoManual: '',
-          anticipo: 0,
-          retencionConcepto: '',
-          retencionPorcentaje: 0,
-          esCredito: false,
-        })
-        setCompradorInfo(null)
-        setCedulaBusqueda('')
-        fetchVentasData()
-        Swal.fire('Éxito', 'Venta registrada', 'success')
-      } catch (error) {
-        console.log(error.response?.data?.message || error)
-        Swal.fire('Error', error.response?.data?.message || 'No se pudo procesar', 'error')
-      } finally {
-        setLoading(false)
+    comprador.Ventas.forEach((v) => {
+      // Buscamos en las Cuentas por Cobrar de cada venta del comprador
+      const pendiente = v.CuentasPorCobrars?.find((cxc) => cxc.estado === 'Pendiente')
+      if (pendiente) {
+        totalPendiente += parseFloat(pendiente.saldoPendiente)
+        cxcId = pendiente.id
       }
-    }
+    })
+    return { monto: totalPendiente, id: cxcId }
   }
 
   const compradoresFiltrados = useMemo(() => {
     const termino = cedulaBusqueda.trim().toLowerCase()
     if (termino.length < 2) return []
-    return compradores
-      .filter(
-        (c) =>
-          (c.numeroIdentificacion || '').toLowerCase().includes(termino) ||
-          (c.nombreCompleto || '').toLowerCase().includes(termino)
-      )
-      .slice(0, 8)
+    return compradores.filter((c) => {
+      const cedula = (c.numeroIdentificacion || '').toLowerCase()
+      const nombre = (c.nombreCompleto || '').toLowerCase()
+      return cedula.includes(termino) || nombre.includes(termino)
+    })
   }, [cedulaBusqueda, compradores])
 
-  const seleccionarComprador = (comprador) => {
-    // Buscamos deudas en ventas previas (estado PENDIENTE)
-    const ventasPendientes = ventasGlobales.filter(
-      (v) => v.PersonaId === comprador.id && v.estado === 'Pendiente'
-    )
-    const deuda = ventasPendientes.reduce(
-      (acc, curr) => acc + parseFloat(curr.montoPendiente || 0),
-      0
-    )
-
-    setSaldoDeudaComprador(deuda)
+  const seleccionarComprador = async (comprador) => {
     setCompradorInfo(comprador)
-    setCedulaBusqueda(comprador.nombreCompleto.toUpperCase())
+    setCedulaBusqueda(comprador.numeroIdentificacion)
     setMostrarSugerencias(false)
+    setMostrarFormComprador(false)
 
-    if (deuda > 0) {
-      Swal.fire({
-        title: 'CLIENTE CON DEUDA',
-        text: `El cliente tiene un saldo pendiente de $${deuda.toFixed(2)}.`,
-        icon: 'warning',
-        confirmButtonColor: '#000',
+    const { monto, id } = calcularDeudaComprador(comprador)
+    setDeudaAnterior(monto)
+    setIdCuentaPorCobrarPendiente(id)
+
+    // Buscar anticipos que el comprador haya dejado
+    try {
+      const respAnt = await anticipoAPI.obtenerPendientesPorPersona(comprador.id, token)
+      setAnticiposPendientes(respAnt.data.anticipos || [])
+      setMontoAplicarAnticipo(0)
+    } catch {
+      setAnticiposPendientes([])
+    }
+  }
+
+  const buscarComprador = () => {
+    if (compradoresFiltrados.length === 1) {
+      seleccionarComprador(compradoresFiltrados[0])
+    } else if (compradoresFiltrados.length === 0) {
+      setCompradorInfo(null)
+      setAnticiposPendientes([])
+      setMostrarFormComprador(true)
+      setMostrarSugerencias(false)
+      setNuevoComprador({
+        ...nuevoComprador,
+        numeroIdentificacion: /^\d+$/.test(cedulaBusqueda) ? cedulaBusqueda : '',
+        nombreCompleto: !/^\d+$/.test(cedulaBusqueda) ? cedulaBusqueda.toUpperCase() : '',
+        telefono: '',
       })
     }
   }
 
-  const registrarNuevoComprador = async (data) => {
-    setLoading(true)
-    if (data.tipoIdentificacion === 'Cédula' && data.numeroIdentificacion.length !== 10)
-      return Swal.fire('Error', 'La cédula debe tener 10 dígitos válidos', 'error')
-    if (data.tipoIdentificacion === 'RUC' && data.numeroIdentificacion.length !== 13)
-      return Swal.fire('Error', 'El RUC debe tener 13 dígitos válidos', 'error')
-
-    if (!data.nombreCompleto.trim()) return Swal.fire('Error', 'El nombre es obligatorio', 'error')
+  const handleRegistrarComprador = async () => {
+    if (!nuevoComprador.nombreCompleto) {
+      return Swal.fire('Faltan datos', 'Nombre obligatorio', 'warning')
+    }
 
     try {
-      const res = await compradorAPI.agregarComprador(
-        {
-          ...data,
-          UsuarioId: usuarioId,
-          tipo: 'Comprador',
-          tipoIdentificacion: data.tipoIdentificacion,
-        },
-        token
-      )
+      setLoading(true)
+      const resp = await compradorAPI.agregarComprador(nuevoComprador, token)
       await fetchVentasData()
-      setCompradorInfo(res.data.comprador)
-      return true
+      if (resp.data?.persona) {
+        await seleccionarComprador(resp.data.persona)
+        setMostrarFormComprador(false)
+      }
+      Swal.fire('Éxito', 'Comprador registrado', 'success')
     } catch (error) {
-      const msg = error.response?.data.message || 'Error al registrar comprador'
-      Swal.fire('Error en el registro', msg, 'error')
+      const msg = error.response?.data?.message || 'Error al registrar el comprador'
+      Swal.fire('Error', msg, 'error')
     } finally {
       setLoading(false)
     }
   }
 
+  // --- CÁLCULOS PRECISOS (REGLA DEL QUINTAL) ---
+  const calculos = useMemo(() => {
+    const qOriginal = parseFloat(cantidad) || 0
+    const pUnit = parseFloat(precio) || 0
+    const h = parseFloat(calificacion) || 0
+    const i = parseFloat(impurezas) || 0
+
+    const CONVERSIONES = { Libras: 1, Kilogramos: 2.20462, Quintales: 100 }
+    const factorEntrada = CONVERSIONES[unidad] || 1
+    const factorPago = CONVERSIONES[unidadPago] || 1
+
+    // 1. Conversión de Peso
+    const qConvertida = (qOriginal * factorEntrada) / factorPago
+    const mermaH = qConvertida * (h / 100)
+    const mermaI = qConvertida * (i / 100)
+    const totalM = mermaH + mermaI
+
+    // 2. Peso Neto con lógica de "Baba" vs Seco
+    const pNetoCalculado = qConvertida - totalM
+    const prodNombre = productos.find((p) => p.id === productoSeleccionado)?.nombre || ''
+
+    const pNeto = prodNombre.toLowerCase().includes('baba')
+      ? pNetoCalculado.toFixed(2)
+      : pNetoCalculado > 1
+        ? Math.floor(pNetoCalculado)
+        : Math.floor(pNetoCalculado * 100) / 100
+
+    // 3. Financiero (Truncado a 2 decimales)
+    const brutoCalculado = pNeto * pUnit
+    const valBruto = Math.trunc(brutoCalculado * 100) / 100
+
+    const rPorc = parseFloat(retencionPorcentaje) || 0
+    const valRetenido = Math.trunc(valBruto * (rPorc / 100) * 100) / 100
+    const netoHoy = valBruto - valRetenido
+
+    // 4. Totales con Deuda Anterior
+    const antic = parseFloat(montoAplicarAnticipo) || 0
+    const deudaVieja = parseFloat(deudaAnterior) || 0
+    const totalAFacturarConDeuda = netoHoy + deudaVieja
+
+    const montoPagosHoy = Object.values(pagos).reduce(
+      (a, b) => parseFloat(a || 0) + parseFloat(b || 0),
+      0
+    )
+    const abonadoTotal = montoPagosHoy + antic
+    const saldo = totalAFacturarConDeuda - abonadoTotal
+
+    // Validación de Stock
+    const productoActual = productos.find((p) => p.id === productoSeleccionado)
+    const stockExcedido = productoActual ? qConvertida > productoActual.stock : false
+
+    return {
+      pesoBruto: qConvertida,
+      pesoNeto: parseFloat(pNeto),
+      bruto: valBruto,
+      valorRetenido: valRetenido,
+      netoHoy: netoHoy,
+      totalAPagar: totalAFacturarConDeuda,
+      montoAbonadoTotal: montoPagosHoy,
+      saldoADeber: saldo,
+      deudaAnterior: deudaVieja,
+      stockExcedido,
+    }
+  }, [
+    cantidad,
+    unidad,
+    unidadPago,
+    calificacion,
+    impurezas,
+    precio,
+    retencionPorcentaje,
+    pagos,
+    montoAplicarAnticipo,
+    deudaAnterior,
+    productoSeleccionado,
+    productos,
+  ])
+
+  // --- ACCIONES ---
+  const handleFinalizarVenta = async () => {
+    if (!caja || caja.estado !== 'Abierta')
+      return Swal.fire('Caja Cerrada', 'Abra caja primero', 'warning')
+    if (!compradorInfo) return Swal.fire('Falta Comprador', 'Identifique al cliente', 'error')
+    if (calculos.pesoNeto <= 0)
+      return Swal.fire('Peso Inválido', 'El peso neto debe ser mayor a 0', 'warning')
+    if (calculos.stockExcedido)
+      return Swal.fire('Sin Stock', 'La cantidad supera el stock disponible', 'error')
+
+    const toNum = (val) => Number(Number(val || 0).toFixed(2))
+
+    const data = {
+      CajaId: caja.id,
+      venta: {
+        PersonaId: compradorInfo.id,
+        UsuarioId: user.id,
+        totalFactura: toNum(calculos.bruto),
+        totalRetencion: toNum(calculos.valorRetenido),
+        totalALiquidar: toNum(calculos.totalAPagar),
+        montoAnticipo: toNum(montoAplicarAnticipo),
+        montoAbonado: toNum(calculos.montoAbonadoTotal),
+        montoPendiente: toNum(calculos.saldoADeber),
+        tipoVenta: calculos.saldoADeber > 0 ? 'Crédito' : 'Contado',
+
+        // CxC Arrastrada
+        cuentaPorCobrarSaldadaId: idCuentaPorCobrarPendiente,
+        montoDeudaAnterior: toNum(deudaAnterior),
+
+        // Pagos detallados para la caja
+        pagoEfectivo: toNum(pagos.efectivo),
+        pagoCheque: toNum(pagos.cheque),
+        pagoTransferencia: toNum(pagos.transferencia),
+      },
+      detalle: {
+        ProductoId: productoSeleccionado,
+        cantidadBruta: toNum(calculos.pesoBruto),
+        cantidadNeta: toNum(calculos.pesoNeto),
+        precioUnitario: toNum(precio),
+        unidad: unidadPago,
+        calificacion: calificacion,
+        impurezas: impurezas,
+        descuentoMerma: toNum(calculos.pesoBruto - calculos.pesoNeto),
+      },
+      retencion:
+        parseFloat(retencionPorcentaje) > 0
+          ? {
+              descripcion: retencionConcepto || 'RETENCION IVA/FUENTE',
+              porcentajeRetencion: toNum(retencionPorcentaje),
+              valorRetenido: toNum(calculos.valorRetenido),
+            }
+          : null,
+    }
+
+    try {
+      setLoading(true)
+      console.log(data)
+      const resp = await ventaAPI.registrarVenta(data, token)
+      await Swal.fire('Éxito', 'Venta y despacho registrados', 'success')
+      resetForm()
+      fetchVentasData()
+      if (resp.data.caja) setCaja(resp.data.caja)
+    } catch (err) {
+      Swal.fire('Error', err.response?.data?.message || 'Error de servidor', 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const resetForm = () => {
+    setCompradorInfo(null)
+    setCedulaBusqueda('')
+    setCantidad(0)
+    setPrecio(0)
+    setProductoSeleccionado('')
+    setPagos({ efectivo: 0, cheque: 0, transferencia: 0 })
+    setDeudaAnterior(0)
+    setMontoAplicarAnticipo(0)
+  }
+
   return {
+    ...calculos,
     productos,
     ventas,
-    empresa,
-    caja,
     loading,
-    tipoBusqueda,
-    setTipoBusqueda,
+    compradorInfo,
     cedulaBusqueda,
     setCedulaBusqueda,
-    compradorInfo,
-    formData,
-    setFormData,
-    calculos,
-    error,
-    isFormDisabled: !caja || loading,
-    buscarComprador,
-    handleFinalizarVenta,
-    registrarNuevoComprador,
-    compradoresFiltrados,
+    seleccionarComprador,
     mostrarSugerencias,
     setMostrarSugerencias,
-    seleccionarComprador,
-    saldoDeudaComprador,
-    ventasGlobales,
+    productoSeleccionado,
+    setProductoSeleccionado,
+    cantidad,
+    setCantidad,
+    precio,
+    setPrecio,
+    unidad,
+    setUnidad,
+    unidadPago,
+    setUnidadPago,
+    calificacion,
+    setCalificacion,
+    impurezas,
+    setImpurezas,
+    retencionConcepto,
+    setRetencionConcepto,
+    retencionPorcentaje,
+    setRetencionPorcentaje,
+    pagos,
+    setPagos,
+    caja,
+    montoAplicarAnticipo,
+    setMontoAplicarAnticipo,
+    handleFinalizarVenta,
+    isFormDisabled: !caja || caja.estado !== 'Abierta' || loading,
+    compradoresFiltrados,
+    buscarComprador,
+    nuevoComprador,
+    setNuevoComprador,
+    mostrarFormComprador,
+    setMostrarFormComprador,
     setCompradorInfo,
     compradores,
+    handleRegistrarComprador,
   }
 }

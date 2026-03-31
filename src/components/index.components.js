@@ -19,6 +19,7 @@ import {
   NominaHeader,
   InventarioHeader,
 } from './headers/index.headers'
+import CumplesTrabajadores from './banners/CumplesTrabajadores'
 
 export {
   Aside,
@@ -38,4 +39,5 @@ export {
   NominaHeader,
   NominaTable,
   InventarioHeader,
+  CumplesTrabajadores,
 }

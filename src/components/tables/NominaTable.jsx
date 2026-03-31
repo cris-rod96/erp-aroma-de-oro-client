@@ -8,6 +8,7 @@ import {
   MdSecurity,
   MdChevronLeft,
   MdChevronRight,
+  MdCake,
 } from 'react-icons/md'
 
 const NominaTable = ({
@@ -20,6 +21,8 @@ const NominaTable = ({
   handleImprimir,
   handleRestore,
   error,
+  cumplesHoy,
+  cumplesManana,
 }) => {
   // --- LÓGICA DE PAGINACIÓN (IGUAL A INVENTARIO) ---
   const [currentPage, setCurrentPage] = useState(1)
@@ -35,6 +38,7 @@ const NominaTable = ({
   // Resetear página al cambiar de pestaña o si la data cambia
   useEffect(() => {
     setCurrentPage(1)
+    console.log(cumplesHoy, cumplesManana)
   }, [activeTab, data.length])
 
   return (
@@ -71,6 +75,7 @@ const NominaTable = ({
                   <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     {activeTab === 'empleados' ? 'Trabajador' : 'Código / Fecha'}
                   </th>
+
                   <th className="px-6 py-5 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     {activeTab === 'empleados' ? 'Identificación' : 'Beneficiario'}
                   </th>
@@ -91,16 +96,35 @@ const NominaTable = ({
                         <div className="h-10 w-10 rounded-xl bg-gray-900 text-amber-400 flex items-center justify-center font-black text-sm uppercase shadow-sm italic">
                           {(item.nombreCompleto || item.Persona?.nombreCompleto || '?').charAt(0)}
                         </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-black text-gray-800 uppercase tracking-tighter leading-none">
-                            {activeTab === 'empleados' ? item.nombreCompleto : item.codigo}
+                        <div className="ml-4 flex flex-col">
+                          {/* CONTENEDOR DEL NOMBRE Y BADGE */}
+                          <div className="flex items-center gap-2 leading-none">
+                            <span className="text-sm font-black text-gray-800 uppercase tracking-tighter">
+                              {activeTab === 'empleados' ? item.nombreCompleto : item.codigo}
+                            </span>
+
+                            {activeTab === 'empleados' && (
+                              <div className="flex gap-1">
+                                {cumplesHoy?.find((c) => c.id === item.id) && (
+                                  <span className="flex items-center gap-1 bg-amber-500 text-white px-1.5 py-0.5 rounded-md text-[7px] font-black animate-bounce shadow-sm uppercase">
+                                    <MdCake size={8} /> Hoy
+                                  </span>
+                                )}
+                                {cumplesManana?.find((c) => c.id === item.id) && (
+                                  <span className="flex items-center gap-1 bg-blue-50 text-blue-500 border border-blue-100 px-1.5 py-0.5 rounded-md text-[7px] font-black uppercase italic">
+                                    <MdCake size={8} /> Mañana
+                                  </span>
+                                )}
+                              </div>
+                            )}
                           </div>
-                          <div className="text-[10px] text-gray-400 font-bold mt-1 flex items-center gap-1 uppercase">
+
+                          {/* SUBTEXTO (TELÉFONO / FECHA) */}
+                          <div className="text-[10px] text-gray-400 font-bold mt-1.5 flex items-center gap-1 uppercase">
                             {activeTab === 'empleados' ? (
                               <>
-                                {' '}
-                                <MdPhone className="text-amber-500/50" />{' '}
-                                {item.telefono || 'S/R'}{' '}
+                                <MdPhone className="text-amber-500/50" />
+                                {item.telefono || 'S/R'}
                               </>
                             ) : (
                               new Date(item.createdAt).toLocaleDateString('es-EC')

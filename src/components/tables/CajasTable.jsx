@@ -40,7 +40,7 @@ const CajasTable = ({ fetching, cajas, error }) => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
-  const user = useAuthStore((store) => store.data)
+  const user = useAuthStore((store) => store.user)
   const empresa = useEmpresaStore((store) => store.empresa)
 
   // Resetear a página 1 si cambian los datos (por ejemplo, al filtrar o refrescar)
@@ -51,6 +51,7 @@ const CajasTable = ({ fetching, cajas, error }) => {
   const handleVerDetalle = (caja) => {
     setSelectedCaja(caja)
     setShowModal(true)
+    console.log(caja)
   }
 
   const getIcon = (cat) => {
@@ -188,7 +189,7 @@ const CajasTable = ({ fetching, cajas, error }) => {
                         onClick={() => handleVerDetalle(caja)}
                         className="text-amber-600 hover:text-amber-900 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic ml-auto group"
                       >
-                        Ver Movimientos{' '}
+                        Ver Movimientos
                         <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
                       </button>
                     </td>

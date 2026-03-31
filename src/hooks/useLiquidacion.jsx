@@ -260,11 +260,12 @@ export const useLiquidacion = () => {
     // Si el resultado es muy pequeño (menor a 1), permitimos decimales para que no sea 0.
     const pNetoCalculado = qConvertida - totalM
 
-    const pNeto = nombreProductoSeleccionado.toLowerCase().includes('baba')
-      ? pNetoCalculado.toFixed(2)
-      : pNetoCalculado > 1
-        ? Math.floor(pNetoCalculado)
-        : Math.floor(pNetoCalculado * 100) / 100
+    const pNeto =
+      nombreProductoSeleccionado.toLowerCase().includes('baba') || unidadPago === 'Quintales'
+        ? (Math.trunc(pNetoCalculado * 100) / 100).toFixed(2)
+        : pNetoCalculado > 1
+          ? Math.floor(pNetoCalculado)
+          : Math.floor(pNetoCalculado * 100) / 100
 
     // 4. CÁLCULOS MONETARIOS (Regla del Quintal)
     // El precio (pUnit) se asume por Quintal, por eso dividimos para 100

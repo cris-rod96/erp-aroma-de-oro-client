@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react'
-import { FaPlus, FaHistory, FaUsers, FaHandHoldingUsd, FaPhone, FaIdCard } from 'react-icons/fa'
+import {
+  FaPlus,
+  FaHistory,
+  FaUsers,
+  FaHandHoldingUsd,
+  FaPhone,
+  FaIdCard,
+  FaCalendarAlt,
+} from 'react-icons/fa'
 import { Container, Modal, NominaHeader, NominaTable } from '../../components/index.components'
 import { MdDelete, MdPayments } from 'react-icons/md'
 import { useAuthStore } from '../../store/useAuthStore'
@@ -25,6 +33,8 @@ const Nomina = () => {
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const [prestamoActivo, setPrestamoActivo] = useState(null)
+  const [cumplesHoy, setCumplesHoy] = useState([])
+  const [cumplesManana, setCumplesManana] = useState([])
 
   const initialFormState = {
     nombreCompleto: '',
@@ -34,6 +44,7 @@ const Nomina = () => {
     direccion: '',
     tipo: 'Trabajador',
     estaActivo: true,
+    fechaNacimiento: '',
   }
 
   const initialPagoState = {
@@ -105,9 +116,13 @@ const Nomina = () => {
     setFetching(true)
     setError(null)
     try {
-      const resp = await trabajadorAPI.listarTodos(token)
-      const data = resp.data.trabajadores || resp.data || []
-      setTrabajadores(data.filter((t) => t.tipo === 'Trabajador'))
+      const [respTrabajadores, respCumples] = await Promise.all([
+        trabajadorAPI.listarTodos(token),
+        trabajadorAPI.listarProximosCumples(token),
+      ])
+      setTrabajadores(respTrabajadores.data?.trabajadores || [])
+      setCumplesHoy(respCumples.data?.cumples?.alertasHoy || [])
+      setCumplesManana(respCumples.data?.cumples?.alertasManana || [])
     } catch (error) {
       const msg = error.response?.data?.message || 'Error al cargar nómina'
       setError(msg)
@@ -161,6 +176,7 @@ const Nomina = () => {
         await trabajadorAPI.actualizarTrabajador(selectedId, formData, token)
         Swal.fire('¡Éxito!', 'Personal actualizado', 'success')
       } else {
+        console.log(formData)
         await trabajadorAPI.agregarTrabajador(formData, token)
         Swal.fire('¡Éxito!', 'Nuevo trabajador registrado', 'success')
       }
@@ -305,6 +321,8 @@ const Nomina = () => {
           handleOpenPago={handleOpenPago}
           handleRestore={handleRestore}
           error={error}
+          cumplesHoy={cumplesHoy}
+          cumplesManana={cumplesManana}
         />
       </div>
 
@@ -476,6 +494,25 @@ const Nomina = () => {
                 />
               </div>
             </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                Fecha de Nacimiento
+              </label>
+              <div className="flex items-center h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 focus-within:border-amber-400 transition-all">
+                <FaCalendarAlt className="text-amber-500 mr-3" size={14} />
+                <input
+                  type="date"
+                  required
+                  className="bg-transparent w-full outline-none text-xs font-bold uppercase"
+                  value={formData.fechaNacimiento}
+                  onChange={(e) => setFormData({ ...formData, fechaNacimiento: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
                 Teléfono
@@ -491,19 +528,21 @@ const Nomina = () => {
                 />
               </div>
             </div>
-          </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Dirección</label>
-            <input
-              type="text"
-              placeholder="CIUDAD / RECINTO"
-              className="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-xs font-bold uppercase outline-none focus:border-amber-400"
-              value={formData.direccion}
-              onChange={(e) =>
-                setFormData({ ...formData, direccion: e.target.value.toUpperCase() })
-              }
-            />
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
+                Dirección
+              </label>
+              <input
+                type="text"
+                placeholder="CIUDAD / RECINTO"
+                className="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-xs font-bold uppercase outline-none focus:border-amber-400"
+                value={formData.direccion}
+                onChange={(e) =>
+                  setFormData({ ...formData, direccion: e.target.value.toUpperCase() })
+                }
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

@@ -19,24 +19,44 @@ export const exportarCajaDetallePDF = async (caja, empresa) => {
       // --- 1. LÓGICA DE FILTRADO (EFECTIVO VS VIRTUAL) ---
       let efIn = 0,
         efOut = 0,
+        efInyeccion = 0,
         bnkIn = 0,
         bnkOut = 0
 
       movs.forEach((m) => {
         const monto = parseFloat(m.monto)
         const desc = m.descripcion?.toUpperCase() || ''
+        const cat = m.categoria?.toUpperCase() || ''
+
+        // Prioridad absoluta: Si dice INYECCION, es efectivo para la caja física
+        const esInyeccion = desc.toUpperCase().includes('INYECCIÓN')
+
+        // Es virtual si menciona bancos/transf/cheque PERO no es una inyección
         const esVirtual =
-          desc.includes('BANCO') || desc.includes('CHEQUE') || desc.includes('TRANSF')
+          (desc.includes('BANCO') ||
+            desc.includes('CHEQUE') ||
+            desc.includes('TRANSF') ||
+            cat.includes('BANCO')) &&
+          !esInyeccion
+
         const esIngreso = m.tipoMovimiento === 'Ingreso'
 
         if (esVirtual) {
           esIngreso ? (bnkIn += monto) : (bnkOut += monto)
         } else {
-          esIngreso ? (efIn += monto) : (efOut += monto)
+          if (esIngreso) {
+            if (esInyeccion) {
+              efInyeccion += monto // Aquí caen los 5000 si pones "Inyección: Dinero para caja"
+            } else {
+              efIn += monto // Aquí quedan los 6650 (Ventas, etc.)
+            }
+          } else {
+            efOut += monto
+          }
         }
       })
 
-      const montoEsperadoFisico = parseFloat(caja.montoApertura) + efIn - efOut
+      const montoEsperadoFisico = parseFloat(caja.montoApertura) + efIn + efInyeccion - efOut
       const montoCierreReportado = parseFloat(caja.montoCierre || 0)
       const diferenciaArqueo = montoCierreReportado - montoEsperadoFisico
 
@@ -44,11 +64,10 @@ export const exportarCajaDetallePDF = async (caja, empresa) => {
       const anchoPagina = 210
       const margen = 15
 
-      // --- 2. CABECERA ESTILO KARDEX (FONDO OSCURO + OBJETO EMPRESA) ---
+      // --- 2. CABECERA ---
       doc.setFillColor(28, 31, 38)
       doc.rect(0, 0, anchoPagina, 45, 'F')
 
-      // Textos de Empresa (Izquierda) - Dinámicos
       doc.setFontSize(14).setTextColor(230, 160, 0).setFont('helvetica', 'bold')
       doc.text((empresa?.nombre || 'AROMA DE ORO').toUpperCase(), margen, 15)
 
@@ -62,7 +81,6 @@ export const exportarCajaDetallePDF = async (caja, empresa) => {
         33
       )
 
-      // Título y Datos de Caja (Derecha)
       doc.setFontSize(18).setTextColor(255).setFont('helvetica', 'bold')
       doc.text('INFORME DE ARQUEO', anchoPagina - margen, 20, { align: 'right' })
 
@@ -82,7 +100,8 @@ export const exportarCajaDetallePDF = async (caja, empresa) => {
         head: [['DESCRIPCIÓN DE AUDITORÍA FÍSICA', 'VALORES']],
         body: [
           ['(+) FONDO INICIAL DE APERTURA', formatMoney(caja.montoApertura)],
-          ['(+) TOTAL INGRESOS EFECTIVO', formatMoney(efIn)],
+          ['(+) TOTAL INGRESOS EFECTIVO (VENTAS/RECAUDO)', formatMoney(efIn)],
+          ['(+) INYECCIONES DE CAPITAL / CAJA', formatMoney(efInyeccion)],
           ['(-) TOTAL EGRESOS EFECTIVO', `-${formatMoney(efOut)}`],
           [
             {
@@ -123,13 +142,13 @@ export const exportarCajaDetallePDF = async (caja, empresa) => {
         styles: { halign: 'center', fontSize: 10 },
       })
 
-      // --- 5. MOVIMIENTOS BANCARIOS (INFO SEPARADA) ---
+      // --- 5. MOVIMIENTOS BANCARIOS ---
       autoTable(doc, {
         startY: doc.lastAutoTable.finalY + 5,
         margin: { left: margen, right: margen },
-        head: [['MOVIMIENTOS VIRTUALES / BANCOS (NO AFECTAN EFECTIVO)', 'VALOR']],
+        head: [['MOVIMIENTOS VIRTUALES / BANCOS (NO AFECTAN CAJA FÍSICA)', 'VALOR']],
         body: [
-          ['(+) TOTAL INGRESOS / INYECCIONES BANCO', formatMoney(bnkIn)],
+          ['(+) TOTAL INGRESOS BANCARIOS', formatMoney(bnkIn)],
           ['(-) TOTAL SALIDAS (CHEQUES / TRANSFERENCIAS)', `-${formatMoney(bnkOut)}`],
         ],
         theme: 'striped',
@@ -141,16 +160,22 @@ export const exportarCajaDetallePDF = async (caja, empresa) => {
       const bodyMovs = movs.map((m) => {
         const val = parseFloat(m.monto)
         const isIn = m.tipoMovimiento === 'Ingreso'
+        const descU = m.descripcion?.toUpperCase() || ''
+        const catU = m.categoria?.toUpperCase() || ''
+
+        const esIny = descU.includes('INYECCION')
         const isVirtual =
-          m.descripcion?.toUpperCase().includes('BANCO') ||
-          m.descripcion?.toUpperCase().includes('CHEQUE') ||
-          m.descripcion?.toUpperCase().includes('TRANSF')
+          (descU.includes('BANCO') ||
+            descU.includes('CHEQUE') ||
+            descU.includes('TRANSF') ||
+            catU.includes('BANCO')) &&
+          !esIny
 
         return [
           new Date(m.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          m.categoria.toUpperCase(),
+          catU,
           isVirtual ? 'BANCO' : 'EFECTIVO',
-          doc.splitTextToSize(m.descripcion?.toUpperCase() || m.categoria.toUpperCase(), 70),
+          doc.splitTextToSize(descU || catU, 70),
           {
             content: `${isIn ? '+' : '-'}${formatMoney(val)}`,
             styles: { textColor: isIn ? [0, 100, 0] : [150, 0, 0], fontStyle: 'bold' },

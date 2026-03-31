@@ -9,7 +9,7 @@ import {
   MdErrorOutline,
   MdArrowForward,
 } from 'react-icons/md'
-import { Container, Loading } from '../../components/index.components'
+import { Container, CumplesTrabajadores, Loading } from '../../components/index.components'
 import { useAuthStore } from '../../store/useAuthStore'
 import {
   cajaAPI,
@@ -139,7 +139,6 @@ const Home = () => {
 
     return (
       <div className="w-full mb-12 mt-4">
-        {' '}
         {/* Añadido mt-4 para alejarlo del borde superior */}
         <div className="bg-white border border-amber-200 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm border-l-[14px] border-l-amber-400">
           <div className="flex items-center gap-6">
@@ -203,6 +202,8 @@ const Home = () => {
         <section
           className={`flex-1 bg-[#F5F9FF] min-h-screen transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'} `}
         >
+          <CumplesTrabajadores token={token} />
+
           {/* AJUSTE: py-32 le da espacio suficiente arriba (header) y abajo */}
           <div
             className={`flex flex-col ${

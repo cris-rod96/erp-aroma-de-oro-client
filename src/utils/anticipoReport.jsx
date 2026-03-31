@@ -119,7 +119,7 @@ export const exportarAnticipoPDF = (anticipo, empresa) => {
                 },
                 {
                   content: (anticipo.Persona?.nombreCompleto || 'N/A').toUpperCase(),
-                  styles: { halign: 'left', fontStyle: 'bold', cellWidth: 70 },
+                  styles: { halign: 'center', fontStyle: 'bold', cellWidth: 70 },
                 },
                 {
                   content: 'CÉDULA/RUC:',
@@ -127,7 +127,7 @@ export const exportarAnticipoPDF = (anticipo, empresa) => {
                 },
                 {
                   content: anticipo.Persona?.numeroIdentificacion || 'N/A',
-                  styles: { cellWidth: 70, fontStyle: 'bold' },
+                  styles: { cellWidth: 70, fontStyle: 'bold', halign: 'center' },
                 },
               ],
             ],
@@ -147,7 +147,7 @@ export const exportarAnticipoPDF = (anticipo, empresa) => {
                 {
                   content: formatMoney(anticipo.monto),
                   styles: {
-                    halign: 'right',
+                    halign: 'center',
                     fontStyle: 'bold',
                     fontSize: 11,
                     fillColor: [245, 245, 245],
