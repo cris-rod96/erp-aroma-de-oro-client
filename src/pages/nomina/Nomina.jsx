@@ -435,14 +435,14 @@ const Nomina = () => {
             </div>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || totalPagar < 0}
               className="bg-amber-400 text-amber-950 px-8 py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-amber-300 transition-all active:scale-95 shadow-lg flex items-center gap-2 italic"
             >
               {loading ? (
                 '...'
               ) : (
                 <>
-                  <MdPayments size={16} /> Pagar
+                  <MdPayments size={16} /> {totalPagar > 0 ? 'Pagar' : 'Valor inválido'}
                 </>
               )}
             </button>
