@@ -342,7 +342,7 @@ const Prestamos = () => {
                         <td className="px-8 py-5 text-center">
                           <button
                             onClick={() => prepararEdicion(pres)}
-                            className="p-3 bg-gray-900 text-amber-400 rounded-xl hover:scale-110 shadow-md border border-gray-700 transition-all"
+                            className="p-3 bg-gray-900 text-amber-400 rounded-xl hover:scale-110 shadow-md border border-gray-700 transition-all mr-2"
                           >
                             <MdEdit size={18} />
                           </button>

@@ -417,6 +417,7 @@ const Nomina = () => {
             <input
               type="number"
               step="0.01"
+              disabled={true}
               className="w-full h-12 bg-red-50 border border-red-100 rounded-xl px-4 text-xs font-black font-mono outline-none"
               value={pagoData.descuentoPrestamo}
               onChange={(e) => setPagoData({ ...pagoData, descuentoPrestamo: e.target.value })}
