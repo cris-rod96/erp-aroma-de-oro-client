@@ -24,6 +24,14 @@ const anticipoAPI = {
       },
     })
   },
+
+  actualizar: (token, data) => {
+    return instance.patch(`/${model}/actualizar-anticipo`, data, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
 }
 
 export default anticipoAPI

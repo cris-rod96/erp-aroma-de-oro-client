@@ -35,7 +35,6 @@ export const usePrestamos = () => {
         'error'
       )
     }
-    console.log(prestamo)
 
     setIsEdit(true)
     setPrestamoEditId(prestamo.id)
@@ -51,6 +50,7 @@ export const usePrestamos = () => {
     setIsEdit(false)
     setPrestamoEditId(null)
     setEmpleadoInfo(null)
+    setEmpleadoId(null)
     setCedulaBusqueda('')
     setMontoTotal('')
     setCuotasPactadas(1)

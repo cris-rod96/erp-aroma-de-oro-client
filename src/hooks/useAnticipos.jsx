@@ -8,6 +8,10 @@ export const useAnticipos = () => {
   const { token, user } = useAuthStore()
   const { caja, setCaja } = useCajaStore()
 
+  const [isEdit, setIsEdit] = useState(false)
+  const [anticipoEditId, setAnticipoEditId] = useState(null)
+  const [productorId, setProductorId] = useState(null)
+
   const [anticiposGlobales, setAnticiposGlobales] = useState([])
   const [productores, setProductores] = useState([])
   const [loading, setLoading] = useState(false)
@@ -19,6 +23,31 @@ export const useAnticipos = () => {
   const [comentario, setComentario] = useState('')
   const [saldoDeudaProductor, setSaldoDeudaProductor] = useState(0)
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
+
+  const prepararEdicion = (anticipo) => {
+    if (anticipo.estado === 'Aplicado') {
+      return Swal.fire('Acción denegada', 'No se puede editar un anticipo aplicado', 'error')
+    }
+
+    setIsEdit(true)
+    setAnticipoEditId(anticipo.id)
+    setProductorInfo(anticipo.Persona)
+    setProductorId(anticipo.PersonaId)
+    setCedulaBusqueda(anticipo.Persona.nombreCompleto)
+    setMontoEntregar(anticipo.monto)
+    setComentario(anticipo.comentario)
+    setSaldoDeudaProductor(parseFloat(anticipo.saldoPendiente))
+  }
+
+  const cancelarEdicion = () => {
+    setIsEdit(false)
+    setAnticipoEditId(null)
+    setProductorInfo(null)
+    setProductorId(null)
+    setCedulaBusqueda('')
+    setMontoEntregar('')
+    setComentario('')
+  }
 
   const fetchDatos = useCallback(async () => {
     setError(null)
@@ -91,15 +120,34 @@ export const useAnticipos = () => {
 
     try {
       setLoading(true)
-      const res = await anticipoAPI.crearAnticipo(token, data)
-      Swal.fire('EXITO', 'Anticipo registrado', 'success')
-      if (res.data.caja) setCaja(res.data.caja)
+      if (isEdit) {
+        const res = await anticipoAPI.actualizar(token, {
+          ...data,
+          AnticipoId: anticipoEditId,
+        })
 
-      setProductorInfo(null)
-      setCedulaBusqueda('')
-      setMontoEntregar('')
-      setComentario('')
-      fetchDatos()
+        if (res.status === 200) {
+          Swal.fire('Éxito', 'Anticipo actualizado', 'success')
+          setCaja(res.data.caja)
+          setProductorInfo(null)
+          setCedulaBusqueda('')
+          setMontoEntregar('')
+          setComentario('')
+          setSaldoDeudaProductor(0)
+          cancelarEdicion()
+          fetchDatos()
+        }
+      } else {
+        const res = await anticipoAPI.crearAnticipo(token, data)
+        Swal.fire('EXITO', 'Anticipo registrado', 'success')
+        if (res.data.caja) setCaja(res.data.caja)
+
+        setProductorInfo(null)
+        setCedulaBusqueda('')
+        setMontoEntregar('')
+        setComentario('')
+        fetchDatos()
+      }
     } catch (error) {
       Swal.fire('ERROR', error.response?.data?.message || 'Fallo al registrar', 'error')
     } finally {
@@ -128,5 +176,7 @@ export const useAnticipos = () => {
     setMostrarSugerencias,
     seleccionarProductor,
     fetchDatos,
+    isEdit,
+    prepararEdicion,
   }
 }

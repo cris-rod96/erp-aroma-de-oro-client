@@ -10,6 +10,7 @@ import {
   MdChevronLeft,
   MdChevronRight,
   MdWarning,
+  MdEdit,
 } from 'react-icons/md'
 import { Container } from '../../components/index.components'
 import { useAnticipos } from '../../hooks/useAnticipos'
@@ -37,6 +38,8 @@ const Anticipos = () => {
     mostrarSugerencias,
     setMostrarSugerencias,
     seleccionarProductor,
+    prepararEdicion,
+    isEdit,
   } = useAnticipos()
 
   const empresa = useEmpresaStore((state) => state.empresa)
@@ -120,7 +123,7 @@ const Anticipos = () => {
                 <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-6">
                   <MdAddCircle className="text-amber-500" size={28} />
                   <h2 className="text-lg font-black text-gray-800 uppercase tracking-tighter">
-                    Nuevo Anticipo
+                    {isEdit ? 'Corregir anticipo' : 'Nuevo Anticipo'}
                   </h2>
                 </div>
 
@@ -191,7 +194,7 @@ const Anticipos = () => {
                         </div>
                       </div>
 
-                      {tieneDeudaPendiente ? (
+                      {tieneDeudaPendiente && !isEdit ? (
                         <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200 flex gap-3 items-center">
                           <MdWarning className="text-amber-600" size={24} />
                           <p className="text-[9px] font-black text-amber-800 uppercase leading-tight">
@@ -221,7 +224,11 @@ const Anticipos = () => {
                             disabled={loading || !montoEntregar || !comentario}
                             className="w-full py-5 bg-amber-400 text-gray-900 rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-lg hover:bg-amber-500 active:scale-95 transition-all disabled:opacity-50"
                           >
-                            {loading ? 'PROCESANDO...' : 'CONFIRMAR ANTICIPO'}
+                            {loading
+                              ? 'PROCESANDO...'
+                              : isEdit
+                                ? 'GUARDAR CAMPIOS'
+                                : 'CONFIRMAR ANTICIPO'}
                           </button>
                         </>
                       )}
@@ -301,6 +308,12 @@ const Anticipos = () => {
                             ${parseFloat(ant.monto).toFixed(2)}
                           </td>
                           <td className="px-8 py-5 text-center">
+                            <button
+                              onClick={() => prepararEdicion(ant)}
+                              className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-all mr-2"
+                            >
+                              <MdEdit size={18} />
+                            </button>
                             <button
                               onClick={() => exportarAnticipoPDF(ant, empresa)}
                               className="p-3 bg-amber-50 text-amber-600 rounded-xl hover:bg-amber-100 transition-all"
