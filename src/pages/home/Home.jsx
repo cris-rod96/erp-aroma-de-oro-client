@@ -28,6 +28,8 @@ const Home = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [mensajeLoading, setMensajeLoading] = useState('Iniciando sistema...')
+  const [cumplesHoy, setCumplesHoy] = useState([])
+  const [cumplesManana, setCumplesManana] = useState([])
 
   const [cajaAbierta, setCajaAbierta] = useState(true)
   const [empresaRegistrada, setEmpresaRegistrada] = useState(true)
@@ -68,6 +70,7 @@ const Home = () => {
           respCuentasPorPagar,
           respCuentasPorCobrar,
           respEmpresa,
+          respCumples,
         ] = await Promise.all([
           usuarioAPI.listarUsuarios(token),
           productorAPI.listarTodos(token),
@@ -78,11 +81,14 @@ const Home = () => {
           cuentasPorPagarAPI.listarPendientes(token),
           cuentasPorCobrarAPI.listarPendientes(token),
           empresaAPI.obtenerInformacion(token),
+          trabajadorAPI.listarProximosCumples(token),
         ])
 
         const cajaData = respCajaActiva.data.caja
         setCajaAbierta(!!cajaData)
         setEmpresaRegistrada(respEmpresa.data.empresa)
+        setCumplesHoy(respCumples.data.cumples.alertasHoy || [])
+        setCumplesManana(respCumples.data.cumples.alertasManana || [])
 
         const usuariosData = respUsuarios.data.usuarios || []
         const countActivos = usuariosData.filter((u) => u.estaActivo).length
@@ -202,8 +208,6 @@ const Home = () => {
         <section
           className={`flex-1 bg-[#F5F9FF] min-h-screen transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'} `}
         >
-          <CumplesTrabajadores token={token} />
-
           {/* AJUSTE: py-32 le da espacio suficiente arriba (header) y abajo */}
           <div
             className={`flex flex-col ${
@@ -211,6 +215,9 @@ const Home = () => {
             } mx-auto py-32 px-10 transition-all duration-500`}
           >
             {!loading && <BannerInformativo />}
+            {!loading && (
+              <CumplesTrabajadores cumplesHoy={cumplesHoy} cumplesManana={cumplesManana} />
+            )}
 
             <div
               className={`grid md:grid-cols-2 sm:grid-cols-1 items-center gap-10 ${
