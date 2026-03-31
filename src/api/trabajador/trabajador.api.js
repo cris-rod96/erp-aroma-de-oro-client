@@ -28,7 +28,7 @@ const trabajadorAPI = {
   },
 
   actualizarTrabajador: (id, data, token) => {
-    return instance.patch(`/${model}/trabajadores/actualizar-informacion/${id}`, data, {
+    return instance.patch(`/${model}/actualizar-informacion/${id}`, data, {
       headers: {
         'x-token': token,
       },

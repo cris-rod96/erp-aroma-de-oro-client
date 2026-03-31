@@ -162,6 +162,7 @@ const Nomina = () => {
       direccion: t.direccion || '',
       tipo: t.tipo,
       estaActivo: t.estaActivo,
+      fechaNacimiento: t.fechaNacimiento || '',
     })
     setIsEdit(true)
     setIsModalOpen(true)
