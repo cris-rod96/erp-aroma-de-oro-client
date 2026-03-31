@@ -7,6 +7,9 @@ import {
   FaPhone,
   FaIdCard,
   FaCalendarAlt,
+  FaMoneyBillWave,
+  FaPlusCircle,
+  FaArrowDown,
 } from 'react-icons/fa'
 import { Container, Modal, NominaHeader, NominaTable } from '../../components/index.components'
 import { MdDelete, MdPayments } from 'react-icons/md'
@@ -334,115 +337,124 @@ const Nomina = () => {
         onClose={() => setIsPagoModalOpen(false)}
         title={`Liquidación: ${selectedTrabajador?.nombreCompleto}`}
       >
-        <form onSubmit={handleConfirmarPago} className="space-y-5">
+        <form onSubmit={handleConfirmarPago} className="space-y-6">
+          {/* SECCIÓN 1: INFO PRÉSTAMO - COMPACTA */}
           {prestamoActivo && (
-            <div className="bg-amber-50 border-2 border-amber-100 p-4 rounded-2xl flex justify-between items-center shadow-sm">
-              <div className="flex items-center gap-3">
-                <FaHandHoldingUsd className="text-amber-600" size={20} />
+            <div className="bg-white border border-gray-100 p-5 rounded-2xl flex justify-between items-center shadow-sm">
+              <div className="flex items-center gap-4">
+                <div className="bg-amber-100 p-3 rounded-xl text-amber-600 shrink-0">
+                  <FaHandHoldingUsd size={20} />
+                </div>
                 <div>
-                  <p className="text-[9px] font-black text-amber-800 uppercase">Saldo Préstamo</p>
-                  <p className="text-lg font-black text-gray-900">
+                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none mb-1">
+                    Deuda Activa
+                  </p>
+                  <p className="text-xl font-black text-gray-950 font-mono tracking-tighter leading-none">
                     ${parseFloat(prestamoActivo.saldoPendiente).toFixed(2)}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-[9px] font-black text-emerald-600 uppercase">Cuota Pactada</p>
-                <p className="text-md font-black text-emerald-700">
+              <div className="text-right border-l border-gray-100 pl-4 py-1">
+                <p className="text-[9px] font-black text-gray-400 uppercase leading-none mb-1">
+                  Cuota Sugerida
+                </p>
+                <p className="text-sm font-black text-emerald-700 tracking-tight leading-none">
                   ${parseFloat(prestamoActivo.montoCuota).toFixed(2)}
                 </p>
               </div>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Periodo</label>
-              <select
-                className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-xs font-bold outline-none focus:border-amber-400"
-                value={pagoData.tipoPeriodo}
-                onChange={(e) => setPagoData({ ...pagoData, tipoPeriodo: e.target.value })}
-              >
-                <option value="Jornal">JORNAL</option>
-                <option value="Semanal">SEMANAL</option>
-                <option value="Quincenal">QUINCENAL</option>
-                <option value="Mensual">MENSUAL</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
-                Unidades
-              </label>
-              <input
-                type="number"
-                disabled={pagoData.tipoPeriodo !== 'Jornal'}
-                className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-xs font-black font-mono outline-none disabled:opacity-50"
-                value={pagoData.unidadesTrabajadas}
-                onChange={(e) => setPagoData({ ...pagoData, unidadesTrabajadas: e.target.value })}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
-                Sueldo Base ($)
-              </label>
+          {/* SECCIÓN 2: INGRESOS - LIMPIA */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 px-1">
+                <FaMoneyBillWave className="text-gray-400" size={14} />
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                  Sueldo Base ($)
+                </label>
+              </div>
               <input
                 type="number"
                 step="0.01"
-                className="w-full h-12 bg-gray-50 border border-gray-200 rounded-xl px-4 text-xs font-black font-mono outline-none"
+                className="w-full h-12 bg-gray-50/50 border border-gray-100 rounded-xl px-4 text-xs font-black font-mono outline-none focus:border-emerald-400 transition-all shadow-inner"
                 value={pagoData.sueldoBase}
                 onChange={(e) => setPagoData({ ...pagoData, sueldoBase: e.target.value })}
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-emerald-500 uppercase ml-2">
-                Bono (+)
-              </label>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 px-1">
+                <FaPlusCircle className="text-emerald-400" size={14} />
+                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">
+                  Bono (+)
+                </label>
+              </div>
               <input
                 type="number"
                 step="0.01"
-                className="w-full h-12 bg-emerald-50 border border-emerald-100 rounded-xl px-4 text-xs font-black font-mono outline-none"
+                className="w-full h-12 bg-emerald-50/50 border border-emerald-100 rounded-xl px-4 text-xs font-black font-mono outline-none focus:border-emerald-400 shadow-inner"
                 value={pagoData.bono}
                 onChange={(e) => setPagoData({ ...pagoData, bono: e.target.value })}
               />
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-red-500 uppercase ml-2">
-              Descuento Préstamo (-)
-            </label>
+          {/* SECCIÓN 3: DESCUENTO - DETALLADA PERO SOBRIA */}
+          <div className="bg-gray-50/50 border border-gray-100 p-5 rounded-2xl">
+            <div className="flex justify-between items-center mb-4 px-1">
+              <div className="flex items-center gap-2">
+                <FaArrowDown className="text-red-400" size={14} />
+                <h3 className="text-[10px] font-black text-red-600 uppercase tracking-widest">
+                  Descuento Préstamo (-)
+                </h3>
+              </div>
+              {pagoData.descuentoPrestamo > Number(pagoData.sueldoBase) + Number(pagoData.bono) && (
+                <span className="text-[9px] font-black text-red-700 bg-red-100 px-2 py-0.5 rounded uppercase">
+                  ¡Excede el sueldo!
+                </span>
+              )}
+            </div>
+
             <input
               type="number"
               step="0.01"
-              disabled={true}
-              className="w-full h-12 bg-red-50 border border-red-100 rounded-xl px-4 text-xs font-black font-mono outline-none"
+              disabled={!prestamoActivo}
+              className={`w-full h-12 rounded-xl px-4 text-xs font-black font-mono outline-none transition-all shadow-inner ${
+                prestamoActivo
+                  ? 'bg-white border border-gray-200 focus:border-red-400'
+                  : 'bg-gray-100/50 cursor-not-allowed border-dashed'
+              }`}
               value={pagoData.descuentoPrestamo}
               onChange={(e) => setPagoData({ ...pagoData, descuentoPrestamo: e.target.value })}
             />
           </div>
 
-          <div className="bg-gray-900 rounded-[2rem] p-6 flex justify-between items-center border-b-4 border-amber-500 shadow-xl">
-            <div>
-              <p className="text-[9px] font-black text-amber-500/50 uppercase tracking-widest">
+          {/* SECCIÓN 4: TOTAL Y BOTÓN - DISEÑO TIPO FEED, NO FLOAT */}
+          <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl border-b-4 border-amber-600">
+            <div className="w-full sm:w-auto text-center sm:text-left">
+              <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-widest">
                 Neto a Recibir
               </p>
-              <p className="text-3xl font-black text-white italic font-mono tracking-tighter">
+              <p className="text-4xl font-black text-white italic font-mono tracking-tighter leading-none mt-1">
                 ${totalPagar.toFixed(2)}
               </p>
             </div>
+
             <button
               type="submit"
-              disabled={loading || totalPagar < 0}
-              className="bg-amber-400 text-amber-950 px-8 py-3.5 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-amber-300 transition-all active:scale-95 shadow-lg flex items-center gap-2 italic"
+              disabled={loading || totalPagar <= 0}
+              className="w-full sm:w-auto bg-amber-400 text-amber-950 px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-amber-300 transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 italic disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
             >
               {loading ? (
                 '...'
+              ) : totalPagar < 0 ? (
+                'ERROR DE CÁLCULO'
+              ) : totalPagar === 0 ? (
+                'VALORES INVÁLIDOS'
               ) : (
                 <>
-                  <MdPayments size={16} /> {totalPagar > 0 ? 'Pagar' : 'Valor inválido'}
+                  {' '}
+                  <MdPayments size={18} /> Confirmar Pago{' '}
                 </>
               )}
             </button>
