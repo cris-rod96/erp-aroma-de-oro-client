@@ -18,6 +18,14 @@ const prestamoAPI = {
       },
     })
   },
+
+  actualizarPrestamo: (token, data) => {
+    return instance.patch(`/${model}/actualizar-prestamo`, data, {
+      headers: {
+        'x-token': token,
+      },
+    })
+  },
 }
 
 export default prestamoAPI

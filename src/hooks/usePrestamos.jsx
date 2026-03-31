@@ -9,6 +9,8 @@ export const usePrestamos = () => {
   const token = useAuthStore((state) => state.token)
   const usuarioId = useAuthStore((state) => state.user?.id)
   const { caja, setCaja } = useCajaStore()
+  const [isEdit, setIsEdit] = useState(false)
+  const [prestamoEditId, setPrestamoEditId] = useState(null)
 
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -20,8 +22,40 @@ export const usePrestamos = () => {
   const [montoTotal, setMontoTotal] = useState('')
   const [cuotasPactadas, setCuotasPactadas] = useState(1)
   const [comentario, setComentario] = useState('')
+  const [empleadoId, setEmpleadoId] = useState(null)
   const [mostrarSugerencias, setMostrarSugerencias] = useState(false)
   const [saldoDeudaEmpleado, setSaldoDeudaEmpleado] = useState(0)
+
+  const prepararEdicion = (prestamo) => {
+    // Solo permitir editar si no tiene cuotas pagadas (regla de negocio sugerida)
+    if (prestamo.cuotasPagadas > 0) {
+      return Swal.fire(
+        'Acción Denegada',
+        'No se puede editar un préstamo con pagos realizados',
+        'error'
+      )
+    }
+    console.log(prestamo)
+
+    setIsEdit(true)
+    setPrestamoEditId(prestamo.id)
+    setEmpleadoInfo(prestamo.Persona)
+    setEmpleadoId(prestamo.PersonaId)
+    setCedulaBusqueda(prestamo.Persona.nombreCompleto)
+    setMontoTotal(prestamo.montoTotal)
+    setCuotasPactadas(prestamo.cuotasPactadas)
+    setComentario(prestamo.comentario)
+    setSaldoDeudaEmpleado(0) // Opcional: resetear para que el form no se bloquee
+  }
+  const cancelarEdicion = () => {
+    setIsEdit(false)
+    setPrestamoEditId(null)
+    setEmpleadoInfo(null)
+    setCedulaBusqueda('')
+    setMontoTotal('')
+    setCuotasPactadas(1)
+    setComentario('')
+  }
 
   const fetchDatosIniciales = useCallback(async () => {
     setLoading(true)
@@ -83,25 +117,47 @@ export const usePrestamos = () => {
     try {
       setLoading(true)
       const data = {
-        PersonaId: empleadoInfo.id,
         CajaId: caja.id,
         UsuarioId: usuarioId,
         montoTotal: parseFloat(montoTotal),
         cuotasPactadas: parseInt(cuotasPactadas),
         comentario: comentario.trim().toUpperCase(),
       }
+      if (isEdit) {
+        const res = await prestamoAPI.actualizarPrestamo(token, {
+          ...data,
+          PrestamoId: prestamoEditId,
+          PersonaId: empleadoId,
+        })
+        if (res.status === 200) {
+          Swal.fire('¡Éxito!', 'Préstamo actualizado', 'success')
+          setCaja(res.data.caja)
+          setEmpleadoInfo(null)
+          setCedulaBusqueda('')
+          setMontoTotal('')
+          setCuotasPactadas(1)
+          setComentario('')
+          setSaldoDeudaEmpleado(0)
+          cancelarEdicion()
 
-      const res = await prestamoAPI.crearPrestamo(token, data)
-      if (res.status === 201) {
-        Swal.fire('¡Éxito!', 'Préstamo registrado', 'success')
-        setCaja(res.data.caja)
-        setEmpleadoInfo(null)
-        setCedulaBusqueda('')
-        setMontoTotal('')
-        setCuotasPactadas(1)
-        setComentario('')
-        setSaldoDeudaEmpleado(0)
-        fetchDatosIniciales()
+          fetchDatosIniciales()
+        }
+      } else {
+        const res = await prestamoAPI.crearPrestamo(token, {
+          ...data,
+          PersonaId: empleadoInfo.id,
+        })
+        if (res.status === 201) {
+          Swal.fire('¡Éxito!', 'Préstamo registrado', 'success')
+          setCaja(res.data.caja)
+          setEmpleadoInfo(null)
+          setCedulaBusqueda('')
+          setMontoTotal('')
+          setCuotasPactadas(1)
+          setComentario('')
+          setSaldoDeudaEmpleado(0)
+          fetchDatosIniciales()
+        }
       }
     } catch (error) {
       Swal.fire('Error', error.response?.data?.message || 'Fallo', 'error')
@@ -130,5 +186,7 @@ export const usePrestamos = () => {
     setMostrarSugerencias,
     seleccionarEmpleado,
     saldoDeudaEmpleado,
+    prepararEdicion,
+    isEdit,
   }
 }

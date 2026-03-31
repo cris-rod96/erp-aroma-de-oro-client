@@ -12,6 +12,7 @@ import {
   MdChevronLeft,
   MdChevronRight,
   MdWarning,
+  MdEdit,
 } from 'react-icons/md'
 import { usePrestamos } from '../../hooks/usePrestamos'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
@@ -40,6 +41,8 @@ const Prestamos = () => {
     setMostrarSugerencias,
     seleccionarEmpleado,
     saldoDeudaEmpleado,
+    prepararEdicion,
+    isEdit,
   } = usePrestamos()
 
   const empresa = useEmpresaStore((state) => state.empresa)
@@ -110,7 +113,7 @@ const Prestamos = () => {
               <div className="flex items-center gap-3 mb-8 border-b border-gray-100 pb-6">
                 <MdReceiptLong className="text-amber-500" size={28} />
                 <h2 className="text-lg font-black text-gray-800 uppercase tracking-tighter italic">
-                  Nuevo Crédito
+                  {isEdit ? 'Corregir crédito' : 'Nuevo crédito'}
                 </h2>
               </div>
 
@@ -236,7 +239,11 @@ const Prestamos = () => {
                           disabled={loading || !montoTotal || !cuotasPactadas || !comentario}
                           className="w-full py-5 bg-gray-900 text-amber-400 rounded-[1.5rem] text-[11px] font-black uppercase tracking-[0.2em] shadow-xl hover:bg-black transition-all italic"
                         >
-                          {loading ? 'PROCESANDO...' : 'AUTORIZAR PRÉSTAMO'}
+                          {loading
+                            ? 'PROCESANDO...'
+                            : isEdit
+                              ? 'GUARDAR CAMBIOS'
+                              : 'AUTORIZAR PRÉSTAMO'}
                         </button>
                       </>
                     )}
@@ -333,6 +340,12 @@ const Prestamos = () => {
                           ${parseFloat(pres.saldoPendiente).toFixed(2)}
                         </td>
                         <td className="px-8 py-5 text-center">
+                          <button
+                            onClick={() => prepararEdicion(pres)}
+                            className="p-3 bg-gray-900 text-amber-400 rounded-xl hover:scale-110 shadow-md border border-gray-700 transition-all"
+                          >
+                            <MdEdit size={18} />
+                          </button>
                           <button
                             onClick={() => exportarPrestamoPDF(pres, empresa)}
                             className="p-3 bg-gray-900 text-amber-400 rounded-xl hover:scale-110 shadow-md border border-gray-700 transition-all"
