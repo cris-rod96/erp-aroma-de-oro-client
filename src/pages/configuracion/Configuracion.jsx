@@ -395,7 +395,7 @@ const Configuracion = () => {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
+                      <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 ">
                         Dirección
                       </label>
                       <textarea
@@ -403,7 +403,7 @@ const Configuracion = () => {
                         rows="3"
                         value={empresaData.direccion}
                         onChange={handleEmpresaChange}
-                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold outline-none resize-none focus:border-amber-400"
+                        className="w-full border border-gray-200 rounded-xl px-4 py-3 text-xs font-bold outline-none resize-none focus:border-amber-400 uppercase"
                       />
                     </div>
                   </div>

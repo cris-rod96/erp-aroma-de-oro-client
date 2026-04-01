@@ -113,6 +113,10 @@ const Productores = () => {
       Swal.fire('Atención', 'El RUC debe tener 13 dígitos', 'warning')
       return false
     }
+    if (telefono && telefono.length !== 10) {
+      Swal.fire('Atención', 'El teléfono debe tener 10 dígitos', 'warning')
+      return false
+    }
     return true
   }
 
