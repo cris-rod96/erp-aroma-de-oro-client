@@ -83,6 +83,7 @@ const useCompradores = () => {
   }
   const handleNuevoComprador = async (e) => {
     e.preventDefault()
+    setLoading(true)
     const { nombreCompleto, tipoIdentificacion, numeroIdentificacion, telefono } = formData
 
     if (!nombreCompleto)
@@ -105,16 +106,23 @@ const useCompradores = () => {
       )
 
     try {
-      const resp = await compradorAPI.agregarComprador(formData, token)
-      if (resp.status === 201) {
-        Swal.fire('Éxito', 'Comprador registrado con éxito', 'success')
-        resetData()
-        fetchCompradores()
-        setIsModalOpen(false)
+      if (isEdit) {
+        await compradorAPI.actualizarComprador(selectedId, formData, token)
+        Swal.fire('Éxito', 'Comprador actualizado', 'success')
+      } else {
+        const resp = await compradorAPI.agregarComprador(formData, token)
+        if (resp.status === 201) {
+          Swal.fire('Éxito', 'Comprador registrado con éxito', 'success')
+        }
       }
+      resetData()
+      fetchCompradores()
+      setIsModalOpen(false)
     } catch (error) {
       const msg = error.response?.data?.message || 'Error al guardar el comprador'
       Swal.fire('Error al registrar', msg, 'error')
+    } finally {
+      setLoading(false)
     }
   }
 

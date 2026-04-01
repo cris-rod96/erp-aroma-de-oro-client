@@ -51,7 +51,7 @@ const Compradores = () => {
         <CompradoresTable
           fetching={fetching}
           handleDelete={handleDelete}
-          handleOpenModal={setIsModalOpen}
+          handleOpenModal={handleOpenModal}
           compradores={compradoresFiltrados}
           error={error}
           handleRestore={handleRestore}

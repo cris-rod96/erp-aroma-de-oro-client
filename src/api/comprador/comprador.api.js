@@ -20,7 +20,7 @@ const compradorAPI = {
   },
 
   actualizarComprador: (id, data, token) => {
-    return instance.patch(`/${model}/compradores/actualizar-informacion/${id}`, data, {
+    return instance.patch(`/${model}/actualizar-informacion/${id}`, data, {
       headers: {
         'x-token': token,
       },
