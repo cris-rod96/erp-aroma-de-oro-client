@@ -5,6 +5,7 @@ import ProductoresHeader from './ProductoresHeader'
 import ComprasHeader from './ComprasHeader'
 import NominaHeader from './NominaHeader'
 import InventarioHeader from './InventarioHeader'
+import CompradoresHeader from './CompradoresHeader'
 export {
   KardexHeader,
   UsuariosHeader,
@@ -13,4 +14,5 @@ export {
   ComprasHeader,
   NominaHeader,
   InventarioHeader,
+  CompradoresHeader,
 }

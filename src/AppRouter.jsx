@@ -19,6 +19,7 @@ import {
   Anticipos,
   Prestamos,
   Gastos,
+  Compradores,
 } from './pages/index.pages'
 import RootLayout from './layout/RootLayout'
 import { useAuthStore } from './store/useAuthStore'
@@ -53,6 +54,7 @@ const AppRouter = () => {
         <Route path="/inicio/anticipos" element={<Anticipos />} />
         <Route path="/inicio/prestamos" element={<Prestamos />} />
         <Route path="/inicio/gastos" element={<Gastos />} />
+        <Route path="/inicio/compradores" element={<Compradores />} />
       </Route>
 
       <Route path="*" element={<NotFound />} />

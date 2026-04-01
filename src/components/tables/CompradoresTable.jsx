@@ -10,12 +10,11 @@ import {
   MdChevronRight,
 } from 'react-icons/md'
 
-const ProductoresTable = ({
+const CompradoresTable = ({
   fetching,
-  productores,
+  compradores,
   handleDelete,
   handleOpenModal,
-  handleVerLiquidaciones,
   handleRestore, // <--- Nueva prop para restaurar
   error,
   verEliminados,
@@ -25,14 +24,14 @@ const ProductoresTable = ({
 
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentProductores = productores?.slice(indexOfFirstItem, indexOfLastItem) || []
-  const totalPages = Math.ceil((productores?.length || 0) / itemsPerPage)
+  const currentCompradores = compradores?.slice(indexOfFirstItem, indexOfLastItem) || []
+  const totalPages = Math.ceil((compradores?.length || 0) / itemsPerPage)
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [productores?.length])
+  }, [compradores?.length])
 
   return (
     <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col">
@@ -53,11 +52,11 @@ const ProductoresTable = ({
           </h3>
           <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase max-w-xs">{error}</p>
         </div>
-      ) : currentProductores.length === 0 ? (
+      ) : currentCompradores.length === 0 ? (
         <div className="px-6 py-24 text-center">
           <MdInbox size={80} className="mx-auto text-gray-100 mb-4" />
           <p className="text-gray-400 font-black uppercase text-[10px] tracking-[0.2em]">
-            No se encontraron productores {verEliminados ? 'eliminados' : 'registrados'}
+            No se encontraron compradores {verEliminados ? 'eliminados' : 'registrados'}
           </p>
         </div>
       ) : (
@@ -68,7 +67,7 @@ const ProductoresTable = ({
               <thead className="bg-gray-50/50">
                 <tr>
                   <th className="px-8 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                    Productor
+                    Comprador
                   </th>
                   <th className="px-6 py-6 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     Identificación
@@ -82,75 +81,68 @@ const ProductoresTable = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {currentProductores.map((productor) => (
+                {currentCompradores.map((comprador) => (
                   <tr
-                    key={productor.id}
-                    className={`transition-all ${!productor.estaActivo ? 'bg-gray-50/50 opacity-75' : 'hover:bg-amber-50/30'}`}
+                    key={comprador.id}
+                    className={`transition-all ${!comprador.estaActivo ? 'bg-gray-50/50 opacity-75' : 'hover:bg-amber-50/30'}`}
                   >
                     <td className="px-8 py-5">
                       <div className="flex items-center">
                         <div
                           className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg shadow-lg ${
-                            productor.estaActivo
+                            comprador.estaActivo
                               ? 'bg-gray-900 text-amber-400'
                               : 'bg-gray-200 text-gray-400'
                           }`}
                         >
-                          {productor.nombreCompleto.charAt(0)}
+                          {comprador.nombreCompleto.charAt(0)}
                         </div>
                         <div className="ml-4">
                           <div className="text-sm font-black text-gray-800 uppercase tracking-tighter leading-none mb-1">
-                            {productor.nombreCompleto}
+                            {comprador.nombreCompleto}
                           </div>
                           <div className="text-[9px] text-gray-400 font-bold uppercase tracking-widest flex items-center">
                             <MdLocationOn className="mr-1 text-amber-500" size={12} />
-                            {productor.direccion || 'SIN DIRECCIÓN'}
+                            {comprador.direccion || 'SIN DIRECCIÓN'}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="text-[10px] text-amber-600 font-black uppercase tracking-tighter mb-0.5">
-                        {productor.tipoIdentificacion}
+                        {comprador.tipoIdentificacion}
                       </div>
                       <div className="text-[13px] text-gray-700 font-mono font-bold tracking-tight">
-                        {productor.numeroIdentificacion}
+                        {comprador.numeroIdentificacion}
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <span
                         className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${
-                          productor.estaActivo
+                          comprador.estaActivo
                             ? 'bg-green-50 text-green-600 border-green-100'
                             : 'bg-red-50 text-red-400 border-red-100'
                         }`}
                       >
                         <span
-                          className={`h-1.5 w-1.5 rounded-full ${productor.estaActivo ? 'bg-green-500 animate-pulse' : 'bg-red-400'}`}
+                          className={`h-1.5 w-1.5 rounded-full ${comprador.estaActivo ? 'bg-green-500 animate-pulse' : 'bg-red-400'}`}
                         ></span>
-                        {productor.estaActivo ? 'Activo' : 'Inactivo'}
+                        {comprador.estaActivo ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">
                       <div className="flex justify-end gap-2">
-                        {productor.estaActivo ? (
+                        {comprador.estaActivo ? (
                           <>
                             <button
-                              onClick={() => handleVerLiquidaciones(productor)}
-                              className="p-3 text-blue-400 hover:text-blue-600 hover:bg-blue-50 rounded-2xl transition-all"
-                              title="Ver Ventas/Liquidaciones"
-                            >
-                              <MdReceiptLong size={20} />
-                            </button>
-                            <button
-                              onClick={() => handleOpenModal(true, productor)}
+                              onClick={() => handleOpenModal(true, comprador)}
                               className="p-3 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-2xl transition-all"
                               title="Editar Productor"
                             >
                               <FaUserEdit size={18} />
                             </button>
                             <button
-                              onClick={() => handleDelete(productor.id)}
+                              onClick={() => handleDelete(comprador.id)}
                               className="p-3 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-2xl transition-all"
                               title="Eliminar"
                             >
@@ -159,10 +151,10 @@ const ProductoresTable = ({
                           </>
                         ) : (
                           <button
-                            onClick={() => handleRestore(productor.id)}
+                            onClick={() => handleRestore(comprador.id)}
                             className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition-all active:scale-95"
                           >
-                            <FaTrashRestore size={14} /> Restaurar Productor
+                            <FaTrashRestore size={14} /> Restaurar Comprador
                           </button>
                         )}
                       </div>
@@ -175,52 +167,52 @@ const ProductoresTable = ({
 
           {/* --- VISTA MÓVIL --- */}
           <div className="md:hidden divide-y divide-gray-50">
-            {currentProductores.map((productor) => (
+            {currentCompradores.map((comprador) => (
               <div
-                key={productor.id}
-                className={`p-6 ${!productor.estaActivo ? 'bg-gray-50 opacity-80' : 'bg-white'}`}
+                key={comprador.id}
+                className={`p-6 ${!comprador.estaActivo ? 'bg-gray-50 opacity-80' : 'bg-white'}`}
               >
                 <div className="flex justify-between items-center mb-4">
                   <div className="flex items-center">
                     <div
                       className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-base shadow-md ${
-                        productor.estaActivo
+                        comprador.estaActivo
                           ? 'bg-gray-900 text-amber-400'
                           : 'bg-gray-200 text-gray-400'
                       }`}
                     >
-                      {productor.nombreCompleto.charAt(0)}
+                      {comprador.nombreCompleto.charAt(0)}
                     </div>
                     <div className="ml-4">
                       <div className="text-sm font-black text-gray-900 uppercase tracking-tighter">
-                        {productor.nombreCompleto}
+                        {comprador.nombreCompleto}
                       </div>
                       <div className="text-[10px] text-gray-400 font-bold tracking-widest uppercase">
-                        {productor.numeroIdentificacion}
+                        {comprador.numeroIdentificacion}
                       </div>
                     </div>
                   </div>
                   <span
-                    className={`h-2.5 w-2.5 rounded-full ${productor.estaActivo ? 'bg-green-500 shadow-lg shadow-green-200' : 'bg-red-400'}`}
+                    className={`h-2.5 w-2.5 rounded-full ${comprador.estaActivo ? 'bg-green-500 shadow-lg shadow-green-200' : 'bg-red-400'}`}
                   ></span>
                 </div>
                 <div className="flex gap-2">
-                  {productor.estaActivo ? (
+                  {comprador.estaActivo ? (
                     <>
                       <button
-                        onClick={() => handleVerLiquidaciones(productor.id)}
+                        // onClick={() => handleVerLiquidaciones(productor.id)}
                         className="flex-1 py-3 bg-blue-50 text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest"
                       >
-                        Ventas
+                        Compras
                       </button>
                       <button
-                        onClick={() => handleOpenModal(true, productor)}
+                        onClick={() => handleOpenModal(true, comprador)}
                         className="flex-1 py-3 bg-gray-100 text-gray-900 rounded-2xl text-[10px] font-black uppercase tracking-widest"
                       >
                         Editar
                       </button>
                       <button
-                        onClick={() => handleDelete(productor.id)}
+                        onClick={() => handleDelete(comprador.id)}
                         className="flex-1 py-3 bg-red-50 text-red-600 rounded-2xl text-[10px] font-black uppercase tracking-widest"
                       >
                         Borrar
@@ -228,10 +220,10 @@ const ProductoresTable = ({
                     </>
                   ) : (
                     <button
-                      onClick={() => handleRestore(productor.id)}
+                      onClick={() => handleRestore(comprador.id)}
                       className="w-full py-4 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg"
                     >
-                      <FaTrashRestore /> Recuperar Productor
+                      <FaTrashRestore /> Recuperar Comprador
                     </button>
                   )}
                 </div>
@@ -243,8 +235,8 @@ const ProductoresTable = ({
           <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
               Mostrando <span className="text-gray-900">{indexOfFirstItem + 1}</span> -{' '}
-              <span className="text-gray-900">{Math.min(indexOfLastItem, productores.length)}</span>{' '}
-              de <span className="text-gray-900">{productores.length}</span>
+              <span className="text-gray-900">{Math.min(indexOfLastItem, compradores.length)}</span>{' '}
+              de <span className="text-gray-900">{compradores.length}</span>
             </p>
 
             <div className="flex items-center gap-3">
@@ -289,4 +281,4 @@ const ProductoresTable = ({
   )
 }
 
-export default ProductoresTable
+export default CompradoresTable

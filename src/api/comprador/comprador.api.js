@@ -28,7 +28,7 @@ const compradorAPI = {
   },
 
   eliminarComprador: (id, token) => {
-    return instance.delete(`/${model}/compradores/borrar-persona/${id}`, {
+    return instance.delete(`/${model}/borrar-persona/${id}`, {
       headers: {
         'x-token': token,
       },

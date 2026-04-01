@@ -27,6 +27,7 @@ export const useProductores = (token) => {
     setError(null)
     try {
       const resp = await productorAPI.listarTodos(token)
+      console.log(resp.data.productores || [])
       setProductores(resp.data.productores || [])
     } catch (error) {
       console.log('Error al listar productores', error)

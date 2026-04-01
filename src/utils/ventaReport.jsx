@@ -145,6 +145,14 @@ export const exportarVentaPDF = async (venta, empresa) => {
           ],
         ],
       })
+      const unidadesAbreviadas = {
+        Quintales: 'QQ',
+        Kilogramos: 'KG',
+        Libras: 'LB',
+        Tacho: 'TCH', // O la abreviatura que prefieras
+      }
+      const unidadAbrev =
+        unidadesAbreviadas[venta.Producto?.unidadMedida] || venta.Producto?.unidadMedida || 'Cant.'
 
       // --- 3. DETALLE MERCANCÍA ---
       autoTable(doc, {
@@ -158,8 +166,8 @@ export const exportarVentaPDF = async (venta, empresa) => {
             'Cant. Bruta',
             'Calif %',
             'Imp %',
-            'Cant. Neta',
-            'Precio U.',
+            `Cant. Neta ${unidadAbrev}`,
+            `Precio ${unidadAbrev}`,
             'Subtotal',
           ],
         ],

@@ -121,6 +121,10 @@ export const useLiquidacion = () => {
     if (token) fetchInicial()
   }, [token])
 
+  useEffect(() => {
+    console.log(selectedLiq)
+  }, [selectedLiq])
+
   const productoresFiltrados = useMemo(() => {
     const termino = cedulaBusqueda.trim().toLowerCase()
     if (termino.length < 2) return []
@@ -170,64 +174,6 @@ export const useLiquidacion = () => {
     }
   }
 
-  const CONVERSIONES = {
-    Libras: 1,
-    Kilogramos: 2.2, // 1 kg = 2.20462 lbs
-    Quintales: 100, // 1 qq = 100 lbs
-  }
-
-  // const calculos = useMemo(() => {
-  //   const q = parseFloat(cantidad) || 0
-  //   const h = parseFloat(calificacion) || 0
-  //   const i = parseFloat(impurezas) || 0
-  //   const pUnit = parseFloat(precio) || 0
-  //   const rPorc = parseFloat(retencionPorcentaje) || 0
-  //   const antic = parseFloat(montoAplicarAnticipo) || 0
-  //   const deudaVieja = parseFloat(deudaAnterior) || 0
-
-  //   const mermaH = q * (h / 100)
-  //   const mermaI = q * (i / 100)
-  //   const totalM = mermaH + mermaI
-  //   const pNeto = q - totalM
-
-  //   const valBruto = pNeto * pUnit
-  //   const valRetenido = valBruto * (rPorc / 100)
-
-  //   const netoHoy = valBruto - valRetenido
-  //   const totalaPagarConDeuda = netoHoy + deudaVieja
-
-  //   const montoPagosHoy = Object.values(pagos).reduce(
-  //     (a, b) => parseFloat(a || 0) + parseFloat(b || 0),
-  //     0
-  //   )
-
-  //   const abonadoTotal = montoPagosHoy + antic
-  //   const saldo = totalaPagarConDeuda - abonadoTotal
-
-  //   return {
-  //     pesoBruto: q,
-  //     mermaCalificacion: mermaH,
-  //     mermaImpurezas: mermaI,
-  //     totalMerma: totalM,
-  //     pesoNeto: pNeto,
-  //     bruto: valBruto,
-  //     valorRetenido: valRetenido,
-  //     netoHoy: netoHoy,
-  //     totalAPagar: totalaPagarConDeuda,
-  //     montoAbonadoTotal: montoPagosHoy,
-  //     saldoADeber: saldo,
-  //     deudaAnterior: deudaVieja,
-  //   }
-  // }, [
-  //   cantidad,
-  //   calificacion,
-  //   impurezas,
-  //   precio,
-  //   retencionPorcentaje,
-  //   pagos,
-  //   montoAplicarAnticipo,
-  //   deudaAnterior,
-  // ])
   const calculos = useMemo(() => {
     // 1. Entradas base
     const qOriginal = parseFloat(cantidad) || 0
@@ -235,18 +181,19 @@ export const useLiquidacion = () => {
     const h = parseFloat(calificacion) || 0
     const i = parseFloat(impurezas) || 0
 
-    // Constantes de conversión (Asegúrate de tenerlas definidas fuera o pasarlas)
+    // 2. LÓGICA DE CONVERSIÓN (Se añade Tacho = 53 libras)
     const CONVERSIONES = {
       Libras: 1,
-      Kilogramos: 2.20462,
+      Kilogramos: 2.2,
       Quintales: 100,
+      Tacho: 53, // <--- La medida que pidió tu tío
     }
 
-    // 2. LÓGICA DE CONVERSIÓN
     const factorEntrada = CONVERSIONES[unidad] || 1
     const factorPago = CONVERSIONES[unidadPago] || 1
 
-    // Convertimos la cantidad recibida a la unidad en la que se va a pagar
+    // Convertimos la cantidad recibida a libras primero, y luego a la unidad de pago
+    // Ejemplo: 540 Libras (Entrada) / 53 (Factor Tacho) = 10.18 Tachos
     const qConvertida = (qOriginal * factorEntrada) / factorPago
 
     // 3. Cálculos de Merma
@@ -254,25 +201,23 @@ export const useLiquidacion = () => {
     const mermaI = qConvertida * (i / 100)
     const totalM = mermaH + mermaI
 
-    // PESO NETO:
-    // Para que 59 libras con 72% de merma de 16 exactos (y así 16 * 1.05 = 16.80)
-    // Usamos Math.floor para no "regalar" decimales de peso al productor.
-    // Si el resultado es muy pequeño (menor a 1), permitimos decimales para que no sea 0.
     const pNetoCalculado = qConvertida - totalM
 
+    // Lógica de redondeo/truncado según producto
     const pNeto =
-      nombreProductoSeleccionado.toLowerCase().includes('baba') || unidadPago === 'Quintales'
+      nombreProductoSeleccionado.toLowerCase().includes('baba') ||
+      unidadPago === 'Quintales' ||
+      unidadPago === 'Tacho'
         ? (Math.trunc(pNetoCalculado * 100) / 100).toFixed(2)
         : pNetoCalculado > 1
           ? Math.floor(pNetoCalculado)
           : Math.floor(pNetoCalculado * 100) / 100
 
-    // 4. CÁLCULOS MONETARIOS (Regla del Quintal)
-    // El precio (pUnit) se asume por Quintal, por eso dividimos para 100
-    const brutoCalculado =
-      unidadProductoSeleccionado === 'Quintales' ? pNeto * pUnit : pNeto * pUnit
+    // 4. CÁLCULOS MONETARIOS
+    // El precio pUnit siempre se multiplica por el peso neto resultante en la unidad de pago
+    const brutoCalculado = pNeto * pUnit
 
-    // Truncamos el valor monetario a 2 decimales para evitar el redondeo de .toFixed(2)
+    // Truncamos a 2 decimales para dinero
     const valBruto = Math.trunc(brutoCalculado * 100) / 100
 
     const rPorc = parseFloat(retencionPorcentaje) || 0
@@ -282,6 +227,8 @@ export const useLiquidacion = () => {
     // 5. Deudas y Pagos
     const antic = parseFloat(montoAplicarAnticipo) || 0
     const deudaVieja = parseFloat(deudaAnterior) || 0
+
+    // Si hay deuda anterior, se suma al total a pagar (o resta si es negativa)
     const totalaPagarConDeuda = netoHoy + deudaVieja
 
     const montoPagosHoy = Object.values(pagos).reduce(
@@ -318,7 +265,6 @@ export const useLiquidacion = () => {
     pagos,
     montoAplicarAnticipo,
     deudaAnterior,
-    unidadProductoSeleccionado,
     nombreProductoSeleccionado,
   ])
 

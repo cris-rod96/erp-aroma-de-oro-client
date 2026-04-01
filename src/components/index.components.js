@@ -9,6 +9,7 @@ import {
   ProductoresTable,
   ComprasTable,
   NominaTable,
+  CompradoresTable,
 } from './tables/index.tables'
 import {
   KardexHeader,
@@ -18,6 +19,7 @@ import {
   ComprasHeader,
   NominaHeader,
   InventarioHeader,
+  CompradoresHeader,
 } from './headers/index.headers'
 import CumplesTrabajadores from './banners/CumplesTrabajadores'
 
@@ -40,4 +42,6 @@ export {
   NominaTable,
   InventarioHeader,
   CumplesTrabajadores,
+  CompradoresHeader,
+  CompradoresTable,
 }

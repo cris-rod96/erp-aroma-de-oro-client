@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   FaPlus,
   FaHistory,
@@ -10,6 +10,8 @@ import {
   FaMoneyBillWave,
   FaPlusCircle,
   FaArrowDown,
+  FaLayerGroup,
+  FaHashtag,
 } from 'react-icons/fa'
 import { Container, Modal, NominaHeader, NominaTable } from '../../components/index.components'
 import { MdDelete, MdPayments } from 'react-icons/md'
@@ -20,7 +22,6 @@ import prestamoAPI from '../../api/prestamo/prestamo.api'
 import { nominaAPI, trabajadorAPI } from '../../api/index.api'
 import { exportarNominaPDF } from '../../utils/nominaReport'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
-import { useMemo } from 'react'
 
 const Nomina = () => {
   // --- ESTADOS ---
@@ -85,16 +86,20 @@ const Nomina = () => {
   }, [trabajadores, searchTerm, verEliminados])
 
   // --- LÓGICA DE CÁLCULOS ---
-  const subTotal =
-    pagoData.tipoPeriodo === 'Jornal'
-      ? parseFloat(pagoData.unidadesTrabajadas || 0) * parseFloat(pagoData.sueldoBase || 0)
-      : parseFloat(pagoData.sueldoBase || 0)
+  const subTotal = useMemo(() => {
+    const sueldo = parseFloat(pagoData.sueldoBase || 0)
+    const unidades = parseFloat(pagoData.unidadesTrabajadas || 0)
+    return pagoData.tipoPeriodo === 'Jornal' ? unidades * sueldo : sueldo
+  }, [pagoData.sueldoBase, pagoData.unidadesTrabajadas, pagoData.tipoPeriodo])
 
-  const totalPagar =
-    subTotal +
-    parseFloat(pagoData.bono || 0) -
-    parseFloat(pagoData.descuentoGeneral || 0) -
-    parseFloat(pagoData.descuentoPrestamo || 0)
+  const totalPagar = useMemo(() => {
+    return (
+      subTotal +
+      parseFloat(pagoData.bono || 0) -
+      parseFloat(pagoData.descuentoGeneral || 0) -
+      parseFloat(pagoData.descuentoPrestamo || 0)
+    )
+  }, [subTotal, pagoData.bono, pagoData.descuentoGeneral, pagoData.descuentoPrestamo])
 
   // --- EFECTOS ---
   useEffect(() => {
@@ -111,6 +116,8 @@ const Nomina = () => {
         setPagoData((p) => ({ ...p, unidadesTrabajadas: 15 }))
       else if (pagoData.tipoPeriodo === 'Mensual')
         setPagoData((p) => ({ ...p, unidadesTrabajadas: diasMesActual }))
+      else if (pagoData.tipoPeriodo === 'Jornal')
+        setPagoData((p) => ({ ...p, unidadesTrabajadas: 1 }))
     }
   }, [pagoData.tipoPeriodo, isPagoModalOpen])
 
@@ -148,7 +155,7 @@ const Nomina = () => {
     }
   }
 
-  // --- HANDLERS TRABAJADOR (MÉTODOS APARTE) ---
+  // --- HANDLERS ---
   const handleAbrirNuevo = () => {
     setFormData(initialFormState)
     setIsEdit(false)
@@ -174,21 +181,18 @@ const Nomina = () => {
   const handleSaveTrabajador = async (e) => {
     e.preventDefault()
     setLoading(true)
-    setError(null)
     try {
       if (isEdit) {
         await trabajadorAPI.actualizarTrabajador(selectedId, formData, token)
         Swal.fire('¡Éxito!', 'Personal actualizado', 'success')
       } else {
-        console.log(formData)
         await trabajadorAPI.agregarTrabajador(formData, token)
         Swal.fire('¡Éxito!', 'Nuevo trabajador registrado', 'success')
       }
       setIsModalOpen(false)
       fetchTrabajadores()
     } catch (error) {
-      const msg = error.response?.data?.message || 'Error al guardar'
-      Swal.fire('Error', msg, 'error')
+      Swal.fire('Error', error.response?.data?.message || 'Error al guardar', 'error')
     } finally {
       setLoading(false)
     }
@@ -197,7 +201,6 @@ const Nomina = () => {
   const handleDeleteTrabajador = async (id) => {
     const result = await Swal.fire({
       title: '¿Eliminar trabajador?',
-      text: 'Esta acción no se puede deshacer',
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#d33',
@@ -209,13 +212,11 @@ const Nomina = () => {
         Swal.fire('Eliminado', 'Trabajador eliminado', 'success')
         fetchTrabajadores()
       } catch (error) {
-        const msg = error.response?.data.message || 'Error al eliminar'
-        Swal.fire('Error', msg, 'error')
+        Swal.fire('Error', error.response?.data.message || 'Error al eliminar', 'error')
       }
     }
   }
 
-  // --- HANDLERS PAGOS ---
   const handleOpenPago = async (trabajador) => {
     if (!caja || caja.estado !== 'Abierta')
       return Swal.fire('Caja Cerrada', 'Debes abrir caja para procesar pagos', 'warning')
@@ -254,10 +255,7 @@ const Nomina = () => {
       if (resp.status === 200 || resp.status === 201) {
         if (resp.data.caja) setCaja(resp.data.caja)
         setIsPagoModalOpen(false)
-        Swal.fire({
-          title: '¡Pago Éxitoso!',
-          icon: 'success',
-        })
+        Swal.fire('¡Pago Éxitoso!', '', 'success')
         fetchTrabajadores()
       }
     } catch (e) {
@@ -268,35 +266,22 @@ const Nomina = () => {
   }
 
   const handleImprimir = (pago) => exportarNominaPDF(pago, empresa)
-  const swalConfig = {
-    target: document.getElementById('root'), // O usa document.body si 'root' no funciona
-    customClass: {
-      container: 'my-swal-container',
-    },
-    didOpen: () => {
-      // Forzamos el z-index al máximo posible
-      Swal.getContainer().style.zIndex = '999999'
-    },
-  }
+
   const handleRestore = async (id) => {
     const confirm = await Swal.fire({
-      ...swalConfig,
       title: '¿Restaurar trabajador?',
       icon: 'question',
       showCancelButton: true,
-      confirmButtonColor: '#10b981', // Emerald 500
       confirmButtonText: 'Sí, restaurar',
     })
-
     if (confirm.isConfirmed) {
       try {
         await trabajadorAPI.recuperarTrabajador(id, token)
         fetchTrabajadores()
-        Swal.fire('Recuperación', 'Trabajador recuperado con éxito', 'success')
         setVerEliminados(false)
+        Swal.fire('Recuperación', 'Trabajador recuperado con éxito', 'success')
       } catch (error) {
-        const msg = error.response?.data?.message || 'Error al recuperar trabajador'
-        Swal.fire('Error', msg, 'error')
+        Swal.fire('Error', error.response?.data?.message || 'Error', 'error')
       }
     }
   }
@@ -306,7 +291,7 @@ const Nomina = () => {
       <div className="w-full px-4 md:px-8 py-4">
         <NominaHeader
           activeTab={activeTab}
-          handleOpenModal={handleAbrirNuevo} // Llama al método de limpieza
+          handleOpenModal={handleAbrirNuevo}
           setActiveTab={setActiveTab}
           error={error}
           searchTerm={searchTerm}
@@ -330,7 +315,7 @@ const Nomina = () => {
         />
       </div>
 
-      {/* MODAL PAGO */}
+      {/* MODAL PAGO CORREGIDO */}
       <Modal
         show={isPagoModalOpen}
         isOpen={isPagoModalOpen}
@@ -338,15 +323,15 @@ const Nomina = () => {
         title={`Liquidación: ${selectedTrabajador?.nombreCompleto}`}
       >
         <form onSubmit={handleConfirmarPago} className="space-y-6">
-          {/* SECCIÓN 1: INFO PRÉSTAMO - COMPACTA */}
+          {/* INFO PRÉSTAMO */}
           {prestamoActivo && (
             <div className="bg-white border border-gray-100 p-5 rounded-2xl flex justify-between items-center shadow-sm">
               <div className="flex items-center gap-4">
-                <div className="bg-amber-100 p-3 rounded-xl text-amber-600 shrink-0">
+                <div className="bg-amber-100 p-3 rounded-xl text-amber-600">
                   <FaHandHoldingUsd size={20} />
                 </div>
                 <div>
-                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none mb-1">
+                  <p className="text-[10px] font-black text-amber-600 uppercase leading-none mb-1">
                     Deuda Activa
                   </p>
                   <p className="text-xl font-black text-gray-950 font-mono tracking-tighter leading-none">
@@ -365,7 +350,44 @@ const Nomina = () => {
             </div>
           )}
 
-          {/* SECCIÓN 2: INGRESOS - LIMPIA */}
+          {/* PERIODO Y UNIDADES (LO QUE FALTABA) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 px-1">
+                <FaLayerGroup className="text-gray-400" size={14} />
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                  Periodo
+                </label>
+              </div>
+              <select
+                className="w-full h-12 bg-gray-50/50 border border-gray-100 rounded-xl px-4 text-xs font-black outline-none focus:border-amber-400 shadow-inner"
+                value={pagoData.tipoPeriodo}
+                onChange={(e) => setPagoData({ ...pagoData, tipoPeriodo: e.target.value })}
+              >
+                <option value="Jornal">JORNAL</option>
+                <option value="Semanal">SEMANAL</option>
+                <option value="Quincenal">QUINCENAL</option>
+                <option value="Mensual">MENSUAL</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 px-1">
+                <FaHashtag className="text-gray-400" size={14} />
+                <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
+                  Unidades
+                </label>
+              </div>
+              <input
+                type="number"
+                disabled={pagoData.tipoPeriodo !== 'Jornal'}
+                className="w-full h-12 bg-gray-50/50 border border-gray-100 rounded-xl px-4 text-xs font-black font-mono outline-none focus:border-amber-400 shadow-inner disabled:opacity-50"
+                value={pagoData.unidadesTrabajadas}
+                onChange={(e) => setPagoData({ ...pagoData, unidadesTrabajadas: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* SUELDO Y BONO */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <div className="flex items-center gap-2 px-1">
@@ -377,7 +399,7 @@ const Nomina = () => {
               <input
                 type="number"
                 step="0.01"
-                className="w-full h-12 bg-gray-50/50 border border-gray-100 rounded-xl px-4 text-xs font-black font-mono outline-none focus:border-emerald-400 transition-all shadow-inner"
+                className="w-full h-12 bg-gray-50/50 border border-gray-100 rounded-xl px-4 text-xs font-black font-mono outline-none focus:border-emerald-400 shadow-inner"
                 value={pagoData.sueldoBase}
                 onChange={(e) => setPagoData({ ...pagoData, sueldoBase: e.target.value })}
               />
@@ -399,7 +421,7 @@ const Nomina = () => {
             </div>
           </div>
 
-          {/* SECCIÓN 3: DESCUENTO - DETALLADA PERO SOBRIA */}
+          {/* DESCUENTO PRÉSTAMO */}
           <div className="bg-gray-50/50 border border-gray-100 p-5 rounded-2xl">
             <div className="flex justify-between items-center mb-4 px-1">
               <div className="flex items-center gap-2">
@@ -408,53 +430,48 @@ const Nomina = () => {
                   Descuento Préstamo (-)
                 </h3>
               </div>
-              {pagoData.descuentoPrestamo > Number(pagoData.sueldoBase) + Number(pagoData.bono) && (
+              {pagoData.descuentoPrestamo > subTotal + Number(pagoData.bono) && (
                 <span className="text-[9px] font-black text-red-700 bg-red-100 px-2 py-0.5 rounded uppercase">
                   ¡Excede el sueldo!
                 </span>
               )}
             </div>
-
             <input
               type="number"
               step="0.01"
               disabled={!prestamoActivo}
-              className={`w-full h-12 rounded-xl px-4 text-xs font-black font-mono outline-none transition-all shadow-inner ${
+              className={`w-full h-12 rounded-xl px-4 text-xs font-black font-mono outline-none shadow-inner ${
                 prestamoActivo
                   ? 'bg-white border border-gray-200 focus:border-red-400'
-                  : 'bg-gray-100/50 cursor-not-allowed border-dashed'
+                  : 'bg-gray-100/50 border-dashed cursor-not-allowed'
               }`}
               value={pagoData.descuentoPrestamo}
               onChange={(e) => setPagoData({ ...pagoData, descuentoPrestamo: e.target.value })}
             />
           </div>
 
-          {/* SECCIÓN 4: TOTAL Y BOTÓN - DISEÑO TIPO FEED, NO FLOAT */}
+          {/* NETO Y BOTÓN */}
           <div className="bg-gray-900 border border-gray-800 rounded-[1.5rem] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl border-b-4 border-amber-600">
-            <div className="w-full sm:w-auto text-center sm:text-left">
+            <div>
               <p className="text-[10px] font-black text-amber-500/50 uppercase tracking-widest">
                 Neto a Recibir
               </p>
-              <p className="text-4xl font-black text-white italic font-mono tracking-tighter leading-none mt-1">
+              <p className="text-4xl font-black text-white italic font-mono tracking-tighter mt-1">
                 ${totalPagar.toFixed(2)}
               </p>
             </div>
-
             <button
               type="submit"
               disabled={loading || totalPagar <= 0}
-              className="w-full sm:w-auto bg-amber-400 text-amber-950 px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-amber-300 transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 italic disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed"
+              className="bg-amber-400 text-amber-950 px-8 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest hover:bg-amber-300 transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2 italic disabled:bg-gray-600 disabled:text-gray-400"
             >
               {loading ? (
                 '...'
-              ) : totalPagar < 0 ? (
-                'ERROR DE CÁLCULO'
-              ) : totalPagar === 0 ? (
+              ) : totalPagar <= 0 ? (
                 'VALORES INVÁLIDOS'
               ) : (
                 <>
-                  {' '}
-                  <MdPayments size={18} /> Confirmar Pago{' '}
+                  <MdPayments size={18} /> Confirmar Pago
                 </>
               )}
             </button>
@@ -488,17 +505,15 @@ const Nomina = () => {
               />
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
-                Cédula / RUC
+                Identificación
               </label>
-              <div className="flex items-center h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 focus-within:border-amber-400 transition-all">
+              <div className="flex items-center h-12 bg-gray-50 border border-gray-100 rounded-xl px-4">
                 <FaIdCard className="text-amber-500 mr-3" size={16} />
                 <input
                   type="text"
-                  placeholder="09XXXXXXXX"
                   required
                   className="bg-transparent w-full outline-none text-xs font-black font-mono"
                   value={formData.numeroIdentificacion}
@@ -508,49 +523,44 @@ const Nomina = () => {
                 />
               </div>
             </div>
-
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
-                Fecha de Nacimiento
+                F. Nacimiento
               </label>
-              <div className="flex items-center h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 focus-within:border-amber-400 transition-all">
+              <div className="flex items-center h-12 bg-gray-50 border border-gray-100 rounded-xl px-4">
                 <FaCalendarAlt className="text-amber-500 mr-3" size={14} />
                 <input
                   type="date"
                   required
-                  className="bg-transparent w-full outline-none text-xs font-bold uppercase"
+                  className="bg-transparent w-full outline-none text-xs font-bold"
                   value={formData.fechaNacimiento}
                   onChange={(e) => setFormData({ ...formData, fechaNacimiento: e.target.value })}
                 />
               </div>
             </div>
           </div>
-
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
                 Teléfono
               </label>
-              <div className="flex items-center h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 focus-within:border-amber-400 transition-all">
+              <div className="flex items-center h-12 bg-gray-50 border border-gray-100 rounded-xl px-4">
                 <FaPhone className="text-amber-500 mr-3" size={14} />
                 <input
                   type="text"
-                  placeholder="09XXXXXXXX"
                   className="bg-transparent w-full outline-none text-xs font-bold"
                   value={formData.telefono}
                   onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
                 />
               </div>
             </div>
-
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
                 Dirección
               </label>
               <input
                 type="text"
-                placeholder="CIUDAD / RECINTO"
-                className="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-xs font-bold uppercase outline-none focus:border-amber-400"
+                className="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-xs font-bold uppercase outline-none"
                 value={formData.direccion}
                 onChange={(e) =>
                   setFormData({ ...formData, direccion: e.target.value.toUpperCase() })
@@ -558,41 +568,10 @@ const Nomina = () => {
               />
             </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">
-                Tipo Doc.
-              </label>
-              <select
-                className="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-xs font-bold outline-none"
-                value={formData.tipoIdentificacion}
-                onChange={(e) => setFormData({ ...formData, tipoIdentificacion: e.target.value })}
-              >
-                <option value="Cédula">Cédula</option>
-                <option value="RUC">RUC</option>
-                <option value="Pasaporte">Pasaporte</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-black text-gray-400 uppercase ml-2">Estado</label>
-              <select
-                className="w-full h-12 bg-gray-50 border border-gray-100 rounded-xl px-4 text-xs font-bold outline-none"
-                value={formData.estaActivo}
-                onChange={(e) =>
-                  setFormData({ ...formData, estaActivo: e.target.value === 'true' })
-                }
-              >
-                <option value={true}>Activo</option>
-                <option value={false}>Inactivo</option>
-              </select>
-            </div>
-          </div>
-
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-gray-900 text-amber-400 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-black border-b-4 border-amber-600 transition-all active:scale-95 italic"
+            className="w-full py-4 bg-gray-900 text-amber-400 rounded-2xl font-black uppercase text-[10px] tracking-widest border-b-4 border-amber-600 shadow-xl transition-all active:scale-95 italic"
           >
             {loading ? 'PROCESANDO...' : isEdit ? 'ACTUALIZAR FICHA' : 'GUARDAR TRABAJADOR'}
           </button>

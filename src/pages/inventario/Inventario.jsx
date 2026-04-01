@@ -471,16 +471,17 @@ const Inventario = () => {
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
-                U. Medida {isEdit && '(No editable)'}
+                U. Medida
               </label>
               <select
                 value={formData.unidadMedida}
                 onChange={(e) => handleUnidadChange(e.target.value)}
                 className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-4 text-[10px] font-black uppercase outline-none"
               >
-                <option>Quintales</option>
-                <option>Kilogramos</option>
-                <option>Libras</option>
+                <option value="Quintales">Quintales</option>
+                <option value="Kilogramos">Kilogramos</option>
+                <option value="Libras">Libras</option>
+                <option value="Tacho">Tacho</option>
               </select>
             </div>
             <div className="space-y-1.5">

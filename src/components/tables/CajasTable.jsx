@@ -243,7 +243,6 @@ const CajasTable = ({ fetching, cajas, error }) => {
         )}
       </div>
 
-      {/* ... (El resto del Modal de Auditoría se mantiene igual) */}
       {showModal && selectedCaja && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md">
           <div className="bg-white rounded-3xl w-full max-w-6xl max-h-[90vh] shadow-2xl overflow-hidden border border-gray-200 flex flex-col transition-all">

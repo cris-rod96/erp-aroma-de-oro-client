@@ -1,12 +1,11 @@
 import {
-  FaUserEdit,
-  FaPlus,
   FaIdCard,
   FaUserAlt,
   FaPassport,
-  FaEye,
-  FaCheckCircle,
-  FaTimesCircle,
+  FaReceipt,
+  FaMoneyBillWave,
+  FaUniversity,
+  FaCheckDouble,
 } from 'react-icons/fa'
 import {
   Container,
@@ -15,13 +14,18 @@ import {
   ProductoresTable,
 } from '../../components/index.components'
 import {
-  MdDelete,
   MdPhone,
   MdLocationOn,
   MdEmail,
-  MdInbox,
   MdListAlt,
+  MdCalendarToday,
+  MdArrowBack,
   MdReceiptLong,
+  MdClose,
+  MdAttachMoney,
+  MdAccountBalance,
+  MdAccountBalanceWallet,
+  MdMonetizationOn,
 } from 'react-icons/md'
 import { useAuthStore } from '../../store/useAuthStore'
 import { productorAPI } from '../../api/index.api'
@@ -29,6 +33,7 @@ import Swal from 'sweetalert2'
 import { useProductores } from '../../hooks/useProductores'
 import { useState } from 'react'
 import { useMemo } from 'react'
+import { formatMoney } from '../../utils/fromatters'
 
 const Productores = () => {
   const token = useAuthStore((state) => state.token)
@@ -50,6 +55,9 @@ const Productores = () => {
   } = useProductores(token)
   const [searchTerm, setSearchTerm] = useState('')
   const [verEliminados, setVerEliminados] = useState(false)
+
+  const [isLiqModalOpen, setIsLiqModalOpen] = useState(false)
+  const [selectedProductorLiq, setSelectedProductorLiq] = useState(null)
 
   const productoresFiltrados = useMemo(() => {
     let lista = productores.filter((p) => p.estaActivo === !verEliminados)
@@ -151,10 +159,9 @@ const Productores = () => {
   }
 
   // Función para ver liquidaciones (puedes navegar a otra ruta o abrir otro modal)
-  const handleVerLiquidaciones = (id) => {
-    console.log('Consultando liquidaciones del productor:', id)
-    // Aquí podrías usar navigate(`/liquidaciones/productor/${id}`)
-    Swal.fire('Info', 'Módulo de liquidaciones en desarrollo para este productor', 'info')
+  const handleVerLiquidaciones = (productor) => {
+    setSelectedProductorLiq(productor)
+    setIsLiqModalOpen(true)
   }
 
   const swalConfig = {
@@ -212,13 +219,187 @@ const Productores = () => {
           fetching={fetching}
           handleDelete={handleDelete}
           handleOpenModal={handleOpenModal}
-          handleVerLiquidaciones={handleVerLiquidaciones}
           productores={productoresFiltrados}
           error={error}
           handleRestore={handleRestore}
           verEliminados={verEliminados}
+          handleVerLiquidaciones={handleVerLiquidaciones}
         />
       </div>
+
+      {isLiqModalOpen && selectedProductorLiq && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md">
+          <div className="bg-white rounded-3xl w-full max-w-7xl max-h-[90vh] shadow-2xl overflow-hidden border border-gray-200 flex flex-col transition-all">
+            {/* Cabecera Refinada */}
+            <div className="p-6 flex justify-between items-center border-b border-gray-100 bg-white">
+              <div className="flex items-center gap-4">
+                <div className="bg-gray-900 p-3 rounded-2xl text-amber-400 shadow-xl">
+                  <MdReceiptLong size={26} />
+                </div>
+                <div>
+                  <h2 className="font-black uppercase tracking-tighter text-2xl text-gray-900 leading-none">
+                    Auditoría Detallada: {selectedProductorLiq.nombreCompleto}
+                  </h2>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
+                    Consolidado de operaciones | RUC: {selectedProductorLiq.numeroIdentificacion}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsLiqModalOpen(false)}
+                className="bg-gray-100 text-gray-400 hover:text-gray-900 p-2 rounded-full transition-all"
+              >
+                <MdClose size={24} />
+              </button>
+            </div>
+
+            {/* Listado Expandido (Sin tarjetas, solo data pura) */}
+            <div className="flex-1 overflow-y-auto p-6 bg-gray-50/30">
+              <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-900">
+                    <tr className="text-[9px] font-black text-amber-400 uppercase tracking-widest">
+                      <th className="px-6 py-5 text-left">Código / Fecha</th>
+                      <th className="px-6 py-5 text-left">Producto / Calidad</th>
+                      <th className="px-6 py-5 text-center">Análisis de Peso (Qq)</th>
+                      <th className="px-6 py-5 text-center">Precio Unit.</th>
+                      <th className="px-6 py-5 text-right">Deducciones</th>
+                      <th className="px-6 py-5 text-right">Total Neto</th>
+                      <th className="px-6 py-5 text-center">Método</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 bg-white">
+                    {selectedProductorLiq.Liquidacions?.map((liq) => {
+                      const isEfectivo = parseFloat(liq.pagoEfectivo) > 0
+                      return (
+                        <tr key={liq.id} className="hover:bg-gray-50/80 transition-colors group">
+                          {/* Código y Fecha */}
+                          <td className="px-6 py-5">
+                            <div className="text-[11px] font-black text-gray-900 font-mono italic group-hover:text-amber-600 transition-colors">
+                              {liq.codigo}
+                            </div>
+                            <div className="text-[9px] font-bold text-gray-400 uppercase mt-0.5">
+                              {new Date(liq.fecha).toLocaleDateString()}
+                            </div>
+                          </td>
+
+                          {/* Producto y Calificación */}
+                          <td className="px-6 py-5">
+                            <p className="text-[10px] font-black text-gray-800 uppercase leading-none">
+                              {liq.DetalleLiquidacion?.descripcionProducto || 'CACAO SECO'}
+                            </p>
+                            <div className="flex gap-1 mt-1">
+                              <span className="text-[8px] font-black bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
+                                CALIF: {liq.DetalleLiquidacion?.calificacion + '%' || 'N/A'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Pesos: Bruto - Merma = Neto */}
+                          <td className="px-6 py-5 text-center">
+                            <div className="flex flex-col items-center">
+                              <span className="text-[11px] font-black text-gray-800 font-mono">
+                                {liq.DetalleLiquidacion?.cantidadNeta}{' '}
+                                <small className="text-[8px]">Qq</small>
+                              </span>
+                              <span className="text-[8px] font-bold text-red-400 uppercase tracking-tighter">
+                                Merma: -{liq.DetalleLiquidacion?.descuentoMerma || '0.00'}
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Precio Unitario */}
+                          <td className="px-6 py-5 text-center">
+                            <span className="text-[11px] font-black text-gray-700 bg-gray-50 px-3 py-1 rounded-lg border border-gray-100 font-mono">
+                              ${parseFloat(liq.DetalleLiquidacion?.precio).toFixed(2)}
+                            </span>
+                          </td>
+
+                          {/* Retenciones / Descuentos */}
+                          <td className="px-6 py-5 text-right">
+                            <div className="text-[10px] font-bold text-red-500 font-mono">
+                              -${parseFloat(liq.totalRetencion).toFixed(2)}
+                            </div>
+                            <div className="text-[7px] font-black text-gray-400 uppercase">
+                              Retención Fuente
+                            </div>
+                          </td>
+
+                          {/* Monto Final a Pagar */}
+                          <td className="px-6 py-5 text-right">
+                            <div className="text-sm font-black text-gray-900 font-mono tracking-tighter">
+                              {formatMoney(liq.totalAPagar)}
+                            </div>
+                            <div
+                              className={`text-[8px] font-black uppercase ${liq.estado === 'Pagada' ? 'text-emerald-500' : 'text-amber-500'}`}
+                            >
+                              {liq.estado}
+                            </div>
+                          </td>
+
+                          {/* Método de Pago con Icono */}
+                          <td className="px-6 py-5 text-center">
+                            <div className="flex justify-center">
+                              <span
+                                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[8px] font-black uppercase border tracking-widest ${
+                                  isEfectivo
+                                    ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                                }`}
+                              >
+                                {isEfectivo ? (
+                                  <MdAttachMoney size={12} />
+                                ) : (
+                                  <MdAccountBalance size={12} />
+                                )}
+                                {isEfectivo ? 'Efectivo' : 'Bancos'}
+                              </span>
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Footer con Resumen Simple Inline */}
+            <div className="p-6 border-t border-gray-100 flex justify-between items-center bg-white">
+              <div className="flex gap-8">
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                    Total histórico
+                  </span>
+                  <span className="text-sm font-black text-gray-900 font-mono">
+                    {formatMoney(
+                      selectedProductorLiq.Liquidacions?.reduce(
+                        (acc, l) => acc + parseFloat(l.totalAPagar),
+                        0
+                      )
+                    )}
+                  </span>
+                </div>
+                <div className="flex flex-col border-l border-gray-100 pl-8">
+                  <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                    Registros
+                  </span>
+                  <span className="text-sm font-black text-gray-900 font-mono">
+                    {selectedProductorLiq.Liquidacions?.length || 0}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsLiqModalOpen(false)}
+                className="bg-gray-950 text-amber-400 px-10 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black transition-all shadow-xl italic"
+              >
+                Cerrar Auditoría
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL */}
       <Modal

@@ -18,6 +18,7 @@ import Tickets from './tickets/Tickets'
 import Anticipos from './anticipos/Anticipos'
 import Prestamos from './prestamo/Prestamo'
 import Gastos from './gasto/Gastos'
+import Compradores from './compradores/Compradores'
 export {
   Login,
   Home,
@@ -39,4 +40,5 @@ export {
   Anticipos,
   Prestamos,
   Gastos,
+  Compradores,
 }

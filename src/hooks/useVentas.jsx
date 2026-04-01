@@ -8,8 +8,6 @@ import Swal from 'sweetalert2'
 export const useVentas = () => {
   const { token, user } = useAuthStore()
   const { caja, setCaja } = useCajaStore()
-  console.log('Caja: ', caja)
-  const { empresa } = useEmpresaStore()
   const [nuevoComprador, setNuevoComprador] = useState({
     nombreCompleto: '',
     tipoIdentificacion: 'Cédula',
@@ -37,8 +35,8 @@ export const useVentas = () => {
 
   // Formulario de Venta
   const [productoSeleccionado, setProductoSeleccionado] = useState('')
-  const [unidad, setUnidad] = useState('Quintales') // Unidad de entrada (física)
-  const [unidadPago, setUnidadPago] = useState('Quintales') // Unidad de cálculo (precio)
+  const [unidad, setUnidad] = useState(null) // Unidad de entrada (física)
+  const [unidadVenta, setUnidadVenta] = useState('Quintales') // Unidad de cálculo (precio)
   const [cantidad, setCantidad] = useState(0)
   const [precio, setPrecio] = useState(0)
   const [calificacion, setCalificacion] = useState(0)
@@ -168,28 +166,43 @@ export const useVentas = () => {
     const h = parseFloat(calificacion) || 0
     const i = parseFloat(impurezas) || 0
 
-    const CONVERSIONES = { Libras: 1, Kilogramos: 2.20462, Quintales: 100 }
-    const factorEntrada = CONVERSIONES[unidad] || 1
-    const factorPago = CONVERSIONES[unidadPago] || 1
+    const CONVERSIONES = { Libras: 1, Kilogramos: 2.2, Quintales: 100, Tacho: 53 }
+    const factorBodega = CONVERSIONES[unidad] || 1
+    const factorVenta = CONVERSIONES[unidadVenta] || 1
 
     // 1. Conversión de Peso
-    const qConvertida = (qOriginal * factorEntrada) / factorPago
+    const qConvertida = (qOriginal * factorVenta) / factorBodega
     const mermaH = qConvertida * (h / 100)
     const mermaI = qConvertida * (i / 100)
     const totalM = mermaH + mermaI
 
-    // 2. Peso Neto con lógica de "Baba" vs Seco
+    // 2. Peso Neto con lógica de redondeo
     const pNetoCalculado = qConvertida - totalM
-    const prodNombre = productos.find((p) => p.id === productoSeleccionado)?.nombre || ''
+    const productoActual = productos.find((p) => p.id === productoSeleccionado)
+    const prodNombre = productoActual?.nombre || ''
 
-    const pNeto = prodNombre.toLowerCase().includes('baba')
-      ? pNetoCalculado.toFixed(2)
-      : pNetoCalculado > 1
-        ? Math.floor(pNetoCalculado)
-        : Math.floor(pNetoCalculado * 100) / 100
+    // Aplicamos el truncado/redondeo según tus reglas de negocio
+    let pNetoFinal
+    if (
+      prodNombre.toLowerCase().includes('baba') ||
+      ['Quintales', 'Tacho', 'Libras'].includes(unidadVenta)
+    ) {
+      // Truncamos a 2 decimales
+      pNetoFinal = Math.trunc(pNetoCalculado * 100) / 100
+    } else {
+      pNetoFinal =
+        pNetoCalculado > 1 ? Math.floor(pNetoCalculado) : Math.floor(pNetoCalculado * 100) / 100
+    }
 
-    // 3. Financiero (Truncado a 2 decimales)
-    const brutoCalculado = pNeto * pUnit
+    /** * EL TRUCO PARA EL DISPLAY:
+     * Al usar Number(pNetoFinal), JS elimina automáticamente los .00 sobrantes.
+     * Si es 590.00 -> 590
+     * Si es 10.03 -> 10.03
+     */
+    const pesoNetoDisplay = Number(pNetoFinal)
+
+    // 3. Financiero (Truncado estricto a 2 decimales para dinero)
+    const brutoCalculado = pesoNetoDisplay * pUnit
     const valBruto = Math.trunc(brutoCalculado * 100) / 100
 
     const rPorc = parseFloat(retencionPorcentaje) || 0
@@ -201,20 +214,16 @@ export const useVentas = () => {
     const deudaVieja = parseFloat(deudaAnterior) || 0
     const totalAFacturarConDeuda = netoHoy + deudaVieja
 
-    const montoPagosHoy = Object.values(pagos).reduce(
-      (a, b) => parseFloat(a || 0) + parseFloat(b || 0),
-      0
-    )
+    const montoPagosHoy = Object.values(pagos).reduce((a, b) => a + (parseFloat(b) || 0), 0)
     const abonadoTotal = montoPagosHoy + antic
     const saldo = totalAFacturarConDeuda - abonadoTotal
 
     // Validación de Stock
-    const productoActual = productos.find((p) => p.id === productoSeleccionado)
     const stockExcedido = productoActual ? qConvertida > productoActual.stock : false
 
     return {
-      pesoBruto: qConvertida,
-      pesoNeto: parseFloat(pNeto),
+      pesoBruto: qOriginal,
+      pesoNeto: pesoNetoDisplay, // Aquí va el número "limpio"
       bruto: valBruto,
       valorRetenido: valRetenido,
       netoHoy: netoHoy,
@@ -227,7 +236,7 @@ export const useVentas = () => {
   }, [
     cantidad,
     unidad,
-    unidadPago,
+    unidadVenta,
     calificacion,
     impurezas,
     precio,
@@ -278,7 +287,7 @@ export const useVentas = () => {
         cantidadBruta: toNum(calculos.pesoBruto),
         cantidadNeta: toNum(calculos.pesoNeto),
         precioUnitario: toNum(precio),
-        unidad: unidadPago,
+        unidad: unidadVenta,
         calificacion: calificacion,
         impurezas: impurezas,
         descuentoMerma: toNum(calculos.pesoBruto - calculos.pesoNeto),
@@ -338,8 +347,8 @@ export const useVentas = () => {
     setPrecio,
     unidad,
     setUnidad,
-    unidadPago,
-    setUnidadPago,
+    unidadVenta,
+    setUnidadVenta,
     calificacion,
     setCalificacion,
     impurezas,

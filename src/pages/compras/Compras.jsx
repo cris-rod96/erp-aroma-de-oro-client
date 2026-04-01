@@ -150,80 +150,84 @@ const Compras = () => {
             {/* MODAL EXPEDIENTE (REDUCIDO POR ESPACIO, MANTÉN TU LÓGICA) */}
             {showModal && selectedLiq && (
               <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
-                <div className="bg-white border-[3px] border-black w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-[15px_15px_0px_0px_rgba(0,0,0,1)]">
+                <div className="bg-white border-[3px] border-black w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-[15px_15px_0px_0px_rgba(0,0,0,1)]">
                   {/* HEADER MODAL */}
                   <div className="bg-black text-white p-4 flex justify-between items-center sticky top-0 z-10">
-                    <div className="flex flex-col">
+                    <div className="flex flex-col text-left">
                       <h2 className="text-xl font-black tracking-tighter uppercase">
                         Expediente de Liquidación
                       </h2>
-                      <span className="text-[10px] text-amber-400 font-bold">{selectedLiq.id}</span>
+                      <span className="text-[10px] text-amber-400 font-bold italic">
+                        REGISTRO ID: {selectedLiq.id}
+                      </span>
                     </div>
                     <button
                       onClick={() => setShowModal(false)}
-                      className="hover:rotate-90 transition-transform duration-300"
+                      className="hover:rotate-90 transition-transform duration-300 bg-white/10 p-1 rounded"
                     >
                       <MdClose size={32} />
                     </button>
                   </div>
 
-                  <div className="p-8 space-y-8 uppercase font-sans">
+                  <div className="p-8 space-y-8 uppercase font-sans text-left text-black">
                     {/* SECCION 1: DATOS GENERALES */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b-2 border-gray-100 pb-6">
                       <div>
-                        <label className="text-[10px] font-black text-gray-400 block mb-1">
-                          CÓDIGO INTERNO
+                        <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase">
+                          Código Interno
                         </label>
                         <p className="text-lg font-black">{selectedLiq.codigo}</p>
                       </div>
                       <div>
-                        <label className="text-[10px] font-black text-gray-400 block mb-1">
-                          FECHA DE REGISTRO
+                        <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase">
+                          Fecha de Registro
                         </label>
                         <p className="font-bold">
                           {new Date(selectedLiq.createdAt).toLocaleString()}
                         </p>
                       </div>
                       <div className="text-right">
-                        <label className="text-[10px] font-black text-gray-400 block mb-1">
-                          ESTADO DE PAGO
+                        <label className="text-[10px] font-black text-gray-400 block mb-1 uppercase">
+                          Estado de Pago
                         </label>
                         <span
                           className={`text-xs font-black px-4 py-1 border-2 ${
-                            parseFloat(selectedLiq.montoPorPagar) > 0
+                            parseFloat(selectedLiq.montoPorPagar) > 0.01
                               ? 'border-orange-500 text-orange-600'
                               : 'border-emerald-500 text-emerald-600'
                           }`}
                         >
-                          {parseFloat(selectedLiq.montoPorPagar) > 0
+                          {parseFloat(selectedLiq.montoPorPagar) > 0.01
                             ? 'SALDO PENDIENTE'
                             : 'CANCELADO TOTAL'}
                         </span>
                       </div>
                     </div>
 
-                    {/* SECCION 2: TABLA TÉCNICA DE PRODUCTO (CÁLCULOS DE MERMA) */}
+                    {/* SECCION 2: TABLA TÉCNICA (PRODUCTO) */}
                     <div>
                       <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
                         01. Análisis de Calidad y Peso
                       </h3>
                       <div className="overflow-hidden border-2 border-black">
                         <table className="w-full border-collapse">
-                          <thead className="bg-white border-b-2 border-black text-[10px] font-black uppercase">
+                          <thead className="bg-gray-50 border-b-2 border-black text-[10px] font-black uppercase">
                             <tr>
-                              <th className="p-2 text-left border-r border-black w-[25%]">
-                                PRODUCTO
+                              <th className="p-2 text-left border-r border-black w-[25%] uppercase">
+                                Producto
                               </th>
-                              <th className="p-2 text-center border-r border-black w-[15%]">
-                                CALIFICACIÓN (%)
+                              <th className="p-2 text-center border-r border-black w-[15%] uppercase">
+                                Calif. (%)
                               </th>
-                              <th className="p-2 text-center border-r border-black w-[20%]">
-                                PESO BRUTO
+                              <th className="p-2 text-center border-r border-black w-[20%] uppercase">
+                                Peso Bruto
                               </th>
-                              <th className="p-2 text-center border-r border-black w-[20%] text-blue-800">
-                                IMPUREZA (%)
+                              <th className="p-2 text-center border-r border-black w-[20%] text-blue-800 uppercase">
+                                Impureza (%)
                               </th>
-                              <th className="p-2 text-center text-red-600 w-[20%]">DESC. MERMA</th>
+                              <th className="p-2 text-center text-red-600 w-[20%] uppercase">
+                                Desc. Merma
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="text-sm font-bold uppercase">
@@ -252,9 +256,9 @@ const Compras = () => {
                             <tr className="bg-emerald-50">
                               <td
                                 colSpan="3"
-                                className="p-2 text-right font-black text-xs border-r border-black"
+                                className="p-2 text-right font-black text-xs border-r border-black uppercase"
                               >
-                                PESO NETO A LIQUIDAR:
+                                Peso Neto a Liquidar:
                               </td>
                               <td
                                 colSpan="2"
@@ -277,19 +281,15 @@ const Compras = () => {
                         <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
                           02. Información del Productor
                         </h3>
-                        <div className="border-2 border-black p-4 space-y-2">
-                          <p className="font-black text-lg">
+                        <div className="border-2 border-black p-4 space-y-2 h-full">
+                          <p className="font-black text-lg leading-tight uppercase">
                             {selectedLiq.Persona?.nombreCompleto}
                           </p>
-                          <p className="text-xs font-bold text-gray-500">
-                            Identificación: {selectedLiq.Persona?.numeroIdentificacion}
-                          </p>
-                          <p className="text-xs font-bold text-gray-500">
-                            Contacto: {selectedLiq.Persona?.telefono || 'N/A'}
-                          </p>
-                          <p className="text-xs font-bold text-gray-500">
-                            Dirección: {selectedLiq.Persona?.direccion || 'S/D'}
-                          </p>
+                          <div className="text-[11px] font-bold text-gray-500 space-y-1">
+                            <p>Identificación: {selectedLiq.Persona?.numeroIdentificacion}</p>
+                            <p>Contacto: {selectedLiq.Persona?.telefono || 'N/A'}</p>
+                            <p>Dirección: {selectedLiq.Persona?.direccion || 'S/D'}</p>
+                          </div>
                         </div>
                       </div>
 
@@ -297,43 +297,49 @@ const Compras = () => {
                         <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
                           03. Resumen de Valores
                         </h3>
-                        <div className="border-2 border-black">
-                          <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold">
-                            <span>SUBTOTAL PRODUCTO:</span>
+                        <div className="border-2 border-black divide-y divide-gray-200">
+                          <div className="flex justify-between p-2 text-xs font-bold uppercase">
+                            <span>Subtotal Producto:</span>
                             <span className="font-mono">
                               ${parseFloat(selectedLiq.totalLiquidacion).toFixed(2)}
                             </span>
                           </div>
-
-                          <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold text-red-600">
-                            <span>(-) RETENCIÓN FUENTE:</span>
+                          <div className="flex justify-between p-2 text-xs font-bold text-red-600 uppercase">
+                            <span>(-) Retención Fuente:</span>
                             <span className="font-mono">
                               -${parseFloat(selectedLiq.totalRetencion).toFixed(2)}
                             </span>
                           </div>
 
-                          {/* DESGLOSE DE ANTICIPOS APLICADOS */}
-                          {selectedLiq.Anticipos && selectedLiq.Anticipos.length > 0 && (
-                            <div className="bg-gray-50 border-b border-gray-200">
-                              {selectedLiq.Anticipos.map((ant, index) => (
-                                <div
-                                  key={index}
-                                  className="flex justify-between p-2 text-[10px] font-black text-amber-700 italic border-t border-gray-100"
-                                >
-                                  <span>(-) ANTICIPO APLICADO :</span>
-                                  <span className="font-mono">
-                                    -$
-                                    {parseFloat(
-                                      ant.LiquidacionAnticipo?.montoAplicado || 0
-                                    ).toFixed(2)}
-                                  </span>
-                                </div>
-                              ))}
+                          {/* ANTICIPOS APLICADOS */}
+                          {selectedLiq.Anticipos?.map((ant, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between p-2 text-[10px] font-black text-amber-700 italic bg-amber-50 uppercase"
+                            >
+                              <span>(-) Anticipo Aplicado:</span>
+                              <span className="font-mono">
+                                -$
+                                {parseFloat(ant.LiquidacionAnticipo?.montoAplicado || 0).toFixed(2)}
+                              </span>
+                            </div>
+                          ))}
+
+                          {/* PAGO DE DEUDA ANTERIOR (EXTRAÍDO DEL ABONO CXP) */}
+                          {selectedLiq.CuentasPorPagars?.[0]?.AbonosCuentasPorPagars?.[0] && (
+                            <div className="flex justify-between p-2 text-[10px] font-black text-blue-700 bg-blue-50 uppercase border-t border-gray-100">
+                              <span>(+) Pago Deuda Anterior:</span>
+                              <span className="font-mono">
+                                $
+                                {parseFloat(
+                                  selectedLiq.CuentasPorPagars[0].AbonosCuentasPorPagars[0].monto
+                                ).toFixed(2)}
+                              </span>
                             </div>
                           )}
 
                           <div className="flex justify-between p-3 bg-gray-100 font-black text-lg">
-                            <span className="italic">TOTAL NETO:</span>
+                            <span className="italic uppercase">Total Neto a Entregar:</span>
                             <span className="font-mono">
                               ${parseFloat(selectedLiq.totalAPagar).toFixed(2)}
                             </span>
@@ -342,280 +348,76 @@ const Compras = () => {
                       </div>
                     </div>
 
-                    {/* SECCION 4: HISTORIAL DE PAGOS */}
-                    {showModal && selectedLiq && (
-                      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-sm">
-                        <div className="bg-white border-[3px] border-black w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-[15px_15px_0px_0px_rgba(0,0,0,1)]">
-                          {/* HEADER MODAL */}
-                          <div className="bg-black text-white p-4 flex justify-between items-center sticky top-0 z-10">
-                            <div className="flex flex-col">
-                              <h2 className="text-xl font-black tracking-tighter uppercase">
-                                Expediente de Liquidación
-                              </h2>
-                              <span className="text-[10px] text-amber-400 font-bold">
-                                {selectedLiq.id}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => setShowModal(false)}
-                              className="hover:rotate-90 transition-transform duration-300"
-                            >
-                              <MdClose size={32} />
-                            </button>
-                          </div>
-
-                          <div className="p-8 space-y-8 uppercase font-sans">
-                            {/* SECCION 1: DATOS GENERALES */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 border-b-2 border-gray-100 pb-6">
-                              <div>
-                                <label className="text-[10px] font-black text-gray-400 block mb-1">
-                                  CÓDIGO INTERNO
-                                </label>
-                                <p className="text-lg font-black">{selectedLiq.codigo}</p>
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-black text-gray-400 block mb-1">
-                                  FECHA DE REGISTRO
-                                </label>
-                                <p className="font-bold">
-                                  {new Date(selectedLiq.createdAt).toLocaleString()}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <label className="text-[10px] font-black text-gray-400 block mb-1">
-                                  ESTADO DE PAGO
-                                </label>
-                                <span
-                                  className={`text-xs font-black px-4 py-1 border-2 ${
-                                    parseFloat(selectedLiq.montoPorPagar) > 0
-                                      ? 'border-orange-500 text-orange-600'
-                                      : 'border-emerald-500 text-emerald-600'
-                                  }`}
-                                >
-                                  {parseFloat(selectedLiq.montoPorPagar) > 0
-                                    ? 'SALDO PENDIENTE'
-                                    : 'CANCELADO TOTAL'}
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* SECCION 2: TABLA TÉCNICA DE PRODUCTO */}
-                            <div>
-                              <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
-                                01. Análisis de Calidad y Peso
-                              </h3>
-                              <div className="overflow-hidden border-2 border-black">
-                                <table className="w-full border-collapse">
-                                  <thead className="bg-white border-b-2 border-black text-[10px] font-black uppercase">
-                                    <tr>
-                                      <th className="p-2 text-left border-r border-black w-[25%]">
-                                        PRODUCTO
-                                      </th>
-                                      <th className="p-2 text-center border-r border-black w-[15%]">
-                                        CALIFICACIÓN (%)
-                                      </th>
-                                      <th className="p-2 text-center border-r border-black w-[20%]">
-                                        PESO BRUTO
-                                      </th>
-                                      <th className="p-2 text-center border-r border-black w-[20%] text-blue-800">
-                                        IMPUREZA (%)
-                                      </th>
-                                      <th className="p-2 text-center text-red-600 w-[20%]">
-                                        DESC. MERMA
-                                      </th>
-                                    </tr>
-                                  </thead>
-                                  <tbody className="text-sm font-bold uppercase">
-                                    <tr className="border-b border-black">
-                                      <td className="p-3 border-r border-black">
-                                        {selectedLiq.DetalleLiquidacion?.descripcionProducto ||
-                                          'CACAO SECO'}
-                                      </td>
-                                      <td className="p-3 border-r border-black text-center">
-                                        {selectedLiq.DetalleLiquidacion?.calificacion}%
-                                      </td>
-                                      <td className="p-3 border-r border-black text-center font-mono">
-                                        {selectedLiq.DetalleLiquidacion?.cantidad}{' '}
-                                        {selectedLiq.DetalleLiquidacion?.unidad}
-                                      </td>
-                                      <td className="p-3 border-r border-black text-center font-mono text-blue-800">
-                                        {selectedLiq.DetalleLiquidacion?.impurezas}%
-                                      </td>
-                                      <td className="p-3 text-center text-red-600 font-mono">
-                                        -
-                                        {parseFloat(
-                                          selectedLiq.DetalleLiquidacion?.descuentoMerma || 0
-                                        ).toFixed(2)}
-                                      </td>
-                                    </tr>
-                                    <tr className="bg-emerald-50">
-                                      <td
-                                        colSpan="3"
-                                        className="p-2 text-right font-black text-xs border-r border-black"
-                                      >
-                                        PESO NETO A LIQUIDAR:
-                                      </td>
-                                      <td
-                                        colSpan="2"
-                                        className="p-2 text-center font-black text-emerald-700 font-mono text-lg bg-emerald-100/50"
-                                      >
-                                        {parseFloat(
-                                          selectedLiq.DetalleLiquidacion?.cantidadNeta || 0
-                                        ).toFixed(2)}{' '}
-                                        {selectedLiq.DetalleLiquidacion?.unidad}
-                                      </td>
-                                    </tr>
-                                  </tbody>
-                                </table>
-                              </div>
-                            </div>
-
-                            {/* SECCION 3: DESGLOSE FINANCIERO */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                              <div>
-                                <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
-                                  02. Información del Productor
-                                </h3>
-                                <div className="border-2 border-black p-4 space-y-2">
-                                  <p className="font-black text-lg">
-                                    {selectedLiq.Persona?.nombreCompleto}
-                                  </p>
-                                  <p className="text-xs font-bold text-gray-500">
-                                    Identificación: {selectedLiq.Persona?.numeroIdentificacion}
-                                  </p>
-                                  <p className="text-xs font-bold text-gray-500">
-                                    Contacto: {selectedLiq.Persona?.telefono || 'N/A'}
-                                  </p>
-                                  <p className="text-xs font-bold text-gray-500">
-                                    Dirección: {selectedLiq.Persona?.direccion || 'S/D'}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <div>
-                                <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
-                                  03. Resumen de Valores
-                                </h3>
-                                <div className="border-2 border-black">
-                                  <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold">
-                                    <span>SUBTOTAL PRODUCTO:</span>
-                                    <span className="font-mono">
-                                      ${parseFloat(selectedLiq.totalLiquidacion).toFixed(2)}
-                                    </span>
-                                  </div>
-
-                                  <div className="flex justify-between p-2 border-b border-gray-200 text-xs font-bold text-red-600">
-                                    <span>(-) RETENCIÓN FUENTE:</span>
-                                    <span className="font-mono">
-                                      -${parseFloat(selectedLiq.totalRetencion).toFixed(2)}
-                                    </span>
-                                  </div>
-
-                                  {/* DESGLOSE DE ANTICIPOS APLICADOS */}
-                                  {selectedLiq.Anticipos && selectedLiq.Anticipos.length > 0 && (
-                                    <div className="bg-gray-50 border-b border-gray-200">
-                                      {selectedLiq.Anticipos.map((ant, index) => (
-                                        <div
-                                          key={index}
-                                          className="flex justify-between p-2 text-[10px] font-black text-amber-700 italic border-t border-gray-100"
-                                        >
-                                          <span>(-) ANTICIPO APLICADO :</span>
-                                          <span className="font-mono">
-                                            -$
-                                            {parseFloat(
-                                              ant.LiquidacionAnticipo?.montoAplicado || 0
-                                            ).toFixed(2)}
-                                          </span>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  <div className="flex justify-between p-3 bg-gray-100 font-black text-lg">
-                                    <span className="italic">TOTAL NETO:</span>
-                                    <span className="font-mono">
-                                      ${parseFloat(selectedLiq.totalAPagar).toFixed(2)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* SECCION 4: FLUJO DE CAJA ACTUALIZADO CON ABONO ANTICIPO */}
-                            <div>
-                              <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
-                                04. Flujo de Caja
-                              </h3>
-                              {/* Se cambió a grid-cols-5 para incluir el Abono Ant. */}
-                              <div className="grid grid-cols-2 md:grid-cols-5 border-2 border-black divide-x-2 divide-black">
-                                <div className="p-3 text-center">
-                                  <label className="text-[9px] font-black block text-gray-400">
-                                    EFECTIVO
-                                  </label>
-                                  <p className="font-mono font-bold">
-                                    ${parseFloat(selectedLiq.pagoEfectivo).toFixed(2)}
-                                  </p>
-                                </div>
-                                <div className="p-3 text-center">
-                                  <label className="text-[9px] font-black block text-gray-400">
-                                    CHEQUES
-                                  </label>
-                                  <p className="font-mono font-bold">
-                                    ${parseFloat(selectedLiq.pagoCheque).toFixed(2)}
-                                  </p>
-                                </div>
-                                <div className="p-3 text-center">
-                                  <label className="text-[9px] font-black block text-gray-400">
-                                    TRANSFERENCIA
-                                  </label>
-                                  <p className="font-mono font-bold">
-                                    ${parseFloat(selectedLiq.pagoTransferencia).toFixed(2)}
-                                  </p>
-                                </div>
-                                {/* NUEVA COLUMNA DE ABONO ANTICIPO */}
-                                <div className="p-3 text-center bg-gray-50">
-                                  <label className="text-[9px] font-black block text-amber-600 uppercase">
-                                    ABONO ANT.
-                                  </label>
-                                  <p className="font-mono font-bold text-amber-700">
-                                    ${parseFloat(selectedLiq.abonoAnticipo || 0).toFixed(2)}
-                                  </p>
-                                </div>
-                                <div className="p-3 text-center bg-yellow-400">
-                                  <label className="text-[9px] font-black block text-black">
-                                    SALDO PENDIENTE
-                                  </label>
-                                  <p className="font-mono font-black">
-                                    ${parseFloat(selectedLiq.montoPorPagar).toFixed(2)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="bg-gray-50 p-6 border-t-2 border-black flex justify-between items-center">
-                            <p className="text-[10px] font-bold text-gray-400 uppercase">
-                              Aroma de Oro ERP - Registro de Auditoría Interna
-                            </p>
-                            <button
-                              onClick={() => setShowModal(false)}
-                              className="bg-black text-white px-10 py-3 font-black uppercase hover:bg-gray-800 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)]"
-                            >
-                              Cerrar Expediente
-                            </button>
-                          </div>
+                    {/* SECCION 4: FLUJO DE CAJA (DESGLOSE DE PAGO FINAL) */}
+                    <div>
+                      <h3 className="text-xs font-black bg-gray-800 text-white px-3 py-1 inline-block mb-3 uppercase">
+                        04. Flujo de Caja (Egresos)
+                      </h3>
+                      <div className="grid grid-cols-2 md:grid-cols-5 border-2 border-black divide-x-2 divide-black text-center">
+                        <div className="p-3">
+                          <label className="text-[9px] font-black block text-gray-400 uppercase">
+                            Efectivo
+                          </label>
+                          <p className="font-mono font-bold">
+                            ${parseFloat(selectedLiq.pagoEfectivo).toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="p-3">
+                          <label className="text-[9px] font-black block text-gray-400 uppercase">
+                            Cheques
+                          </label>
+                          <p className="font-mono font-bold">
+                            ${parseFloat(selectedLiq.pagoCheque).toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="p-3">
+                          <label className="text-[9px] font-black block text-gray-400 uppercase">
+                            Transf.
+                          </label>
+                          <p className="font-mono font-bold">
+                            ${parseFloat(selectedLiq.pagoTransferencia).toFixed(2)}
+                          </p>
+                        </div>
+                        <div className="p-3 bg-blue-50">
+                          <label className="text-[9px] font-black block text-blue-600 uppercase italic">
+                            Pago Deuda Ant.
+                          </label>
+                          <p className="font-mono font-black text-blue-700">
+                            $
+                            {parseFloat(
+                              selectedLiq.CuentasPorPagars?.[0]?.AbonosCuentasPorPagars?.[0]
+                                ?.monto || 0
+                            ).toFixed(2)}
+                          </p>
+                        </div>
+                        <div
+                          className={`p-3 ${parseFloat(selectedLiq.montoPorPagar) > 0.01 ? 'bg-yellow-400' : 'bg-emerald-500 text-white'}`}
+                        >
+                          <label className="text-[9px] font-black block uppercase italic">
+                            Saldo Pendiente
+                          </label>
+                          <p className="font-mono font-black text-lg">
+                            ${parseFloat(selectedLiq.montoPorPagar).toFixed(2)}
+                          </p>
                         </div>
                       </div>
-                    )}
+                      {selectedLiq.CuentasPorPagars?.[0]?.AbonosCuentasPorPagars?.[0] && (
+                        <p className="text-[9px] font-bold mt-2 text-blue-600 italic lowercase">
+                          * Nota: El pago de deuda anterior corresponde al registro ID #
+                          {selectedLiq.CuentasPorPagars[0].AbonosCuentasPorPagars[0].id}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
+                  {/* FOOTER */}
                   <div className="bg-gray-50 p-6 border-t-2 border-black flex justify-between items-center">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase italic">
                       Aroma de Oro ERP - Registro de Auditoría Interna
                     </p>
                     <button
                       onClick={() => setShowModal(false)}
-                      className="bg-black text-white px-10 py-3 font-black uppercase hover:bg-gray-800 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)]"
+                      className="bg-black text-white px-10 py-3 font-black uppercase hover:bg-gray-800 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
                     >
                       Cerrar Expediente
                     </button>
@@ -623,7 +425,6 @@ const Compras = () => {
                 </div>
               </div>
             )}
-
             {/* BUSCADOR DE PRODUCTOR */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 uppercase font-black">
               <div className="md:col-span-2 relative">
@@ -859,6 +660,7 @@ const Compras = () => {
                         <option value="Quintales">Quintales</option>
                         <option value="Kilogramos">Kilogramos</option>
                         <option value="Libras">Libras</option>
+                        <option value="Tacho">Tacho</option>
                       </select>
                     </td>
                     <td className="p-2 border-r border-gray-800 bg-gray-100">
@@ -870,6 +672,7 @@ const Compras = () => {
                         <option value="Quintales">Quintales</option>
                         <option value="Kilogramos">Kilogramos</option>
                         <option value="Libras">Libras</option>
+                        <option value="Tacho">Tacho</option>
                       </select>
                     </td>
                     <td className="p-2 border-r border-gray-800 bg-blue-50">
