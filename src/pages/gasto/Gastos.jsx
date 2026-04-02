@@ -34,6 +34,7 @@ const Gastos = () => {
     caja,
     setFormData,
     empresa,
+    handlePrint,
   } = useGastos()
 
   // --- LÓGICA DE ESTADO DE CAJA ---
@@ -209,7 +210,10 @@ const Gastos = () => {
                             -${parseFloat(g.monto).toFixed(2)}
                           </td>
                           <td className="px-8 py-5 text-center">
-                            <button className="p-3 bg-gray-900 text-amber-400 rounded-xl hover:scale-110 transition-all shadow-md active:scale-95 border border-gray-700">
+                            <button
+                              className="p-3 bg-gray-900 text-amber-400 rounded-xl hover:scale-110 transition-all shadow-md active:scale-95 border border-gray-700"
+                              onClick={() => handlePrint(g)}
+                            >
                               <FaPrint size={14} />
                             </button>
                           </td>

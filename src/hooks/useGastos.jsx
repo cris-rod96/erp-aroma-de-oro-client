@@ -13,6 +13,7 @@ import {
   FaBirthdayCake,
   FaMedal,
 } from 'react-icons/fa'
+import { exportarGastoPDF } from '../utils/gastoReport'
 
 export const useGastos = () => {
   const [gastos, setGastos] = useState([])
@@ -28,7 +29,7 @@ export const useGastos = () => {
   const { empresa } = useEmpresaStore()
   const { caja, setCaja } = useCajaStore()
 
-  // --- CATEGORÍAS ACTUALIZADAS (Sin ajuste de centavos) ---
+  // --- CATEGORÍAS ACTUALIZADAS ---
   const categorias = [
     { nombre: 'Alimentación', icono: <FaUtensils /> },
     { nombre: 'Repuestos', icono: <FaTools /> },
@@ -85,6 +86,11 @@ export const useGastos = () => {
     })
   }, [gastos, searchTerm])
 
+  // --- FUNCIÓN PARA IMPRIMIR ---
+  const handlePrint = (gasto) => {
+    exportarGastoPDF(gasto, empresa)
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -108,11 +114,21 @@ export const useGastos = () => {
       })
 
       if (res.status === 201) {
+        // Obtenemos el gasto creado de la respuesta
+        const nuevoGasto = res.data.gasto
+
         Swal.fire({
           icon: 'success',
           title: 'Gasto Registrado',
-          timer: 1500,
-          showConfirmButton: false,
+          text: '¿Deseas imprimir el comprobante?',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, imprimir',
+          cancelButtonText: 'No, cerrar',
+          confirmButtonColor: '#fbbf24', // Color ámbar de Aroma de Oro
+        }).then((result) => {
+          if (result.isConfirmed) {
+            handlePrint(nuevoGasto)
+          }
         })
 
         if (res.data.caja) setCaja(res.data.caja)
@@ -139,6 +155,7 @@ export const useGastos = () => {
     loading,
     fetchGastos,
     handleSubmit,
+    handlePrint, // Retornamos la función de impresión
     error,
     fetching,
     categorias,
