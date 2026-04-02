@@ -1,15 +1,21 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import {
   FaPlus,
   FaBoxes,
   FaPrint,
   FaSearch,
   FaMoneyBillWave,
-  FaCheckCircle,
   FaChevronLeft,
   FaChevronRight,
+  FaWallet,
 } from 'react-icons/fa'
-import { MdAttachMoney, MdDescription, MdSecurity, MdCategory } from 'react-icons/md'
+import {
+  MdAttachMoney,
+  MdDescription,
+  MdSecurity,
+  MdCategory,
+  MdOutlineAccountBalanceWallet,
+} from 'react-icons/md'
 import { Container, Modal } from '../../components/index.components'
 import { useGastos } from '../../hooks/useGastos'
 
@@ -29,7 +35,14 @@ const Gastos = () => {
     searchTerm,
     caja,
     setFormData,
+    empresa,
   } = useGastos()
+
+  // --- LÓGICA DE ESTADO DE CAJA ---
+  const tieneCajaAbierta = !!caja && !!caja.id
+  const saldoActualCaja = parseFloat(caja?.saldoActual || 0)
+  const montoIngresado = parseFloat(formData.monto || 0)
+  const saldoInsuficiente = montoIngresado > saldoActualCaja
 
   // --- LÓGICA DE PAGINACIÓN ---
   const [currentPage, setCurrentPage] = useState(1)
@@ -42,7 +55,6 @@ const Gastos = () => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
-  // Resetear página al buscar
   useEffect(() => {
     setCurrentPage(1)
   }, [searchTerm, filtered.length])
@@ -50,24 +62,67 @@ const Gastos = () => {
   return (
     <Container fullWidth>
       <div className="w-full px-4 md:px-8 py-6">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+        {/* HEADER Y SALDO PERMANENTE */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-6">
           <div className="border-l-4 border-amber-400 pl-4">
-            <h1 className="text-3xl md:text-4xl font-black text-gray-800 uppercase tracking-tighter leading-none italic">
+            <h1 className="text-3xl font-black text-gray-800 uppercase tracking-tighter leading-none ">
               Gastos Generales
             </h1>
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">
               Aroma de Oro | Flujo de Caja
             </p>
           </div>
-          {!error && (
-            <button
-              onClick={handleOpenModal}
-              className="bg-gray-900 text-amber-400 px-8 py-4 rounded-[1.5rem] font-black text-[11px] uppercase flex items-center gap-3 active:scale-95 transition-all shadow-xl hover:bg-black border-b-4 border-amber-600 tracking-widest"
+
+          {/* WIDGET DE SALDO - COLORES AROMA DE ORO */}
+          <div
+            className={`flex items-center gap-5 p-2 pr-6 rounded-[2rem] border transition-all shadow-sm self-center ${
+              tieneCajaAbierta ? 'bg-white border-gray-100' : 'bg-rose-50 border-rose-100'
+            }`}
+          >
+            {/* Icono con el ámbar de la marca */}
+            <div
+              className={`p-3.5 rounded-[1.5rem] ${
+                tieneCajaAbierta
+                  ? 'bg-gray-900 text-amber-400 shadow-lg shadow-amber-400/20'
+                  : 'bg-rose-100 text-rose-600'
+              }`}
             >
-              <FaPlus /> Registrar Gasto
-            </button>
-          )}
+              <MdOutlineAccountBalanceWallet size={20} />
+            </div>
+
+            {/* Información de Saldo */}
+            <div className="flex flex-col justify-center border-r border-gray-100 pr-5">
+              <p
+                className={`text-[8px] font-black uppercase tracking-[0.2em] leading-none mb-1 ${
+                  tieneCajaAbierta ? 'text-gray-400' : 'text-rose-400'
+                }`}
+              >
+                {tieneCajaAbierta ? 'Saldo en Caja' : 'Caja Cerrada'}
+              </p>
+              <p
+                className={`text-xl font-black font-mono tracking-tighter leading-none ${
+                  tieneCajaAbierta ? 'text-gray-900' : 'text-rose-600'
+                }`}
+              >
+                ${saldoActualCaja.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </p>
+            </div>
+
+            {/* Botón de Acción - Sincronizado con el Sidebar */}
+            {!error && (
+              <button
+                onClick={handleOpenModal}
+                disabled={!tieneCajaAbierta}
+                className={`h-10 px-6 rounded-xl font-black text-[9px] uppercase flex items-center gap-2 transition-all active:scale-95 cursor-pointer ${
+                  tieneCajaAbierta
+                    ? 'bg-gray-900 text-amber-400 hover:bg-gray-800 shadow-md shadow-gray-400/30'
+                    : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                }`}
+              >
+                <FaPlus size={10} /> Nuevo Gasto
+              </button>
+            )}
+          </div>
         </div>
 
         {error ? (
@@ -116,7 +171,7 @@ const Gastos = () => {
                           <div className="flex flex-col items-center gap-3">
                             <div className="w-10 h-10 border-4 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
                             <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest">
-                              Sincronizando gastos...
+                              Sincronizando...
                             </span>
                           </div>
                         </td>
@@ -158,7 +213,7 @@ const Gastos = () => {
                           <div className="flex flex-col items-center justify-center text-gray-200">
                             <FaBoxes size={80} className="mb-4 opacity-10" />
                             <p className="text-[11px] font-black uppercase tracking-[0.4em]">
-                              No se encontraron registros
+                              No hay registros
                             </p>
                           </div>
                         </td>
@@ -171,42 +226,21 @@ const Gastos = () => {
               {/* PAGINACIÓN */}
               <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 mt-auto">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                  Mostrando{' '}
-                  <span className="text-gray-900">
-                    {filtered.length > 0 ? indexOfFirstItem + 1 : 0}
-                  </span>{' '}
-                  a{' '}
-                  <span className="text-gray-900">
-                    {Math.min(indexOfLastItem, filtered.length)}
-                  </span>{' '}
-                  de <span className="text-gray-900">{filtered.length}</span> gastos
+                  Página <span className="text-gray-900">{currentPage}</span> de{' '}
+                  <span className="text-gray-900">{totalPages || 1}</span>
                 </p>
-
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-20 hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white disabled:opacity-20 hover:border-amber-400 transition-all"
                   >
                     <FaChevronLeft size={16} />
                   </button>
-                  <div className="flex items-center gap-1.5">
-                    {[...Array(totalPages)]
-                      .map((_, i) => (
-                        <button
-                          key={i + 1}
-                          onClick={() => paginate(i + 1)}
-                          className={`w-9 h-9 rounded-xl text-[11px] font-black transition-all ${currentPage === i + 1 ? 'bg-gray-900 text-amber-400 shadow-xl border-b-4 border-amber-600' : 'bg-white border border-gray-200 text-gray-400 hover:border-amber-200'}`}
-                        >
-                          {i + 1}
-                        </button>
-                      ))
-                      .slice(Math.max(0, currentPage - 3), Math.min(totalPages, currentPage + 2))}
-                  </div>
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages || totalPages === 0}
-                    className="p-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 disabled:opacity-20 hover:border-amber-400 hover:text-amber-600 transition-all shadow-sm"
+                    className="p-2.5 rounded-xl border border-gray-200 bg-white disabled:opacity-20 hover:border-amber-400 transition-all"
                   >
                     <FaChevronRight size={16} />
                   </button>
@@ -225,24 +259,29 @@ const Gastos = () => {
         title="REGISTRO DE EGRESO OPERATIVO"
       >
         <form onSubmit={handleSubmit} className="p-2 space-y-8">
-          {/* SALDO CAJA - ESTILO PREMIUM */}
-          <div className="bg-gray-900 p-6 rounded-[2rem] flex items-center justify-between border-b-4 border-amber-500 shadow-2xl relative overflow-hidden group">
+          {/* BANNER DE SALDO DENTRO DEL MODAL */}
+          <div
+            className={`p-6 rounded-[2rem] flex items-center justify-between border-b-4 shadow-2xl relative overflow-hidden group transition-colors ${
+              saldoInsuficiente ? 'bg-rose-900 border-rose-500' : 'bg-gray-900 border-amber-500'
+            }`}
+          >
             <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
               <FaMoneyBillWave size={80} className="text-white" />
             </div>
             <div className="flex items-center gap-4 relative z-10">
-              <div className="bg-amber-400 p-3 rounded-2xl text-amber-950 shadow-lg shadow-amber-400/20">
+              <div
+                className={`${saldoInsuficiente ? 'bg-rose-500 text-rose-950 shadow-rose-500/20' : 'bg-amber-400 text-amber-950 shadow-amber-400/20'} p-3 rounded-2xl shadow-lg`}
+              >
                 <FaMoneyBillWave size={22} />
               </div>
               <div>
-                <p className="text-[9px] font-black text-amber-500 uppercase tracking-[0.2em] leading-none mb-1">
-                  Caja Actual
+                <p
+                  className={`text-[9px] font-black uppercase tracking-[0.2em] leading-none mb-1 ${saldoInsuficiente ? 'text-rose-300' : 'text-amber-500'}`}
+                >
+                  {saldoInsuficiente ? '⚠️ SALDO INSUFICIENTE EN CAJA' : 'Caja Actual'}
                 </p>
                 <p className="text-2xl font-black text-white italic font-mono tracking-tighter">
-                  $
-                  {parseFloat(caja?.saldoActual || 0).toLocaleString('en-US', {
-                    minimumFractionDigits: 2,
-                  })}
+                  ${saldoActualCaja.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </p>
               </div>
             </div>
@@ -255,7 +294,7 @@ const Gastos = () => {
               </label>
               <div className="relative">
                 <MdAttachMoney
-                  className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500"
+                  className={`absolute left-4 top-1/2 -translate-y-1/2 ${saldoInsuficiente ? 'text-rose-500' : 'text-emerald-500'}`}
                   size={24}
                 />
                 <input
@@ -264,7 +303,11 @@ const Gastos = () => {
                   required
                   value={formData.monto}
                   onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
-                  className="w-full bg-gray-50 border-2 border-transparent focus:border-amber-400 rounded-2xl py-5 pl-12 pr-6 text-2xl font-black font-mono outline-none transition-all shadow-inner"
+                  className={`w-full bg-gray-50 border-2 rounded-2xl py-5 pl-12 pr-6 text-2xl font-black font-mono outline-none transition-all shadow-inner ${
+                    saldoInsuficiente
+                      ? 'border-rose-400 text-rose-600 focus:border-rose-600'
+                      : 'border-transparent focus:border-amber-400'
+                  }`}
                   placeholder="0.00"
                 />
               </div>
@@ -274,18 +317,17 @@ const Gastos = () => {
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
                 Categoría
               </label>
-              <div className="flex-1 min-h-[58px] bg-gray-50 rounded-2xl border-2 border-gray-100 flex items-center px-4 gap-3">
+              <div className="flex-1 min-h-[58px] bg-gray-50 rounded-2xl border-2 border-gray-100 flex items-center px-4 gap-3 text-xs font-black uppercase text-gray-700">
                 <MdCategory className="text-amber-500" size={20} />
-                <span className="text-xs font-black uppercase text-gray-700 tracking-wider">
-                  {formData.categoria || 'Seleccione abajo'}
-                </span>
+                {formData.categoria || 'Seleccione abajo'}
               </div>
             </div>
           </div>
 
+          {/* SELECTOR DE CATEGORIAS */}
           <div className="space-y-3">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
-              Seleccionar Tipo de Gasto
+              Seleccionar Tipo
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar p-1">
               {categorias.map((cat) => (
@@ -293,17 +335,13 @@ const Gastos = () => {
                   key={cat.nombre}
                   type="button"
                   onClick={() => setFormData({ ...formData, categoria: cat.nombre })}
-                  className={`flex flex-col items-center justify-center p-4 rounded-[1.5rem] border-2 transition-all gap-2 group/cat ${
+                  className={`flex flex-col items-center justify-center p-4 rounded-[1.5rem] border-2 transition-all gap-2 ${
                     formData.categoria === cat.nombre
-                      ? 'bg-gray-900 border-amber-400 text-amber-400 shadow-lg scale-[0.98]'
-                      : 'bg-white border-gray-100 text-gray-400 hover:border-amber-200 hover:text-gray-600'
+                      ? 'bg-gray-900 border-amber-400 text-amber-400 shadow-lg'
+                      : 'bg-white border-gray-100 text-gray-400 hover:border-amber-200'
                   }`}
                 >
-                  <span
-                    className={`text-xl transition-transform group-hover/cat:scale-110 ${formData.categoria === cat.nombre ? 'text-amber-400' : 'text-gray-300'}`}
-                  >
-                    {cat.icono}
-                  </span>
+                  <span className="text-xl">{cat.icono}</span>
                   <span className="text-[9px] font-black uppercase tracking-tight text-center leading-none">
                     {cat.nombre}
                   </span>
@@ -314,37 +352,47 @@ const Gastos = () => {
 
           <div className="space-y-2">
             <label className="text-[10px] font-black text-rose-500 uppercase tracking-widest ml-1 italic">
-              Justificación del Egreso
+              Justificación
             </label>
-            <div className="relative">
-              <MdDescription className="absolute left-5 top-5 text-gray-300" size={20} />
-              <textarea
-                required
-                minLength={5}
-                rows={3}
-                value={formData.descripcion}
-                onChange={(e) =>
-                  setFormData({ ...formData, descripcion: e.target.value.toUpperCase() })
-                }
-                className="w-full bg-gray-50 border-2 border-transparent focus:border-rose-400 rounded-[1.5rem] py-5 pl-14 pr-6 text-xs font-bold uppercase outline-none resize-none transition-all shadow-inner placeholder:text-gray-300"
-                placeholder="EJ: PAGO DE ENERGÍA ELÉCTRICA - BODEGA CENTRAL..."
-              />
-            </div>
+            <textarea
+              required
+              minLength={5}
+              rows={3}
+              value={formData.descripcion}
+              onChange={(e) =>
+                setFormData({ ...formData, descripcion: e.target.value.toUpperCase() })
+              }
+              className="w-full bg-gray-50 border-2 border-transparent focus:border-rose-400 rounded-[1.5rem] py-5 px-6 text-xs font-bold uppercase outline-none resize-none transition-all shadow-inner placeholder:text-gray-300"
+              placeholder="EJ: PAGO DE SUMINISTROS..."
+            />
           </div>
 
-          <div className="bg-gray-900 p-8 rounded-[2.5rem] flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl border border-gray-800">
+          {/* BOTÓN FINAL DE REGISTRO */}
+          <div
+            className={`p-8 rounded-[2.5rem] flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl border ${
+              saldoInsuficiente ? 'bg-rose-50 border-rose-100' : 'bg-gray-900 border-gray-800'
+            }`}
+          >
             <div className="text-center sm:text-left">
-              <p className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] mb-1">
+              <p
+                className={`text-[10px] font-black uppercase tracking-[0.3em] mb-1 ${saldoInsuficiente ? 'text-rose-400' : 'text-gray-500'}`}
+              >
                 Monto a Liquidar
               </p>
-              <p className="text-4xl font-black italic font-mono text-amber-400 leading-none">
-                ${parseFloat(formData.monto || 0).toFixed(2)}
+              <p
+                className={`text-4xl font-black italic font-mono leading-none ${saldoInsuficiente ? 'text-rose-600' : 'text-amber-400'}`}
+              >
+                ${montoIngresado.toFixed(2)}
               </p>
             </div>
             <button
               type="submit"
-              disabled={loading || !formData.monto || !formData.categoria}
-              className="w-full sm:w-auto bg-amber-400 text-amber-950 px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-[0_10px_20px_rgba(251,191,36,0.3)] active:scale-95 disabled:bg-gray-800 disabled:text-gray-600 disabled:shadow-none transition-all hover:bg-amber-300"
+              disabled={loading || !formData.monto || !formData.categoria || saldoInsuficiente}
+              className={`w-full sm:w-auto px-12 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-lg transition-all active:scale-95 ${
+                saldoInsuficiente
+                  ? 'bg-rose-200 text-rose-400 cursor-not-allowed'
+                  : 'bg-amber-400 text-amber-950 hover:bg-amber-300'
+              }`}
             >
               {loading ? 'Confirmando...' : 'Finalizar Registro'}
             </button>

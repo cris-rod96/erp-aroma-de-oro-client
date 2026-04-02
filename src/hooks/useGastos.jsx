@@ -6,6 +6,7 @@ import { useCajaStore } from '../store/useCajaStore'
 import { FaGasPump, FaUtensils, FaTools, FaShoppingCart, FaBoxes } from 'react-icons/fa'
 import { useEffect } from 'react'
 import { useMemo } from 'react'
+import { useEmpresaStore } from '../store/useEmpresaStore'
 
 export const useGastos = () => {
   const [gastos, setGastos] = useState([])
@@ -17,10 +18,10 @@ export const useGastos = () => {
   const [error, setError] = useState(null)
   const token = useAuthStore((state) => state.token)
   const user = useAuthStore((state) => state.user)
+  const { empresa } = useEmpresaStore()
   const { caja, setCaja } = useCajaStore()
 
   const fetchGastos = useCallback(async () => {
-    console.log('Token:', token)
     if (!token) return
     setFetching(true)
     setError(null)
@@ -128,5 +129,6 @@ export const useGastos = () => {
     handleOpenModal,
     caja,
     setFormData,
+    empresa,
   }
 }

@@ -151,7 +151,7 @@ const CuentasPorPagar = () => {
         {/* HEADER INSTITUCIONAL */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="border-l-4 border-amber-400 pl-4">
-            <h1 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter">
+            <h1 className="text-3xl font-black text-gray-800 uppercase tracking-tighter">
               Cuentas por Pagar
             </h1>
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">

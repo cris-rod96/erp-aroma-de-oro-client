@@ -11,6 +11,7 @@ import {
   MdEmail,
   MdPhone,
   MdSecurity,
+  MdOutlineAccountBalanceWallet,
 } from 'react-icons/md'
 import { ComprasHeader, ComprasTable, Container } from '../../components/index.components'
 import { useLiquidacion } from '../../hooks/useLiquidacion'
@@ -104,31 +105,57 @@ const Compras = () => {
     <Container fullWidth={true}>
       <div className="w-full px-2 md:px-6 py-4 text-gray-800 bg-white font-sans relative">
         {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-center border-b-2 border-gray-800 pb-4 mb-6 gap-4 font-black ">
-          <div className="flex items-center gap-4">
-            <div className="bg-gray-800 text-white p-2 rounded ">
-              <MdBusiness size={40} />
-            </div>
-            <div>
-              <h1 className="text-xl md:text-2xl uppercase tracking-tighter">
-                {empresa?.nombre || 'AROMA DE ORO'}
-              </h1>
-              <p className="text-[10px] text-gray-500 font-mono tracking-widest">
-                {empresa?.ruc || '0999999999001'}
-              </p>
-            </div>
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-6">
+          <div className="border-l-4 border-amber-400 pl-4">
+            <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">
+              Gestion de Liquidaciones
+            </h1>
+            <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">
+              Aroma de Oro | Flujo de Caja
+            </p>
           </div>
-          <div className="border-2 border-gray-800 p-3 bg-gray-50 text-center uppercase min-w-[200px] ">
-            <h2 className="text-xs text-gray-400 mb-1 font-black underline">
-              Liquidación de Compra
-            </h2>
-            <div className="flex items-center justify-center gap-2">
-              <span
-                className={`w-2 h-2 rounded-full ${caja ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`}
-              ></span>
-              <p className="text-[10px] text-emerald-700 font-black ">
-                {caja ? `ID CAJA: ${caja.id.slice(0, 8)}` : 'CAJA CERRADA'}
+
+          {/* WIDGET DE SALDO - COLORES AROMA DE ORO */}
+          <div
+            className={`flex items-center gap-5 p-2 pr-6 rounded-[2rem] border transition-all shadow-sm self-center ${
+              caja && caja.estado === 'Abierta'
+                ? 'bg-white border-gray-100'
+                : 'bg-rose-50 border-rose-100'
+            }`}
+          >
+            {/* Icono con el ámbar de la marca */}
+            <div
+              className={`p-3.5 rounded-[1.5rem] ${
+                caja && caja.estado === 'Abierta'
+                  ? 'bg-gray-900 text-amber-400 shadow-lg shadow-amber-400/20'
+                  : 'bg-rose-100 text-rose-600'
+              }`}
+            >
+              <MdOutlineAccountBalanceWallet size={20} />
+            </div>
+
+            {/* Información de Saldo */}
+            <div className="flex flex-col justify-center border-r border-gray-100 pr-5">
+              <p
+                className={`text-[10px] font-black uppercase tracking-tighter leading-none mb-1 ${
+                  caja && caja.estado === 'Abierta' ? 'text-gray-400' : 'text-rose-400'
+                }`}
+              >
+                {caja && caja.estado === 'Abierta' ? 'Saldo en Caja' : 'Caja Cerrada'}
               </p>
+              {caja && caja.estado === 'Abierta' ? (
+                <p
+                  className={`text-xl font-black font-mono tracking-tighter leading-none text-gray-900 `}
+                >
+                  ${caja.saldoActual.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+              ) : (
+                <p
+                  className={`text-xl font-black font-mono tracking-tighter leading-none text-rose-600 text-center`}
+                >
+                  -----
+                </p>
+              )}
             </div>
           </div>
         </div>

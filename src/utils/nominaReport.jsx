@@ -5,8 +5,8 @@ import { formatMoney } from './fromatters'
 
 export const exportarNominaPDF = (pago, empresa) => {
   Swal.fire({
-    title: 'Generando Documento',
-    text: 'Dando formato de nómina para Aroma de Oro...',
+    title: 'Generando Comprobante',
+    text: 'Espere un momento...',
     allowOutsideClick: false,
     didOpen: () => {
       Swal.showLoading()

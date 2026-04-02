@@ -8,6 +8,7 @@ import Swal from 'sweetalert2'
 export const useVentas = () => {
   const { token, user } = useAuthStore()
   const { caja, setCaja } = useCajaStore()
+  const { empresa } = useEmpresaStore()
   const [nuevoComprador, setNuevoComprador] = useState({
     nombreCompleto: '',
     tipoIdentificacion: 'Cédula',
@@ -373,5 +374,6 @@ export const useVentas = () => {
     setCompradorInfo,
     compradores,
     handleRegistrarComprador,
+    empresa,
   }
 }

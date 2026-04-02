@@ -9,7 +9,7 @@ export const exportarIngresosPDF = async (data, filtroTiempo, empresa) => {
   }
 
   Swal.fire({
-    title: 'GENERANDO REPORTE',
+    title: 'Generando Reporte',
     text: `Procesando periodo ${filtroTiempo.toLowerCase()}...`,
     allowOutsideClick: false,
     showConfirmButton: false,

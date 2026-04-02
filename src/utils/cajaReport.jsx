@@ -5,8 +5,8 @@ import { formatMoney } from './fromatters'
 
 export const exportarCajaDetallePDF = async (caja, empresa) => {
   Swal.fire({
-    title: 'GENERANDO REPORTE',
-    text: 'Preparando auditoría de Aroma de Oro...',
+    title: 'Generando Reporte',
+    text: 'Espere un momento....',
     allowOutsideClick: false,
     showConfirmButton: false,
     didOpen: () => Swal.showLoading(),

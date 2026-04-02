@@ -13,6 +13,7 @@ import {
   MdChevronRight,
   MdWarning,
   MdEdit,
+  MdOutlineAccountBalanceWallet,
 } from 'react-icons/md'
 import { usePrestamos } from '../../hooks/usePrestamos'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
@@ -79,32 +80,59 @@ const Prestamos = () => {
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-6">
           <div className="border-l-4 border-amber-400 pl-4">
-            <h1 className="text-3xl md:text-4xl font-black text-gray-800 uppercase tracking-tighter leading-none italic">
-              Préstamos a Empleados
+            <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">
+              Gestion de Ventas
             </h1>
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">
-              Aroma de Oro | Nómina y Créditos
+              Aroma de Oro | Flujo de Caja
             </p>
           </div>
-          {!error && (
-            <div className="flex items-center gap-4 bg-white p-5 rounded-[2rem] shadow-xl border border-gray-100">
-              <div className="h-12 w-12 rounded-2xl bg-amber-400 text-gray-900 flex items-center justify-center text-2xl shadow-lg shadow-amber-100">
-                <MdAccountBalanceWallet />
-              </div>
-              <div>
-                <p className="text-[10px] font-black text-gray-400 uppercase leading-none tracking-widest text-center">
-                  Disponible en Caja
-                </p>
-                <p className="text-xl font-black text-gray-900 font-mono mt-1 text-center">
-                  ${' '}
-                  {caja?.saldoActual?.toLocaleString('en-US', { minimumFractionDigits: 2 }) ||
-                    '0.00'}
-                </p>
-              </div>
+
+          {/* WIDGET DE SALDO - COLORES AROMA DE ORO */}
+          <div
+            className={`flex items-center gap-5 p-2 pr-6 rounded-[2rem] border transition-all shadow-sm self-center ${
+              caja && caja.estado === 'Abierta'
+                ? 'bg-white border-gray-100'
+                : 'bg-rose-50 border-rose-100'
+            }`}
+          >
+            {/* Icono con el ámbar de la marca */}
+            <div
+              className={`p-3.5 rounded-[1.5rem] ${
+                caja && caja.estado === 'Abierta'
+                  ? 'bg-gray-900 text-amber-400 shadow-lg shadow-amber-400/20'
+                  : 'bg-rose-100 text-rose-600'
+              }`}
+            >
+              <MdOutlineAccountBalanceWallet size={20} />
             </div>
-          )}
+
+            {/* Información de Saldo */}
+            <div className="flex flex-col justify-center border-r border-gray-100 pr-5">
+              <p
+                className={`text-[10px] font-black uppercase tracking-tighter leading-none mb-1 ${
+                  caja && caja.estado === 'Abierta' ? 'text-gray-400' : 'text-rose-400'
+                }`}
+              >
+                {caja && caja.estado === 'Abierta' ? 'Saldo en Caja' : 'Caja Cerrada'}
+              </p>
+              {caja && caja.estado === 'Abierta' ? (
+                <p
+                  className={`text-xl font-black font-mono tracking-tighter leading-none text-gray-900 `}
+                >
+                  ${caja.saldoActual.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                </p>
+              ) : (
+                <p
+                  className={`text-xl font-black font-mono tracking-tighter leading-none text-rose-600 text-center`}
+                >
+                  -----
+                </p>
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16">

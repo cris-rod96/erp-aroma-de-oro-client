@@ -5,7 +5,7 @@ import { formatMoney } from './fromatters'
 
 export const exportarPrestamoPDF = (prestamo, empresa) => {
   Swal.fire({
-    title: 'Generando Documento',
+    title: 'Generando Comprobante',
     text: 'Espere un momento...',
     allowOutsideClick: false,
     didOpen: () => {

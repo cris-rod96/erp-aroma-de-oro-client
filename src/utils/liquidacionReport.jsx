@@ -320,8 +320,8 @@ import { formatMoney } from './fromatters'
 export const exportarLiquidacionPDF = (liq, empresa) => {
   // 1. Alerta con retraso para evitar el bloqueo visual
   Swal.fire({
-    title: 'Generando Documento',
-    text: 'Optimizando peso y formato para Aroma de Oro...',
+    title: 'Generando Comprobante',
+    text: 'Espere un momento...',
     allowOutsideClick: false,
     didOpen: () => {
       Swal.showLoading()

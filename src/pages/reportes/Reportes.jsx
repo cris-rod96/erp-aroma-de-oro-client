@@ -268,7 +268,7 @@ const Reportes = () => {
       <div className="w-full px-4 md:px-8 py-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
           <div className="border-l-4 border-amber-400 pl-4">
-            <h1 className="text-3xl md:text-4xl font-black text-gray-800 uppercase tracking-tighter italic">
+            <h1 className="text-3xl font-black text-gray-800 uppercase tracking-tighter ">
               Reportes Maestros
             </h1>
             <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2">

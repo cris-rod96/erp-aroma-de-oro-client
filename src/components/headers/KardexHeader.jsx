@@ -26,8 +26,8 @@ const KardexHeader = ({
   return (
     <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center mb-10 gap-6">
       <div className="border-l-4 border-amber-400 pl-4">
-        <h1 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter flex items-center gap-3">
-          <MdHistory className="text-amber-500" /> Historial de Movimientos
+        <h1 className="text-3xl font-black text-gray-800 uppercase  tracking-tighter flex items-center gap-3">
+          Historial de Movimientos
         </h1>
         <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">
           {filtroTipo === 'gastos'

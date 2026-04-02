@@ -12,25 +12,29 @@ import {
 import { Container, CumplesTrabajadores, Loading } from '../../components/index.components'
 import { useAuthStore } from '../../store/useAuthStore'
 import {
+  anticipoAPI,
   cajaAPI,
+  compradorAPI,
   cuentasPorCobrarAPI,
   cuentasPorPagarAPI,
   empresaAPI,
+  gastoAPI,
   liquidacionAPI,
   productorAPI,
   trabajadorAPI,
   usuarioAPI,
   ventaAPI,
 } from '../../api/index.api'
+import prestamoAPI from '../../api/prestamo/prestamo.api'
 
 const Home = () => {
   const { hiddenMenu } = useOutletContext()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [mensajeLoading, setMensajeLoading] = useState('Iniciando sistema...')
+
   const [cumplesHoy, setCumplesHoy] = useState([])
   const [cumplesManana, setCumplesManana] = useState([])
-
   const [cajaAbierta, setCajaAbierta] = useState(true)
   const [empresaRegistrada, setEmpresaRegistrada] = useState(true)
 
@@ -40,16 +44,20 @@ const Home = () => {
 
   const [stats, setStats] = useState({
     USUARIOS: 'Cargando...',
-    NÓMINA: '0 Empleados',
-    COMPRAS: '0 Hoy',
-    INVENTARIO: '0.00 qq',
-    PRODUCTORES: '0 Total',
-    CAJAS: '$0.00',
-    KARDEX: 'Ver mov.',
-    VENTAS: '$0. 00',
+    NÓMINA: 'Cargando...',
+    COMPRAS: 'Cargando...',
+    INVENTARIO: 'Ver bodega',
+    COMPRADORES: 'Cargando...',
+    PRODUCTORES: 'Cargando...',
+    CAJAS: 'Cargando...',
+    KARDEX: 'Ver movimientos',
+    VENTAS: 'Cargando...',
     REPORTES: 'PDF/Excel',
-    'POR COBRAR': '$0. 00',
-    'POR PAGAR': '$0. 00',
+    ANTICIPOS: 'Cargando...',
+    PRÉSTAMOS: 'Cargando...',
+    GASTOS: 'Cargando...',
+    'POR COBRAR': 'Cargando...',
+    'POR PAGAR': '$0.00',
     CONFIGURACIÓN: 'Ajustes',
   })
 
@@ -60,9 +68,11 @@ const Home = () => {
       try {
         setMensajeLoading('Sincronizando base de datos...')
 
+        // Ejecución de todas las peticiones en paralelo
         const [
           respUsuarios,
           respProductores,
+          respCompradores,
           respTrabajadores,
           respLiquidaciones,
           respCajaActiva,
@@ -71,9 +81,13 @@ const Home = () => {
           respCuentasPorCobrar,
           respEmpresa,
           respCumples,
+          respAnticipos,
+          respPrestamos,
+          respGastos,
         ] = await Promise.all([
           usuarioAPI.listarUsuarios(token),
           productorAPI.listarTodos(token),
+          compradorAPI.listarTodos(token),
           trabajadorAPI.listarTodos(token),
           liquidacionAPI.listarTodas(token),
           cajaAPI.obtenerCajaAbierta(token, user?.id),
@@ -82,70 +96,102 @@ const Home = () => {
           cuentasPorCobrarAPI.listarPendientes(token),
           empresaAPI.obtenerInformacion(token),
           trabajadorAPI.listarProximosCumples(token),
+          anticipoAPI.listarTodos(token),
+          prestamoAPI.listarTodos(token),
+          gastoAPI.listarGastos(token),
         ])
 
-        const cajaData = respCajaActiva.data.caja
-        setCajaAbierta(!!cajaData)
-        setEmpresaRegistrada(respEmpresa.data.empresa)
-        setCumplesHoy(respCumples.data.cumples.alertasHoy || [])
-        setCumplesManana(respCumples.data.cumples.alertasManana || [])
+        // --- EXTRACCIÓN DE DATOS ---
+        const dataUsuarios = respUsuarios.data?.usuarios || []
+        const dataProductores = respProductores.data?.productores || []
+        const dataCompradores = respCompradores.data?.compradores || []
+        const dataTrabajadores = respTrabajadores.data?.trabajadores || []
+        const dataLiquidaciones = respLiquidaciones.data?.liquidaciones || []
+        const dataVentas = respVentas.data?.ventas || []
+        const dataCxp = respCuentasPorPagar.data?.cuentasPorPagar || []
+        const dataCxc = respCuentasPorCobrar.data?.cuentasPorCobrar || []
+        const dataAnticipos = respAnticipos.data?.anticipos || respAnticipos.data || []
+        const dataPrestamos = respPrestamos.data?.prestamos || respPrestamos.data || []
+        const dataGastos = respGastos.data?.gastos || []
+        const cajaData = respCajaActiva.data?.caja
 
-        const usuariosData = respUsuarios.data.usuarios || []
-        const countActivos = usuariosData.filter((u) => u.estaActivo).length
+        // --- CÁLCULOS LÓGICOS (Usando las constantes recién creadas) ---
         const hoy = new Date().toISOString().split('T')[0]
         const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-        const liquidacionesHoy = (respLiquidaciones.data.liquidaciones || []).filter((liq) => {
+        const countActivos = dataUsuarios.filter((u) => u.estaActivo).length
+
+        const liquidacionesHoy = dataLiquidaciones.filter((liq) => {
           const fechaLiq = liq.createdAt || liq.fecha
-          return new Date(fechaLiq).toISOString().split('T')[0] === hoy
+          return fechaLiq && new Date(fechaLiq).toISOString().split('T')[0] === hoy
         }).length
 
         const dineroEnCaja = cajaData ? parseFloat(cajaData.saldoActual || 0) : 0
 
         let totalVentasHoy = 0
-        ;(respVentas.data.ventas || []).forEach((v) => {
-          if (new Date(v.createdAt).toISOString().split('T')[0] === hoy)
+        dataVentas.forEach((v) => {
+          if (v.createdAt && new Date(v.createdAt).toISOString().split('T')[0] === hoy)
             totalVentasHoy += parseFloat(v.totalFactura || 0)
         })
 
-        const totalPorPagar = (respCuentasPorPagar.data.cuentasPorPagar || []).reduce(
-          (acc, c) => acc + parseFloat(c.saldoPendiente || 0),
+        const totalAnticipos = dataAnticipos.reduce(
+          (acc, a) => acc + parseFloat(a.saldoPendiente || 0),
           0
         )
-        const totalPorCobrar = (respCuentasPorCobrar.data.cuentasPorCobrar || []).reduce(
+        const totalPrestamos = dataPrestamos.reduce(
+          (acc, p) => acc + parseFloat(p.saldoPendiente || 0),
+          0
+        )
+        const totalGastos = dataGastos.reduce((acc, g) => acc + parseFloat(g.monto || 0), 0)
+        const totalPorPagar = dataCxp.reduce((acc, c) => acc + parseFloat(c.saldoPendiente || 0), 0)
+        const totalPorCobrar = dataCxc.reduce(
           (acc, c) => acc + parseFloat(c.montoPorCobrar || 0),
           0
         )
 
-        setStats((prev) => ({
-          ...prev,
-          USUARIOS: `${countActivos} Activos`,
-          NÓMINA: `${respTrabajadores.data.trabajadores?.length || 0} Empleados`,
+        // --- ACTUALIZACIÓN DE ESTADOS ---
+        setCajaAbierta(!!cajaData)
+        setEmpresaRegistrada(!!respEmpresa.data?.empresa)
+        setCumplesHoy(respCumples.data?.cumples?.alertasHoy || [])
+        setCumplesManana(respCumples.data?.cumples?.alertasManana || [])
+
+        setStats({
+          USUARIOS: `${countActivos} ${countActivos === 1 ? 'Activo' : 'Activos'}`,
+          NÓMINA: `${dataTrabajadores.length} ${dataTrabajadores.length === 1 ? 'Empleado' : 'Empleados'}`,
           COMPRAS: `${liquidacionesHoy} Hoy`,
           INVENTARIO: `Ver bodega`,
-          PRODUCTORES: `${respProductores.data.productores?.length || 0} Total`,
+          PRODUCTORES: `${dataProductores.length} ${dataProductores.length === 1 ? 'Productor' : 'Productores'}`,
+          COMPRADORES: `${dataCompradores.length} ${dataCompradores.length === 1 ? 'Comprador' : 'Compradores'}`,
           CAJAS: formatter.format(dineroEnCaja),
           VENTAS: formatter.format(totalVentasHoy),
+          ANTICIPOS: formatter.format(totalAnticipos),
+          PRÉSTAMOS: formatter.format(totalPrestamos),
+          GASTOS: formatter.format(totalGastos),
           'POR COBRAR': formatter.format(totalPorCobrar),
           'POR PAGAR': formatter.format(totalPorPagar),
-        }))
-      } catch (error) {
-        const msg = error.response?.data?.message || 'Error al obtener información'
+          KARDEX: 'Ver movimientos',
+          REPORTES: 'PDF/Excel',
+          CONFIGURACIÓN: 'Ajustes',
+        })
+      } catch (err) {
+        console.error(err)
+        const msg = err.response?.data?.message || 'Error al obtener información del servidor'
         setError(msg)
       } finally {
         setLoading(false)
       }
     }
-    if (token && user?.id) fetchDashboardData()
+
+    if (token && user?.id) {
+      fetchDashboardData()
+    }
   }, [token, user?.id])
 
-  // COMPONENTE DE BANNER INTEGRADO
   const BannerInformativo = () => {
     if (cajaAbierta && empresaRegistrada) return null
 
     return (
       <div className="w-full mb-12 mt-4">
-        {/* Añadido mt-4 para alejarlo del borde superior */}
         <div className="bg-white border border-amber-200 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm border-l-[14px] border-l-amber-400">
           <div className="flex items-center gap-6">
             <div className="bg-amber-50 p-5 rounded-3xl text-amber-500 shadow-inner">
@@ -208,7 +254,6 @@ const Home = () => {
         <section
           className={`flex-1 bg-[#F5F9FF] min-h-screen transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'} `}
         >
-          {/* AJUSTE: py-32 le da espacio suficiente arriba (header) y abajo */}
           <div
             className={`flex flex-col ${
               hiddenMenu ? 'w-[90%]' : 'w-[80%] pl-56'
@@ -225,8 +270,9 @@ const Home = () => {
               }`}
             >
               {ITEMS_DATA.map((item, index) => {
+                const labelUpper = item.label.toUpperCase()
                 const isBlocked = item.onlyAdmin && !estaHabilitado
-                const needsCaja = ['VENTAS', 'CAJAS', 'COMPRAS'].includes(item.label.toUpperCase())
+                const needsCaja = ['VENTAS', 'CAJAS', 'COMPRAS'].includes(labelUpper)
                 const isLockedByCaja = !cajaAbierta && needsCaja && !isBlocked
 
                 return (
@@ -275,7 +321,7 @@ const Home = () => {
                             ? 'BLOQUEADO'
                             : isLockedByCaja
                               ? 'CAJA CERRADA'
-                              : stats[item.label.toUpperCase()] || '0.00'}
+                              : stats[labelUpper] || '---'}
                         </p>
                         <span
                           className={`text-[9px] font-bold uppercase tracking-tighter transition-all transform ${isBlocked || isLockedByCaja ? 'text-rose-400 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'}`}

@@ -34,7 +34,7 @@ const CajasHeader = ({
     <>
       <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
         <div className="border-l-4 border-amber-400 pl-4">
-          <h1 className="text-3xl font-black uppercase italic tracking-tighter text-gray-900">
+          <h1 className="text-3xl font-black uppercase  tracking-tighter text-gray-900">
             Control de Cajas
           </h1>
           <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">

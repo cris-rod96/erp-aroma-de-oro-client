@@ -15,7 +15,7 @@ const NominaHeader = ({
       {/* SECCIÓN SUPERIOR: TÍTULO Y ACCIONES */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 text-gray-800 mb-8">
         <div className="border-l-4 border-amber-400 pl-4">
-          <h1 className="text-3xl font-black uppercase italic tracking-tighter leading-none">
+          <h1 className="text-3xl font-black uppercase  tracking-tighter leading-none">
             {activeTab === 'empleados'
               ? verEliminados
                 ? 'Personal Archivado'

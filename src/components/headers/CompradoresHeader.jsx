@@ -12,7 +12,7 @@ const CompradoresHeader = ({
     <div className="flex flex-col lg:flex-row lg:items-center justify-between mb-10 gap-6 text-gray-800">
       {/* TÍTULO DINÁMICO */}
       <div className="border-l-4 border-amber-400 pl-4 transition-all">
-        <h1 className="text-3xl font-black uppercase italic tracking-tighter leading-none">
+        <h1 className="text-3xl font-black uppercase tracking-tighter leading-none">
           {verEliminados ? 'Compradores Inactivos' : 'Gestión de Compradores'}
         </h1>
         <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">

@@ -9,8 +9,8 @@ export const exportarEgresosPDF = async (data, filtroTiempo, empresa) => {
   }
 
   Swal.fire({
-    title: 'GENERANDO REPORTE',
-    text: `Procesando auditoría de egresos Aroma de Oro...`,
+    title: 'Generando Reporte',
+    text: `Espere un momento...`,
     allowOutsideClick: false,
     showConfirmButton: false,
     didOpen: () => Swal.showLoading(),

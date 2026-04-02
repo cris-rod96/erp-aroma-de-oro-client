@@ -128,7 +128,9 @@ const Configuracion = () => {
         })
       }
     } catch (error) {
-      Swal.fire('Error', 'No se pudo guardar la empresa', 'error')
+      console.log(error.response)
+      const msg = error.response?.data?.message || 'Error al guardar información de empresa'
+      Swal.fire('Error', msg, 'error')
     } finally {
       setLoading(false)
     }
@@ -176,7 +178,7 @@ const Configuracion = () => {
         {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="border-l-4 border-amber-400 pl-4">
-            <h1 className="text-3xl font-black text-gray-800 uppercase italic tracking-tighter leading-none">
+            <h1 className="text-3xl font-black text-gray-800 uppercase  tracking-tighter leading-none">
               Configuración
             </h1>
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-1">
