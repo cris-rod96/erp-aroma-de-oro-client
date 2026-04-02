@@ -7,14 +7,12 @@ import {
   FaMoneyBillWave,
   FaChevronLeft,
   FaChevronRight,
-  FaWallet,
 } from 'react-icons/fa'
 import {
   MdAttachMoney,
-  MdDescription,
-  MdSecurity,
   MdCategory,
   MdOutlineAccountBalanceWallet,
+  MdSecurity,
 } from 'react-icons/md'
 import { Container, Modal } from '../../components/index.components'
 import { useGastos } from '../../hooks/useGastos'
@@ -61,25 +59,41 @@ const Gastos = () => {
 
   return (
     <Container fullWidth>
+      {/* ESTILOS INLINE PARA EL SCROLL DE CATEGORÍAS */}
+      <style>{`
+        .categorias-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+        .categorias-scroll::-webkit-scrollbar-track {
+          background: #f3f4f6;
+          border-radius: 10px;
+        }
+        .categorias-scroll::-webkit-scrollbar-thumb {
+          background: #fbbf24;
+          border-radius: 10px;
+        }
+        .categorias-scroll::-webkit-scrollbar-thumb:hover {
+          background: #f59e0b;
+        }
+      `}</style>
+
       <div className="w-full px-4 md:px-8 py-6">
-        {/* HEADER Y SALDO PERMANENTE */}
+        {/* HEADER Y SALDO */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-6">
           <div className="border-l-4 border-amber-400 pl-4">
             <h1 className="text-3xl font-black text-gray-800 uppercase tracking-tighter leading-none ">
               Gastos Generales
             </h1>
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em] mt-2">
-              Aroma de Oro | Flujo de Caja
+              {empresa?.nombre || 'Aroma de Oro'} | Flujo de Caja
             </p>
           </div>
 
-          {/* WIDGET DE SALDO - COLORES AROMA DE ORO */}
           <div
             className={`flex items-center gap-5 p-2 pr-6 rounded-[2rem] border transition-all shadow-sm self-center ${
               tieneCajaAbierta ? 'bg-white border-gray-100' : 'bg-rose-50 border-rose-100'
             }`}
           >
-            {/* Icono con el ámbar de la marca */}
             <div
               className={`p-3.5 rounded-[1.5rem] ${
                 tieneCajaAbierta
@@ -89,8 +103,6 @@ const Gastos = () => {
             >
               <MdOutlineAccountBalanceWallet size={20} />
             </div>
-
-            {/* Información de Saldo */}
             <div className="flex flex-col justify-center border-r border-gray-100 pr-5">
               <p
                 className={`text-[8px] font-black uppercase tracking-[0.2em] leading-none mb-1 ${
@@ -107,8 +119,6 @@ const Gastos = () => {
                 ${saldoActualCaja.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </p>
             </div>
-
-            {/* Botón de Acción - Sincronizado con el Sidebar */}
             {!error && (
               <button
                 onClick={handleOpenModal}
@@ -139,7 +149,6 @@ const Gastos = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* BUSCADOR */}
             <div className="relative max-w-md group">
               <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-amber-500 transition-colors" />
               <input
@@ -151,7 +160,6 @@ const Gastos = () => {
               />
             </div>
 
-            {/* TABLA PRINCIPAL */}
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col min-h-[550px]">
               <div className="overflow-x-auto flex-1">
                 <table className="w-full text-left border-collapse">
@@ -223,7 +231,6 @@ const Gastos = () => {
                 </table>
               </div>
 
-              {/* PAGINACIÓN */}
               <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4 mt-auto">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                   Página <span className="text-gray-900">{currentPage}</span> de{' '}
@@ -259,7 +266,6 @@ const Gastos = () => {
         title="REGISTRO DE EGRESO OPERATIVO"
       >
         <form onSubmit={handleSubmit} className="p-2 space-y-8">
-          {/* BANNER DE SALDO DENTRO DEL MODAL */}
           <div
             className={`p-6 rounded-[2rem] flex items-center justify-between border-b-4 shadow-2xl relative overflow-hidden group transition-colors ${
               saldoInsuficiente ? 'bg-rose-900 border-rose-500' : 'bg-gray-900 border-amber-500'
@@ -324,12 +330,12 @@ const Gastos = () => {
             </div>
           </div>
 
-          {/* SELECTOR DE CATEGORIAS */}
+          {/* SELECTOR DE CATEGORIAS CON ALTURA EXTENDIDA Y SCROLL PERSONALIZADO */}
           <div className="space-y-3">
             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">
               Seleccionar Tipo
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar p-1">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-80 overflow-y-auto pr-4 categorias-scroll p-1">
               {categorias.map((cat) => (
                 <button
                   key={cat.nombre}
@@ -367,7 +373,6 @@ const Gastos = () => {
             />
           </div>
 
-          {/* BOTÓN FINAL DE REGISTRO */}
           <div
             className={`p-8 rounded-[2.5rem] flex flex-col sm:flex-row items-center justify-between gap-6 shadow-2xl border ${
               saldoInsuficiente ? 'bg-rose-50 border-rose-100' : 'bg-gray-900 border-gray-800'
