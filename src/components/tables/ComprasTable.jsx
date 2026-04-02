@@ -17,6 +17,13 @@ const ComprasTable = ({ liquidaciones = [], setSelectedLiq, setShowModal }) => {
 
   const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
+  const PREFIJOS = {
+    Quintales: 'QQ',
+    Kilogramos: 'KG',
+    Libras: 'LB',
+    Tacho: 'TCH',
+  }
+
   // Resetear a pág 1 si cambia la data
   useEffect(() => {
     setCurrentPage(1)
@@ -73,7 +80,9 @@ const ComprasTable = ({ liquidaciones = [], setSelectedLiq, setShowModal }) => {
                     <span className="font-mono font-black text-blue-600 text-sm">
                       {parseFloat(liq.DetalleLiquidacion?.cantidadNeta || 0).toFixed(2)}
                     </span>
-                    <span className="text-[9px] font-black text-gray-400 ml-1 uppercase">QQ</span>
+                    <span className="text-[9px] font-black text-gray-400 ml-1 uppercase">
+                      {PREFIJOS[liq.DetalleLiquidacion?.unidad]}
+                    </span>
                   </td>
 
                   <td className="px-6 py-4 text-right font-black text-gray-900 text-sm">
