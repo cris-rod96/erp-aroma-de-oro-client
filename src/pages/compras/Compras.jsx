@@ -185,7 +185,7 @@ const Compras = () => {
                         Expediente de Liquidación
                       </h2>
                       <span className="text-[10px] text-amber-400 font-bold italic">
-                        REGISTRO ID: {selectedLiq.id}
+                        REGISTRO: {selectedLiq.codigo}
                       </span>
                     </div>
                     <button
@@ -325,13 +325,13 @@ const Compras = () => {
                           03. Resumen de Valores
                         </h3>
                         <div className="border-2 border-black divide-y divide-gray-200">
-                          <div className="flex justify-between p-2 text-xs font-bold uppercase">
+                          <div className="flex justify-between p-2 text-[14px] font-bold uppercase">
                             <span>Subtotal Producto:</span>
                             <span className="font-mono">
                               ${parseFloat(selectedLiq.totalLiquidacion).toFixed(2)}
                             </span>
                           </div>
-                          <div className="flex justify-between p-2 text-xs font-bold text-red-600 uppercase">
+                          <div className="flex justify-between p-2 text-[14px] font-bold text-red-600 uppercase">
                             <span>(-) Retención Fuente:</span>
                             <span className="font-mono">
                               -${parseFloat(selectedLiq.totalRetencion).toFixed(2)}
@@ -342,7 +342,7 @@ const Compras = () => {
                           {selectedLiq.Anticipos?.map((ant, index) => (
                             <div
                               key={index}
-                              className="flex justify-between p-2 text-[10px] font-black text-amber-700 italic bg-amber-50 uppercase"
+                              className="flex justify-between p-2 text-[14px] font-black text-amber-700 italic bg-amber-50 uppercase"
                             >
                               <span>(-) Anticipo Aplicado:</span>
                               <span className="font-mono">
@@ -354,7 +354,7 @@ const Compras = () => {
 
                           {/* PAGO DE DEUDA ANTERIOR (EXTRAÍDO DEL ABONO CXP) */}
                           {selectedLiq.CuentasPorPagars?.[0]?.AbonosCuentasPorPagars?.[0] && (
-                            <div className="flex justify-between p-2 text-[10px] font-black text-blue-700 bg-blue-50 uppercase border-t border-gray-100">
+                            <div className="flex justify-between p-2 text-[14px] font-black text-blue-700 bg-blue-50 uppercase border-t border-gray-100">
                               <span>(+) Pago Deuda Anterior:</span>
                               <span className="font-mono">
                                 $
@@ -428,12 +428,12 @@ const Compras = () => {
                           </p>
                         </div>
                       </div>
-                      {selectedLiq.CuentasPorPagars?.[0]?.AbonosCuentasPorPagars?.[0] && (
+                      {/* {selectedLiq.CuentasPorPagars?.[0]?.AbonosCuentasPorPagars?.[0] && (
                         <p className="text-[9px] font-bold mt-2 text-blue-600 italic lowercase">
                           * Nota: El pago de deuda anterior corresponde al registro ID #
                           {selectedLiq.CuentasPorPagars[0].AbonosCuentasPorPagars[0].id}
                         </p>
-                      )}
+                      )} */}
                     </div>
                   </div>
 
