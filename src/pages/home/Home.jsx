@@ -83,27 +83,36 @@ const Home = () => {
           gastoAPI.listarGastos(token),
         ])
 
+        // --- EXTRACCIÓN Y NORMALIZACIÓN ---
         const dataUsuarios = respUsuarios.data?.usuarios || []
         const dataProductores = respProductores.data?.productores || []
         const dataCompradores = respCompradores.data?.compradores || []
         const dataTrabajadores = respTrabajadores.data?.trabajadores || []
         const dataLiquidaciones = respLiquidaciones.data?.liquidaciones || []
         const dataVentas = respVentas.data?.ventas || []
-        const dataCxp = respCuentasPorPagar.data?.cuentasPorPagar || []
-        const dataCxc = respCuentasPorCobrar.data?.cuentasPorCobrar || []
         const dataAnticipos = respAnticipos.data?.anticipos || respAnticipos.data || []
         const dataPrestamos = respPrestamos.data?.prestamos || respPrestamos.data || []
         const dataGastos = respGastos.data?.gastos || []
         const cajaData = respCajaActiva.data?.caja
 
-        // Fecha local YYYY-MM-DD
         const hoyLocal = new Date().toLocaleDateString('en-CA')
         const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-        const esDeHoy = (f) => (f ? f.split('T')[0] === hoyLocal : false)
+        const esDeHoy = (fechaDb) => {
+          if (!fechaDb) return false
+          const fechaLocal = new Date(fechaDb).toLocaleDateString('en-CA')
+          return fechaLocal === hoyLocal
+        }
 
-        // Cálculos
-        const liqHoy = dataLiquidaciones.filter((l) => esDeHoy(l.createdAt || l.fecha)).length
+        // --- LÓGICA DE PLURALIZACIÓN ---
+        const plural = (count, singular, pluralStr) =>
+          `${count} ${count === 1 ? singular : pluralStr}`
+
+        // Cálculos numéricos
+        const activosCount = dataUsuarios.filter((u) => u.estaActivo).length
+        const liqHoyCount = dataLiquidaciones.filter((l) => esDeHoy(l.createdAt || l.fecha)).length
+        const liqTotalCount = dataLiquidaciones.length
+
         const vtaHoy = dataVentas
           .filter((v) => esDeHoy(v.createdAt))
           .reduce((acc, v) => acc + parseFloat(v.totalFactura || 0), 0)
@@ -116,33 +125,21 @@ const Home = () => {
 
         const antHoy = dataAnticipos
           .filter((a) => esDeHoy(a.createdAt || a.fecha))
-          .reduce((acc, a) => acc + parseFloat(a.monto || 0), 0)
-        const totalAnt = dataAnticipos.reduce(
-          (acc, a) => acc + parseFloat(a.saldoPendiente || 0),
+          .reduce((acc, a) => acc + parseFloat(a.monto || a.montoAnticipo || 0), 0)
+        const totalAntSaldo = dataAnticipos.reduce(
+          (acc, a) => acc + parseFloat(a.saldoPendiente || a.monto || 0),
           0
         )
 
-        const preHoy = dataPrestamos
-          .filter((p) => esDeHoy(p.createdAt || p.fecha))
-          .reduce((acc, p) => acc + parseFloat(p.monto || 0), 0)
-        const totalPre = dataPrestamos.reduce(
-          (acc, p) => acc + parseFloat(p.saldoPendiente || 0),
-          0
-        )
-
+        // --- ACTUALIZACIÓN DE ESTADOS ---
         setStats({
-          USUARIOS: {
-            p: `${dataUsuarios.filter((u) => u.estaActivo).length} ${dataUsuarios.filter((u) => u.estaActivo).length === 1 ? 'Activo' : 'Activos'} `,
-          },
-          NÓMINA: {
-            p: `${dataTrabajadores.length} ${dataTrabajadores.length === 1 ? 'Empleado' : 'Empleados'} `,
-          },
-          COMPRAS: { p: `${liqHoy} Hoy`, s: `${dataLiquidaciones.length} Total` },
-          PRODUCTORES: {
-            p: `${dataProductores.length} ${dataProductores.length === 1 ? 'Productor' : 'Productores'} `,
-          },
-          COMPRADORES: {
-            p: `${dataCompradores.length} ${dataCompradores.length === 1 ? 'Comprador' : 'Compradores'} `,
+          USUARIOS: { p: plural(activosCount, 'Activo', 'Activos') },
+          NÓMINA: { p: plural(dataTrabajadores.length, 'Empleado', 'Empleados') },
+          PRODUCTORES: { p: plural(dataProductores.length, 'Productor', 'Productores') },
+          COMPRADORES: { p: plural(dataCompradores.length, 'Comprador', 'Compradores') },
+          COMPRAS: {
+            p: plural(liqHoyCount, 'Compra Hoy', 'Compras Hoy'),
+            s: `Total: ${liqTotalCount}`,
           },
           CAJAS: { p: formatter.format(cajaData ? parseFloat(cajaData.saldoActual || 0) : 0) },
           VENTAS: {
@@ -151,11 +148,11 @@ const Home = () => {
           },
           ANTICIPOS: {
             p: `${formatter.format(antHoy)} Hoy`,
-            s: `Saldo: ${formatter.format(totalAnt)}`,
+            s: `Saldo: ${formatter.format(totalAntSaldo)}`,
           },
           PRÉSTAMOS: {
-            p: `${formatter.format(preHoy)} Hoy`,
-            s: `Saldo: ${formatter.format(totalPre)}`,
+            p: `${formatter.format(dataPrestamos.filter((p) => esDeHoy(p.createdAt || p.fecha)).reduce((acc, p) => acc + parseFloat(p.monto || 0), 0))} Hoy`,
+            s: `Saldo: ${formatter.format(dataPrestamos.reduce((acc, p) => acc + parseFloat(p.saldoPendiente || 0), 0))}`,
           },
           GASTOS: {
             p: `${formatter.format(gstHoy)} Hoy`,
@@ -163,12 +160,18 @@ const Home = () => {
           },
           'POR COBRAR': {
             p: formatter.format(
-              dataCxc.reduce((acc, c) => acc + parseFloat(c.montoPorCobrar || 0), 0)
+              (respCuentasPorCobrar.data?.cuentasPorCobrar || []).reduce(
+                (acc, c) => acc + parseFloat(c.montoPorCobrar || 0),
+                0
+              )
             ),
           },
           'POR PAGAR': {
             p: formatter.format(
-              dataCxp.reduce((acc, c) => acc + parseFloat(c.saldoPendiente || 0), 0)
+              (respCuentasPorPagar.data?.cuentasPorPagar || []).reduce(
+                (acc, c) => acc + parseFloat(c.saldoPendiente || 0),
+                0
+              )
             ),
           },
           INVENTARIO: { p: 'Ver bodega' },
@@ -200,10 +203,6 @@ const Home = () => {
         <div
           className={`flex flex-col ${hiddenMenu ? 'w-[90%]' : 'w-[80%] pl-56'} mx-auto py-32 px-10`}
         >
-          {!loading && (
-            <CumplesTrabajadores cumplesHoy={cumplesHoy} cumplesManana={cumplesManana} />
-          )}
-
           <div
             className={`grid md:grid-cols-2 sm:grid-cols-1 gap-10 ${hiddenMenu ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
           >
@@ -220,7 +219,7 @@ const Home = () => {
                   to={isBlocked || isLockedByCaja ? '#' : item.path}
                   className={`group flex flex-col border border-gray-200 rounded-[2.5rem] bg-white transition-all duration-500 overflow-hidden ${
                     isBlocked || isLockedByCaja
-                      ? 'grayscale opacity-60 cursor-not-allowed'
+                      ? 'grayscale opacity-60 cursor-not-allowed shadow-none'
                       : 'hover:shadow-2xl hover:-translate-y-2'
                   }`}
                 >
@@ -232,7 +231,7 @@ const Home = () => {
 
                   <main className="p-10 flex flex-col items-center gap-4">
                     <div
-                      className={`${isBlocked || isLockedByCaja ? 'text-gray-300' : 'text-[#375A65] group-hover:text-amber-500'} transition-colors`}
+                      className={`${isBlocked || isLockedByCaja ? 'text-gray-300' : 'text-[#375A65] group-hover:text-amber-500'} transition-colors duration-300`}
                     >
                       <item.icon size={55} />
                     </div>
@@ -243,8 +242,8 @@ const Home = () => {
                       </p>
 
                       {data?.s && !isBlocked && !isLockedByCaja && (
-                        <div className="mt-2 bg-amber-100 px-4 py-1 rounded-full inline-block border border-amber-200">
-                          <p className="text-[12px] font-black text-amber-700 uppercase tracking-tight">
+                        <div className="mt-3 bg-amber-100/80 px-4 py-1.5 rounded-xl border border-amber-200 inline-block">
+                          <p className="text-[11px] font-black text-amber-800 uppercase tracking-tight leading-none">
                             {data.s}
                           </p>
                         </div>
