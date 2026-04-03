@@ -58,6 +58,19 @@ const cajaAPI = {
       },
     })
   },
+
+  reAbrirCaja: (token, id) => {
+    console.log(id)
+    return instance.patch(
+      `/${model}/reabrir-caja/${id}`,
+      {},
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
 }
 
 export default cajaAPI

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { cajaAPI } from '../api/index.api'
 import Swal from 'sweetalert2'
+import { useCajaStore } from '../store/useCajaStore'
 
 export const useCajas = (token) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -12,6 +13,7 @@ export const useCajas = (token) => {
   const [montoFisicoCierre, setMontoFisicoCierre] = useState('')
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
+  const { setCaja } = useCajaStore()
 
   const fetchCajas = async () => {
     if (!token) return
@@ -62,6 +64,37 @@ export const useCajas = (token) => {
     }
   }
 
+  const reabrirCaja = async (id) => {
+    setLoading(true)
+    try {
+      const result = await Swal.fire({
+        title: '¿Reabrir esta caja?',
+        text: "Podrás registrar compras de última hora. El estado volverá a 'Abierta'.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'SÍ, REABRIR',
+        cancelButtonText: 'CANCELAR',
+        confirmButtonColor: '#0f172a', // Color oscuro de tu tema
+      })
+      if (result.isConfirmed) {
+        const res = await cajaAPI.reAbrirCaja(token, id)
+        if (res.status === 200) {
+          setCaja(res.data.caja)
+          fetchCajas()
+          Swal.fire({
+            icon: 'success',
+            title: 'Caja abierta nuevamente',
+            showCancelButton: false,
+            timer: 1500,
+          })
+        }
+      }
+    } catch (error) {
+      const msg = error.response.data.message || 'Error al reaperturar la caja'
+      Swal.fire('Error al reabrir', msg, 'error')
+    }
+  }
+
   return {
     // Estados de Modales
     isModalOpen,
@@ -86,5 +119,6 @@ export const useCajas = (token) => {
     // Funciones
     fetchCajas,
     ejecutarVentaRapida, // Exportada para usar en el submit del modal
+    reabrirCaja,
   }
 }

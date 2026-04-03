@@ -46,6 +46,7 @@ const Cajas = () => {
     isVentaModalOpen,
     setIsVentaModalOpen,
     ejecutarVentaRapida,
+    reabrirCaja,
   } = useCajas(token)
 
   // Estado de venta rápida
@@ -359,7 +360,7 @@ const Cajas = () => {
             </div>
           ) : (
             /* --- VISTA DE TABLA (Pasamos el error por si acaso) --- */
-            <CajasTable fetching={fetching} cajas={cajas} error={error} />
+            <CajasTable fetching={fetching} cajas={cajas} error={error} reabrirCaja={reabrirCaja} />
           )}
         </div>
       </div>

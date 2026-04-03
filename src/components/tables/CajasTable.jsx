@@ -25,7 +25,7 @@ import { exportarCajaDetallePDF } from '../../utils/cajaReport'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
 
-const CajasTable = ({ fetching, cajas, error }) => {
+const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
   const [selectedCaja, setSelectedCaja] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
@@ -108,6 +108,13 @@ const CajasTable = ({ fetching, cajas, error }) => {
     ? calcularDesglose(selectedCaja)
     : { efectivoNeto: 0, bancosNeto: 0, soloEfectivoEsperado: 0 }
 
+  const esReabribleHoy = (caja) => {
+    if (!caja.fechaCierre) return false
+    const hoy = new Date().toISOString().split('T')[0]
+    const fechaCaja = caja.fechaCierre.split('T')[0]
+    return caja.estado === 'Cerrada' && hoy === fechaCaja
+  }
+
   return (
     <div className="font-sans space-y-4">
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -185,13 +192,32 @@ const CajasTable = ({ fetching, cajas, error }) => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleVerDetalle(caja)}
-                        className="text-amber-600 hover:text-amber-900 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic ml-auto group"
-                      >
-                        Ver Movimientos
-                        <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
-                      </button>
+                      <div className="flex flex-col items-end gap-3">
+                        {' '}
+                        {/* Aumentamos el gap para dar aire */}
+                        {/* Enlace de Movimientos: Más sutil */}
+                        <button
+                          onClick={() => handleVerDetalle(caja)}
+                          className="text-amber-600 hover:text-amber-700 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic transition-all group"
+                        >
+                          Ver Movimientos
+                          <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                        {/* Botón Reabrir: Ahora integrado al estilo de la app */}
+                        {user?.rol === 'Administrador' && esReabribleHoy(caja) && (
+                          <button
+                            onClick={() => reabrirCaja(caja.id)}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg 
+                   bg-slate-50 text-slate-600 border border-slate-200
+                   hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200 
+                   text-[9px] font-black uppercase tracking-tighter 
+                   transition-all duration-200 shadow-sm"
+                          >
+                            <MdPublishedWithChanges size={14} className="text-amber-500" />
+                            Reabrir Turno
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
