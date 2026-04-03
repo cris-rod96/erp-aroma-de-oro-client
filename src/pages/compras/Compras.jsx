@@ -428,12 +428,6 @@ const Compras = () => {
                           </p>
                         </div>
                       </div>
-                      {/* {selectedLiq.CuentasPorPagars?.[0]?.AbonosCuentasPorPagars?.[0] && (
-                        <p className="text-[9px] font-bold mt-2 text-blue-600 italic lowercase">
-                          * Nota: El pago de deuda anterior corresponde al registro ID #
-                          {selectedLiq.CuentasPorPagars[0].AbonosCuentasPorPagars[0].id}
-                        </p>
-                      )} */}
                     </div>
                   </div>
 

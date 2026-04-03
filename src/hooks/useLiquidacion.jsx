@@ -181,19 +181,18 @@ export const useLiquidacion = () => {
     const h = parseFloat(calificacion) || 0
     const i = parseFloat(impurezas) || 0
 
-    // 2. LÓGICA DE CONVERSIÓN (Se añade Tacho = 53 libras)
+    // 2. LÓGICA DE CONVERSIÓN
     const CONVERSIONES = {
       Libras: 1,
       Kilogramos: 2.2,
       Quintales: 100,
-      Tacho: 53, // <--- La medida que pidió tu tío
+      Tacho: 53,
     }
 
     const factorEntrada = CONVERSIONES[unidad] || 1
     const factorPago = CONVERSIONES[unidadPago] || 1
 
-    // Convertimos la cantidad recibida a libras primero, y luego a la unidad de pago
-    // Ejemplo: 540 Libras (Entrada) / 53 (Factor Tacho) = 10.18 Tachos
+    // Cantidad convertida a la unidad de pago
     const qConvertida = (qOriginal * factorEntrada) / factorPago
 
     // 3. Cálculos de Merma
@@ -203,32 +202,43 @@ export const useLiquidacion = () => {
 
     const pNetoCalculado = qConvertida - totalM
 
-    // Lógica de redondeo/truncado según producto
-    const pNeto =
-      nombreProductoSeleccionado.toLowerCase().includes('baba') ||
-      unidadPago === 'Quintales' ||
-      unidadPago === 'Tacho'
-        ? (Math.trunc(pNetoCalculado * 100) / 100).toFixed(2)
-        : pNetoCalculado > 1
-          ? Math.floor(pNetoCalculado)
-          : Math.floor(pNetoCalculado * 100) / 100
+    // Lógica de redondeo/truncado corregida
+    let pNeto
+
+    // Si no hay mermas (calificación e impurezas en 0), respetamos el valor original
+    if (totalM === 0) {
+      pNeto = qConvertida.toFixed(2)
+    } else {
+      const esUnidadEspecial =
+        nombreProductoSeleccionado.toLowerCase().includes('baba') ||
+        unidadPago === 'Quintales' ||
+        unidadPago === 'Tacho'
+
+      if (esUnidadEspecial) {
+        // Usamos EPSILON para evitar que 10.57 * 100 se convierta en 1056.9999
+        pNeto = (Math.trunc((pNetoCalculado + Number.EPSILON) * 100) / 100).toFixed(2)
+      } else {
+        pNeto =
+          pNetoCalculado > 1
+            ? Math.floor(pNetoCalculado)
+            : (Math.floor((pNetoCalculado + Number.EPSILON) * 100) / 100).toFixed(2)
+      }
+    }
 
     // 4. CÁLCULOS MONETARIOS
-    // El precio pUnit siempre se multiplica por el peso neto resultante en la unidad de pago
-    const brutoCalculado = pNeto * pUnit
+    const brutoCalculado = parseFloat(pNeto) * pUnit
 
     // Truncamos a 2 decimales para dinero
-    const valBruto = Math.trunc(brutoCalculado * 100) / 100
+    const valBruto = Math.trunc((brutoCalculado + Number.EPSILON) * 100) / 100
 
     const rPorc = parseFloat(retencionPorcentaje) || 0
-    const valRetenido = Math.trunc(valBruto * (rPorc / 100) * 100) / 100
+    const valRetenido = Math.trunc((valBruto * (rPorc / 100) + Number.EPSILON) * 100) / 100
     const netoHoy = valBruto - valRetenido
 
     // 5. Deudas y Pagos
     const antic = parseFloat(montoAplicarAnticipo) || 0
     const deudaVieja = parseFloat(deudaAnterior) || 0
 
-    // Si hay deuda anterior, se suma al total a pagar (o resta si es negativa)
     const totalaPagarConDeuda = netoHoy + deudaVieja
 
     const montoPagosHoy = Object.values(pagos).reduce(
@@ -368,6 +378,7 @@ export const useLiquidacion = () => {
 
     try {
       setLoading(true)
+      console.log(data)
       const resp = await liquidacionAPI.crearLiquidacion(token, data)
       await Swal.fire({
         title: '¡Éxito!',
