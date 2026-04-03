@@ -31,7 +31,7 @@ const Home = () => {
   const { hiddenMenu } = useOutletContext()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [mensajeLoading, setMensajeLoading] = useState('Iniciando sistema...')
+  const [mensajeLoading, setMensajeLoading] = useState('Sincronizando base de datos...')
 
   const [cumplesHoy, setCumplesHoy] = useState([])
   const [cumplesManana, setCumplesManana] = useState([])
@@ -42,24 +42,7 @@ const Home = () => {
   const user = useAuthStore((state) => state.user)
   const estaHabilitado = user?.rol === 'Administrador' || user?.rol === 'Contador'
 
-  const [stats, setStats] = useState({
-    USUARIOS: 'Cargando...',
-    NÓMINA: 'Cargando...',
-    COMPRAS: 'Cargando...',
-    INVENTARIO: 'Ver bodega',
-    COMPRADORES: 'Cargando...',
-    PRODUCTORES: 'Cargando...',
-    CAJAS: 'Cargando...',
-    KARDEX: 'Ver movimientos',
-    VENTAS: 'Cargando...',
-    REPORTES: 'PDF/Excel',
-    ANTICIPOS: 'Cargando...',
-    PRÉSTAMOS: 'Cargando...',
-    GASTOS: 'Cargando...',
-    'POR COBRAR': 'Cargando...',
-    'POR PAGAR': '$0.00',
-    CONFIGURACIÓN: 'Ajustes',
-  })
+  const [stats, setStats] = useState({})
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -68,7 +51,6 @@ const Home = () => {
       try {
         setMensajeLoading('Sincronizando base de datos...')
 
-        // Ejecución de todas las peticiones en paralelo
         const [
           respUsuarios,
           respProductores,
@@ -101,7 +83,6 @@ const Home = () => {
           gastoAPI.listarGastos(token),
         ])
 
-        // --- EXTRACCIÓN DE DATOS ---
         const dataUsuarios = respUsuarios.data?.usuarios || []
         const dataProductores = respProductores.data?.productores || []
         const dataCompradores = respCompradores.data?.compradores || []
@@ -115,236 +96,167 @@ const Home = () => {
         const dataGastos = respGastos.data?.gastos || []
         const cajaData = respCajaActiva.data?.caja
 
-        // --- CÁLCULOS LÓGICOS (Usando las constantes recién creadas) ---
-        const hoy = new Date().toISOString().split('T')[0]
+        // Fecha local YYYY-MM-DD
+        const hoyLocal = new Date().toLocaleDateString('en-CA')
         const formatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
-        const countActivos = dataUsuarios.filter((u) => u.estaActivo).length
+        const esDeHoy = (f) => (f ? f.split('T')[0] === hoyLocal : false)
 
-        const liquidacionesHoy = dataLiquidaciones.filter((liq) => {
-          const fechaLiq = liq.createdAt || liq.fecha
-          return fechaLiq && new Date(fechaLiq).toISOString().split('T')[0] === hoy
-        }).length
+        // Cálculos
+        const liqHoy = dataLiquidaciones.filter((l) => esDeHoy(l.createdAt || l.fecha)).length
+        const vtaHoy = dataVentas
+          .filter((v) => esDeHoy(v.createdAt))
+          .reduce((acc, v) => acc + parseFloat(v.totalFactura || 0), 0)
+        const vtaTotal = dataVentas.reduce((acc, v) => acc + parseFloat(v.totalFactura || 0), 0)
 
-        const dineroEnCaja = cajaData ? parseFloat(cajaData.saldoActual || 0) : 0
+        const gstHoy = dataGastos
+          .filter((g) => esDeHoy(g.createdAt || g.fecha))
+          .reduce((acc, g) => acc + parseFloat(g.monto || 0), 0)
+        const gstTotal = dataGastos.reduce((acc, g) => acc + parseFloat(g.monto || 0), 0)
 
-        let totalVentasHoy = 0
-        dataVentas.forEach((v) => {
-          if (v.createdAt && new Date(v.createdAt).toISOString().split('T')[0] === hoy)
-            totalVentasHoy += parseFloat(v.totalFactura || 0)
-        })
-
-        const totalAnticipos = dataAnticipos.reduce(
+        const antHoy = dataAnticipos
+          .filter((a) => esDeHoy(a.createdAt || a.fecha))
+          .reduce((acc, a) => acc + parseFloat(a.monto || 0), 0)
+        const totalAnt = dataAnticipos.reduce(
           (acc, a) => acc + parseFloat(a.saldoPendiente || 0),
           0
         )
-        const totalPrestamos = dataPrestamos.reduce(
+
+        const preHoy = dataPrestamos
+          .filter((p) => esDeHoy(p.createdAt || p.fecha))
+          .reduce((acc, p) => acc + parseFloat(p.monto || 0), 0)
+        const totalPre = dataPrestamos.reduce(
           (acc, p) => acc + parseFloat(p.saldoPendiente || 0),
           0
         )
-        const totalGastos = dataGastos.reduce((acc, g) => acc + parseFloat(g.monto || 0), 0)
-        const totalPorPagar = dataCxp.reduce((acc, c) => acc + parseFloat(c.saldoPendiente || 0), 0)
-        const totalPorCobrar = dataCxc.reduce(
-          (acc, c) => acc + parseFloat(c.montoPorCobrar || 0),
-          0
-        )
 
-        // --- ACTUALIZACIÓN DE ESTADOS ---
+        setStats({
+          USUARIOS: {
+            p: `${dataUsuarios.filter((u) => u.estaActivo).length} ${dataUsuarios.filter((u) => u.estaActivo).length === 1 ? 'Activo' : 'Activos'} `,
+          },
+          NÓMINA: {
+            p: `${dataTrabajadores.length} ${dataTrabajadores.length === 1 ? 'Empleado' : 'Empleados'} `,
+          },
+          COMPRAS: { p: `${liqHoy} Hoy`, s: `${dataLiquidaciones.length} Total` },
+          PRODUCTORES: {
+            p: `${dataProductores.length} ${dataProductores.length === 1 ? 'Productor' : 'Productores'} `,
+          },
+          COMPRADORES: {
+            p: `${dataCompradores.length} ${dataCompradores.length === 1 ? 'Comprador' : 'Compradores'} `,
+          },
+          CAJAS: { p: formatter.format(cajaData ? parseFloat(cajaData.saldoActual || 0) : 0) },
+          VENTAS: {
+            p: `${formatter.format(vtaHoy)} Hoy`,
+            s: `Total: ${formatter.format(vtaTotal)}`,
+          },
+          ANTICIPOS: {
+            p: `${formatter.format(antHoy)} Hoy`,
+            s: `Saldo: ${formatter.format(totalAnt)}`,
+          },
+          PRÉSTAMOS: {
+            p: `${formatter.format(preHoy)} Hoy`,
+            s: `Saldo: ${formatter.format(totalPre)}`,
+          },
+          GASTOS: {
+            p: `${formatter.format(gstHoy)} Hoy`,
+            s: `Total: ${formatter.format(gstTotal)}`,
+          },
+          'POR COBRAR': {
+            p: formatter.format(
+              dataCxc.reduce((acc, c) => acc + parseFloat(c.montoPorCobrar || 0), 0)
+            ),
+          },
+          'POR PAGAR': {
+            p: formatter.format(
+              dataCxp.reduce((acc, c) => acc + parseFloat(c.saldoPendiente || 0), 0)
+            ),
+          },
+          INVENTARIO: { p: 'Ver bodega' },
+          KARDEX: { p: 'Ver movimientos' },
+          REPORTES: { p: 'PDF/Excel' },
+          CONFIGURACIÓN: { p: 'Ajustes' },
+        })
+
         setCajaAbierta(!!cajaData)
         setEmpresaRegistrada(!!respEmpresa.data?.empresa)
         setCumplesHoy(respCumples.data?.cumples?.alertasHoy || [])
         setCumplesManana(respCumples.data?.cumples?.alertasManana || [])
-
-        setStats({
-          USUARIOS: `${countActivos} ${countActivos === 1 ? 'Activo' : 'Activos'}`,
-          NÓMINA: `${dataTrabajadores.length} ${dataTrabajadores.length === 1 ? 'Empleado' : 'Empleados'}`,
-          COMPRAS: `${liquidacionesHoy} Hoy`,
-          INVENTARIO: `Ver bodega`,
-          PRODUCTORES: `${dataProductores.length} ${dataProductores.length === 1 ? 'Productor' : 'Productores'}`,
-          COMPRADORES: `${dataCompradores.length} ${dataCompradores.length === 1 ? 'Comprador' : 'Compradores'}`,
-          CAJAS: formatter.format(dineroEnCaja),
-          VENTAS: formatter.format(totalVentasHoy),
-          ANTICIPOS: formatter.format(totalAnticipos),
-          PRÉSTAMOS: formatter.format(totalPrestamos),
-          GASTOS: formatter.format(totalGastos),
-          'POR COBRAR': formatter.format(totalPorCobrar),
-          'POR PAGAR': formatter.format(totalPorPagar),
-          KARDEX: 'Ver movimientos',
-          REPORTES: 'PDF/Excel',
-          CONFIGURACIÓN: 'Ajustes',
-        })
       } catch (err) {
         console.error(err)
-        const msg = err.response?.data?.message || 'Error al obtener información del servidor'
-        setError(msg)
+        setError('Error al sincronizar datos')
       } finally {
         setLoading(false)
       }
     }
-
-    if (token && user?.id) {
-      fetchDashboardData()
-    }
+    if (token && user?.id) fetchDashboardData()
   }, [token, user?.id])
-
-  const BannerInformativo = () => {
-    if (cajaAbierta && empresaRegistrada) return null
-
-    return (
-      <div className="w-full mb-12 mt-4">
-        <div className="bg-white border border-amber-200 rounded-[2.5rem] p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm border-l-[14px] border-l-amber-400">
-          <div className="flex items-center gap-6">
-            <div className="bg-amber-50 p-5 rounded-3xl text-amber-500 shadow-inner">
-              <MdWarning size={35} />
-            </div>
-            <div>
-              <h2 className="text-[#375A65] font-black text-sm uppercase tracking-[0.15em] italic">
-                Acción Requerida
-              </h2>
-              <div className="flex flex-col gap-1.5 mt-2">
-                {!cajaAbierta && (
-                  <p className="text-gray-500 text-[11px] font-bold uppercase flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
-                    No se detecta una caja abierta para su usuario.
-                  </p>
-                )}
-                {!empresaRegistrada && (
-                  <p className="text-gray-500 text-[11px] font-bold uppercase flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                    La información de la empresa no está registrada.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-          <NavLink
-            to={!cajaAbierta ? '/inicio/cajas' : '/inicio/configuracion'}
-            className="flex items-center gap-3 bg-[#375A65] hover:bg-[#2a454e] text-white text-[10px] font-black py-4 px-10 rounded-[1.5rem] transition-all duration-300 uppercase tracking-widest group shadow-xl shadow-gray-200"
-          >
-            Configurar ahora
-            <MdArrowForward size={18} className="group-hover:translate-x-2 transition-transform" />
-          </NavLink>
-        </div>
-      </div>
-    )
-  }
 
   return (
     <>
       {loading && <Loading mensaje={mensajeLoading} />}
-
-      {error ? (
-        <Container fullWidth={true}>
-          <div className="flex flex-col items-center justify-center bg-white py-10 text-center rounded-2xl ">
-            <div className="bg-rose-50 p-4 rounded-3xl mb-4 border border-rose-100">
-              <MdSecurity size={50} className="text-rose-400" />
-            </div>
-            <h3 className="text-rose-600 font-black uppercase text-sm tracking-[0.2em]">
-              Acceso Restringido
-            </h3>
-            <p className="text-gray-400 text-[10px] mt-2 font-bold uppercase max-w-xs mx-auto leading-relaxed">
-              {error}
-            </p>
-            <span className="text-[8px] bg-gray-100 text-gray-500 px-3 py-1 rounded-full mt-4 font-black uppercase italic">
-              Seguridad Aroma de Oro
-            </span>
-          </div>
-        </Container>
-      ) : (
-        <section
-          className={`flex-1 bg-[#F5F9FF] min-h-screen transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'} `}
+      <section
+        className={`flex-1 bg-[#F5F9FF] min-h-screen transition-opacity duration-700 ${loading ? 'opacity-0' : 'opacity-100'}`}
+      >
+        <div
+          className={`flex flex-col ${hiddenMenu ? 'w-[90%]' : 'w-[80%] pl-56'} mx-auto py-32 px-10`}
         >
+          {!loading && (
+            <CumplesTrabajadores cumplesHoy={cumplesHoy} cumplesManana={cumplesManana} />
+          )}
+
           <div
-            className={`flex flex-col ${
-              hiddenMenu ? 'w-[90%]' : 'w-[80%] pl-56'
-            } mx-auto py-32 px-10 transition-all duration-500`}
+            className={`grid md:grid-cols-2 sm:grid-cols-1 gap-10 ${hiddenMenu ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
           >
-            {!loading && <BannerInformativo />}
-            {!loading && (
-              <CumplesTrabajadores cumplesHoy={cumplesHoy} cumplesManana={cumplesManana} />
-            )}
+            {ITEMS_DATA.map((item, index) => {
+              const label = item.label.toUpperCase()
+              const isBlocked = item.onlyAdmin && !estaHabilitado
+              const isLockedByCaja =
+                !cajaAbierta && ['VENTAS', 'CAJAS', 'COMPRAS'].includes(label) && !isBlocked
+              const data = stats[label]
 
-            <div
-              className={`grid md:grid-cols-2 sm:grid-cols-1 items-center gap-10 ${
-                hiddenMenu ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
-              }`}
-            >
-              {ITEMS_DATA.map((item, index) => {
-                const labelUpper = item.label.toUpperCase()
-                const isBlocked = item.onlyAdmin && !estaHabilitado
-                const needsCaja = ['VENTAS', 'CAJAS', 'COMPRAS'].includes(labelUpper)
-                const isLockedByCaja = !cajaAbierta && needsCaja && !isBlocked
+              return (
+                <NavLink
+                  key={index}
+                  to={isBlocked || isLockedByCaja ? '#' : item.path}
+                  className={`group flex flex-col border border-gray-200 rounded-[2.5rem] bg-white transition-all duration-500 overflow-hidden ${
+                    isBlocked || isLockedByCaja
+                      ? 'grayscale opacity-60 cursor-not-allowed'
+                      : 'hover:shadow-2xl hover:-translate-y-2'
+                  }`}
+                >
+                  <header className="h-14 flex justify-between items-center px-8 border-b border-gray-50 bg-gray-50/30">
+                    <h2 className="text-[11px] font-black uppercase tracking-widest text-[#375A65] italic">
+                      {item.label}
+                    </h2>
+                  </header>
 
-                return (
-                  <NavLink
-                    key={index}
-                    to={isBlocked || isLockedByCaja ? '#' : item.path}
-                    onClick={(e) => (isBlocked || isLockedByCaja) && e.preventDefault()}
-                    className={`group flex flex-col border border-gray-200 rounded-[2rem] w-full bg-white transition-all duration-500 overflow-hidden ${
-                      isBlocked || isLockedByCaja
-                        ? 'grayscale opacity-60 cursor-not-allowed shadow-none'
-                        : 'cursor-pointer shadow-sm hover:shadow-2xl hover:shadow-amber-900/15 hover:-translate-y-2'
-                    }`}
-                  >
-                    <header
-                      className={`h-14 flex justify-between items-center px-6 border-b border-gray-50 bg-gray-50/50 transition-colors ${!isBlocked && !isLockedByCaja && 'group-hover:bg-amber-50'}`}
+                  <main className="p-10 flex flex-col items-center gap-4">
+                    <div
+                      className={`${isBlocked || isLockedByCaja ? 'text-gray-300' : 'text-[#375A65] group-hover:text-amber-500'} transition-colors`}
                     >
-                      <h2
-                        className={`text-[11px] font-black uppercase tracking-widest italic transition-colors ${isBlocked || isLockedByCaja ? 'text-gray-400' : 'text-[#375A65] group-hover:text-amber-700'}`}
-                      >
-                        {item.label}
-                      </h2>
-                      {isBlocked ? (
-                        <MdLock className="text-rose-500" size={18} />
-                      ) : isLockedByCaja ? (
-                        <MdErrorOutline className="text-amber-500" size={18} />
-                      ) : (
-                        <MdTrendingUp
-                          className="text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                          size={18}
-                        />
+                      <item.icon size={55} />
+                    </div>
+
+                    <div className="text-center w-full">
+                      <p className="text-xl font-black font-mono text-gray-800 leading-tight">
+                        {isBlocked ? 'BLOQUEADO' : isLockedByCaja ? 'SIN CAJA' : data?.p || '---'}
+                      </p>
+
+                      {data?.s && !isBlocked && !isLockedByCaja && (
+                        <div className="mt-2 bg-amber-100 px-4 py-1 rounded-full inline-block border border-amber-200">
+                          <p className="text-[12px] font-black text-amber-700 uppercase tracking-tight">
+                            {data.s}
+                          </p>
+                        </div>
                       )}
-                    </header>
-
-                    <main className="p-10 flex flex-col items-center justify-center gap-4 relative">
-                      <div
-                        className={`transition-all duration-300 transform ${isBlocked || isLockedByCaja ? 'text-gray-300' : 'text-[#375A65] group-hover:text-amber-500 group-hover:scale-90'}`}
-                      >
-                        <item.icon size={65} />
-                      </div>
-
-                      <div className="text-center">
-                        <p
-                          className={`text-lg font-black font-mono transition-colors ${isBlocked || isLockedByCaja ? 'text-gray-300' : 'text-gray-800 group-hover:text-amber-600'}`}
-                        >
-                          {isBlocked
-                            ? 'BLOQUEADO'
-                            : isLockedByCaja
-                              ? 'CAJA CERRADA'
-                              : stats[labelUpper] || '---'}
-                        </p>
-                        <span
-                          className={`text-[9px] font-bold uppercase tracking-tighter transition-all transform ${isBlocked || isLockedByCaja ? 'text-rose-400 opacity-100' : 'text-gray-400 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0'}`}
-                        >
-                          {isBlocked
-                            ? 'Solo nivel Administrador'
-                            : isLockedByCaja
-                              ? 'Apertura requerida'
-                              : 'Ver detalles del módulo'}
-                        </span>
-                      </div>
-
-                      {!isBlocked && !isLockedByCaja && (
-                        <div className="absolute bottom-0 left-0 h-1.5 w-0 bg-amber-400 group-hover:w-full transition-all duration-700 ease-in-out" />
-                      )}
-                    </main>
-                  </NavLink>
-                )
-              })}
-            </div>
+                    </div>
+                  </main>
+                </NavLink>
+              )
+            })}
           </div>
-        </section>
-      )}
+        </div>
+      </section>
     </>
   )
 }
