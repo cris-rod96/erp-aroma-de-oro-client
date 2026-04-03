@@ -92,6 +92,8 @@ export const useCajas = (token) => {
     } catch (error) {
       const msg = error.response.data.message || 'Error al reaperturar la caja'
       Swal.fire('Error al reabrir', msg, 'error')
+    } finally {
+      setLoading(false)
     }
   }
 

@@ -305,6 +305,7 @@ const Cajas = () => {
         setCaja(null)
       }, 150)
     } catch (error) {
+      console.log(error.response.data.message || 'Error al cerrar')
       Swal.fire({ icon: 'error', title: 'Error', text: 'No se pudo cerrar la caja' })
     } finally {
       setLoading(false)
