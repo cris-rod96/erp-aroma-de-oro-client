@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Estamos mejorando para ti</title>
+    <style>
+      :root {
+        --primary: #0070f3;
+        --bg: #030303;
+        --text: #ffffff;
+      }
+
+      body,
+      html {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--bg);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        color: var(--text);
+        overflow: hidden;
+      }
+
+      /* Fondo de estrellas sutil */
+      .stars {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle at center, #111 0%, #000 100%);
+        z-index: -1;
+      }
+
+      .container {
+        text-align: center;
+        padding: 2rem;
+        z-index: 1;
+      }
+
+      .logo-container {
+        position: relative;
+        margin-bottom: 2rem;
+      }
+
+      /* El círculo brillante "Waooo" */
+      .glow-circle {
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(45deg, var(--primary), #00dfd8);
+        border-radius: 50%;
+        margin: 0 auto;
+        filter: blur(20px);
+        opacity: 0.6;
+        animation: pulse 3s infinite alternate;
+      }
+
+      .icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 3rem;
+      }
+
+      h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin: 0;
+        background: linear-gradient(to right, #fff, #888);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -2px;
+      }
+
+      p {
+        font-size: 1.2rem;
+        color: #888;
+        max-width: 450px;
+        margin: 1.5rem auto;
+        line-height: 1.6;
+      }
+
+      .badge {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: var(--primary);
+      }
+
+      @keyframes pulse {
+        from {
+          transform: scale(1);
+          opacity: 0.4;
+        }
+        to {
+          transform: scale(1.3);
+          opacity: 0.8;
+        }
+      }
+
+      /* Responsivo */
+      @media (max-width: 600px) {
+        h1 {
+          font-size: 2.5rem;
+        }
+        p {
+          font-size: 1rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stars"></div>
+
+    <div class="container">
+      <div class="logo-container">
+        <div class="glow-circle"></div>
+        <div class="icon">✨</div>
+      </div>
+
+      <div class="badge">Evolucionando el sistema</div>
+      <h1>Algo increíble <br />está en camino.</h1>
+      <p>
+        No es un adiós, es un "waoooo" en proceso. Estamos puliendo los últimos detalles para
+        ofrecerte una experiencia superior.
+      </p>
+
+      <div style="margin-top: 3rem; font-size: 0.7rem; color: #444">
+        &copy; 2026 — Todos los derechos reservados.
+      </div>
+    </div>
+  </body>
+</html>
