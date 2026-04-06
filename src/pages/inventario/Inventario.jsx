@@ -23,6 +23,9 @@ const Inventario = () => {
   const token = useAuthStore((state) => state.token)
   const [verEliminados, setVerEliminados] = useState(false)
 
+  // NUEVO: Estado para capturar precios de venta por producto
+  const [preciosVenta, setPreciosVenta] = useState({})
+
   // --- ESTADOS MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEdit, setIsEdit] = useState(false)
@@ -109,7 +112,6 @@ const Inventario = () => {
     Libras_Quintales: 0.01,
   }
 
-  // NUEVA FUNCIÓN PARA CAMBIO DE UNIDAD EN EL FORMULARIO
   const handleUnidadChange = (nuevaUnidad) => {
     const unidadAnterior = formData.unidadMedida
     const stockActual = parseFloat(formData.stock) || 0
@@ -154,7 +156,6 @@ const Inventario = () => {
     setFetching(true)
     try {
       const resp = await productoAPI.listarProductos(token)
-      console.log(resp.data.productos || [])
       setProductos(resp.data.productos || resp.data || [])
     } catch (error) {
       console.error(error)
@@ -223,6 +224,10 @@ const Inventario = () => {
     setIsModalOpen(true)
   }
 
+  const handlePrecioVentaChange = (id, value) => {
+    setPreciosVenta({ ...preciosVenta, [id]: value })
+  }
+
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-6 space-y-8">
@@ -234,6 +239,7 @@ const Inventario = () => {
           setVerEliminados={setVerEliminados}
         />
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* CONVERSOR LADO IZQUIERDO */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 p-8 sticky top-10">
               <div className="flex items-center justify-between mb-8 border-b border-gray-50 pb-4">
@@ -268,7 +274,6 @@ const Inventario = () => {
                     onChange={(e) => handleCalcChange('valor', e.target.value)}
                   />
                 </div>
-
                 <div className="flex flex-col gap-2">
                   <select
                     className="w-full h-12 bg-white border border-gray-100 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-gray-500 focus:border-amber-200 shadow-sm"
@@ -279,11 +284,9 @@ const Inventario = () => {
                     <option>Quintales</option>
                     <option>Libras</option>
                   </select>
-
                   <div className="flex justify-center py-1 text-amber-500">
                     <MdSwapHoriz size={20} className="rotate-90 lg:rotate-0" />
                   </div>
-
                   <select
                     className="w-full h-12 bg-white border border-gray-100 rounded-xl px-4 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-gray-500 focus:border-amber-200 shadow-sm"
                     value={calc.a}
@@ -294,42 +297,43 @@ const Inventario = () => {
                     <option>Libras</option>
                   </select>
                 </div>
-
-                <div className="mt-10 pt-8 border-t border-gray-50">
-                  <div className="bg-amber-50/50 rounded-[2rem] p-8 border border-amber-100/50 text-center">
-                    <p className="text-[9px] text-amber-600 font-black uppercase tracking-[0.3em] mb-2">
-                      Equivalencia
-                    </p>
-                    <div className="flex items-baseline justify-center gap-2">
-                      <span className="text-4xl font-black text-gray-900 font-mono italic tracking-tighter">
-                        {calc.resultado.toFixed(2)}
-                      </span>
-                      <span className="text-amber-600 text-[10px] font-black uppercase italic">
-                        {calc.a === 'Kilogramos' ? 'KG' : calc.a === 'Quintales' ? 'QQ' : 'LB'}
-                      </span>
-                    </div>
+                <div className="mt-10 pt-8 border-t border-gray-50 text-center">
+                  <div className="bg-amber-50/50 rounded-[2rem] p-8 border border-amber-100/50">
+                    <span className="text-4xl font-black text-gray-900 font-mono italic tracking-tighter">
+                      {calc.resultado.toFixed(2)}
+                    </span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
+          {/* TABLA PRINCIPAL CON COLUMNAS ADAPTADAS */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden flex flex-col min-h-[600px]">
               <div className="overflow-x-auto flex-1">
                 <table className="w-full text-left">
                   <thead className="bg-gray-50/50 border-b border-gray-50">
                     <tr>
-                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      <th className="px-6 py-5 text-[9px] font-black text-gray-400 uppercase tracking-widest">
                         Producto
                       </th>
-                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                        Medida
-                      </th>
-                      <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      <th className="px-6 py-5 text-[9px] font-black text-gray-400 uppercase tracking-widest">
                         Stock
                       </th>
-                      <th className="px-8 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                      <th className="px-6 py-5 text-[9px] font-black text-blue-600 uppercase tracking-widest">
+                        Inversión
+                      </th>
+                      <th className="px-6 py-5 text-[9px] font-black text-amber-600 uppercase tracking-widest">
+                        P. Venta
+                      </th>
+                      <th className="px-6 py-5 text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                        Total Venta
+                      </th>
+                      <th className="px-6 py-5 text-[9px] font-black text-emerald-600 uppercase tracking-widest">
+                        Ganancia
+                      </th>
+                      <th className="px-6 py-5 text-right text-[9px] font-black text-gray-400 uppercase tracking-widest">
                         Gestión
                       </th>
                     </tr>
@@ -338,92 +342,117 @@ const Inventario = () => {
                     {fetching ? (
                       <tr>
                         <td
-                          colSpan="4"
+                          colSpan="7"
                           className="py-20 text-center animate-pulse text-gray-300 font-black uppercase text-xs italic"
                         >
                           Cargando Bodega...
                         </td>
                       </tr>
-                    ) : currentProductos.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan="4"
-                          className="py-20 text-center text-gray-300 font-black uppercase text-[10px] tracking-widest"
-                        >
-                          No se encontraron coincidencias
-                        </td>
-                      </tr>
                     ) : (
-                      currentProductos.map((p) => (
-                        <tr
-                          key={p.id}
-                          className="hover:bg-amber-50/20 transition-all group font-bold"
-                        >
-                          <td className="px-8 py-5">
-                            <div className="flex items-center gap-4">
-                              <div
-                                className={`h-11 w-11 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 ${p.estaActivo ? 'bg-gray-900 text-amber-400' : 'bg-gray-100 text-gray-400'}`}
+                      currentProductos.map((p) => {
+                        const det = p.DetalleLiquidacions || []
+                        const invTotal = det.reduce(
+                          (acc, curr) => acc + (parseFloat(curr.parcial) || 0),
+                          0
+                        )
+                        const valVenta = preciosVenta[p.id] ?? ''
+                        const totalVenta = parseFloat(p.stock) * (parseFloat(valVenta) || 0)
+                        const ganancia = totalVenta - invTotal
+
+                        return (
+                          <tr
+                            key={p.id}
+                            className="hover:bg-amber-50/20 transition-all group font-bold"
+                          >
+                            <td className="px-6 py-5">
+                              <div className="flex items-center gap-3">
+                                <div
+                                  className={`h-10 w-10 rounded-xl flex items-center justify-center shadow-md ${p.estaActivo ? 'bg-gray-900 text-amber-400' : 'bg-gray-100 text-gray-400'}`}
+                                >
+                                  <MdInventory size={18} />
+                                </div>
+                                <div>
+                                  <p
+                                    className={`text-[11px] font-black uppercase tracking-tighter ${p.estaActivo ? 'text-gray-800' : 'text-gray-400 line-through'}`}
+                                  >
+                                    {p.nombre}
+                                  </p>
+                                  <span className="text-[8px] text-gray-400 uppercase">
+                                    {p.estaActivo ? 'Activo' : 'Inactivo'}
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className="text-sm font-black font-mono italic">
+                                {parseFloat(p.stock).toFixed(2)}
+                              </span>
+                              <p className="text-[8px] text-gray-400 uppercase">{p.unidadMedida}</p>
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className="text-sm font-black text-blue-600 font-mono italic">
+                                ${invTotal.toFixed(2)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5">
+                              <div className="flex items-center bg-gray-50 border border-gray-100 rounded-xl px-2 w-20">
+                                <span className="text-amber-500 font-black text-[10px]">$</span>
+                                <input
+                                  type="number"
+                                  className="w-full bg-transparent py-2 text-[11px] font-black font-mono outline-none"
+                                  value={valVenta}
+                                  onChange={(e) => handlePrecioVentaChange(p.id, e.target.value)}
+                                />
+                              </div>
+                            </td>
+                            <td className="px-6 py-5">
+                              <span className="text-sm font-black text-gray-900 font-mono italic">
+                                ${totalVenta.toFixed(2)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5">
+                              <span
+                                className={`text-sm font-black font-mono italic ${ganancia >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}
                               >
-                                <MdInventory size={20} />
-                              </div>
-                              <div>
-                                <p
-                                  className={`text-sm font-black uppercase tracking-tighter ${p.estaActivo ? 'text-gray-800' : 'text-gray-400 line-through'}`}
-                                >
-                                  {p.nombre}
-                                </p>
-                                <span className="text-[9px] text-gray-400 uppercase tracking-widest">
-                                  {p.estaActivo ? 'En Venta/Uso' : 'Inactivo'}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-8 py-5">
-                            <span className="text-[10px] font-black text-gray-500 uppercase bg-gray-100 px-3 py-1.5 rounded-lg tracking-widest">
-                              {p.unidadMedida}
-                            </span>
-                          </td>
-                          <td className="px-8 py-5">
-                            <span
-                              className={`text-lg font-black font-mono italic ${p.stock > 0 ? 'text-gray-900' : 'text-rose-500'}`}
-                            >
-                              {parseFloat(p.stock).toFixed(2)}
-                            </span>
-                          </td>
-                          <td className="px-8 py-5 text-right">
-                            <div className="flex justify-end gap-2">
-                              {p.estaActivo ? (
-                                <>
+                                ${ganancia.toFixed(2)}
+                              </span>
+                            </td>
+                            <td className="px-6 py-5 text-right">
+                              <div className="flex justify-end gap-1">
+                                {p.estaActivo ? (
+                                  <>
+                                    <button
+                                      onClick={() => handleOpenModal(true, p)}
+                                      className="p-2 text-gray-400 hover:text-gray-900 transition-all"
+                                    >
+                                      <FaEdit size={14} />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(p.id)}
+                                      className="p-2 text-gray-400 hover:text-rose-600 transition-all"
+                                    >
+                                      <MdDelete size={16} />
+                                    </button>
+                                  </>
+                                ) : (
                                   <button
-                                    onClick={() => handleOpenModal(true, p)}
-                                    className="p-3 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-2xl transition-all"
+                                    onClick={() => handleRestore(p.id)}
+                                    className="px-3 py-1 bg-emerald-500 text-white rounded-lg text-[8px] font-black uppercase"
                                   >
-                                    <FaEdit size={16} />
+                                    <FaTrashRestore size={10} />
                                   </button>
-                                  <button
-                                    onClick={() => handleDelete(p.id)}
-                                    className="p-3 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl transition-all"
-                                  >
-                                    <MdDelete size={18} />
-                                  </button>
-                                </>
-                              ) : (
-                                <button
-                                  onClick={() => handleRestore(p.id)}
-                                  className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 active:scale-95"
-                                >
-                                  <FaTrashRestore size={12} /> Restaurar
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      })
                     )}
                   </tbody>
                 </table>
               </div>
 
+              {/* PAGINACIÓN COMPLETA */}
               <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
                 <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                   Página <span className="text-gray-900">{currentPage}</span> de{' '}
@@ -451,6 +480,7 @@ const Inventario = () => {
         </div>
       </div>
 
+      {/* MODAL COMPLETO RESTAURADO */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -487,7 +517,7 @@ const Inventario = () => {
             </div>
             <div className="space-y-1.5">
               <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">
-                Stock {`${isEdit ? 'Total (No editable)' : 'Inicial'}`}
+                Stock {`${isEdit ? 'Total' : 'Inicial'}`}
               </label>
               <input
                 type="number"
