@@ -350,7 +350,7 @@ const Inventario = () => {
                       </tr>
                     ) : (
                       currentProductos.map((p) => {
-                        const det = p.DetalleLiquidacions || []
+                        const det = p.DetalleLiquidacions || p.DetalleLiquidaciones || []
                         const invTotal = det.reduce(
                           (acc, curr) => acc + (parseFloat(curr.parcial) || 0),
                           0
