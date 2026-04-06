@@ -13,6 +13,7 @@ import {
 import Swal from 'sweetalert2'
 import { useAuthStore } from '../../store/useAuthStore'
 import { productoAPI } from '../../api/index.api'
+import { formatMoney } from '../../utils/fromatters'
 
 const Inventario = () => {
   // --- ESTADOS DE DATOS ---
@@ -408,14 +409,14 @@ const Inventario = () => {
                             </td>
                             <td className="px-6 py-5">
                               <span className="text-sm font-black text-gray-900 font-mono italic">
-                                ${totalVenta.toFixed(2)}
+                                {formatMoney(totalVenta.toFixed(2))}
                               </span>
                             </td>
                             <td className="px-6 py-5">
                               <span
                                 className={`text-sm font-black font-mono italic ${ganancia >= 0 ? 'text-emerald-600' : 'text-rose-500'}`}
                               >
-                                ${ganancia.toFixed(2)}
+                                {formatMoney(ganancia.toFixed(2))}
                               </span>
                             </td>
                             <td className="px-6 py-5 text-right">
