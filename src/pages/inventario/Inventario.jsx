@@ -156,6 +156,7 @@ const Inventario = () => {
     setFetching(true)
     try {
       const resp = await productoAPI.listarProductos(token)
+      console.log(resp.data.productos)
       setProductos(resp.data.productos || resp.data || [])
     } catch (error) {
       console.error(error)
