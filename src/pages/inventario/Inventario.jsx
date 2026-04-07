@@ -525,7 +525,6 @@ const Inventario = () => {
                 type="number"
                 step="0.01"
                 required
-                disabled={isEdit}
                 value={formData.stock}
                 onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                 className="w-full h-14 bg-gray-50 border-2 border-gray-100 rounded-2xl px-5 text-sm font-black outline-none focus:border-amber-400 transition-all"
