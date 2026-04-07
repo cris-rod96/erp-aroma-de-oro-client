@@ -132,7 +132,7 @@ export const exportarVentaPDF = async (venta, empresa) => {
             },
             {
               content: (venta.Persona?.nombreCompleto || 'CONSUMIDOR FINAL').toUpperCase(),
-              styles: { halign: 'left', fontStyle: 'bold', cellWidth: 70 },
+              styles: { halign: 'center', fontStyle: 'bold', cellWidth: 70 },
             },
             {
               content: 'RUC / CI:',
@@ -182,7 +182,7 @@ export const exportarVentaPDF = async (venta, empresa) => {
             formatMoney(venta.precioUnitario),
             {
               content: formatMoney(venta.totalFactura),
-              styles: { halign: 'right', fontStyle: 'bold' },
+              styles: { halign: 'center', fontStyle: 'bold' },
             },
           ],
         ],
@@ -204,7 +204,7 @@ export const exportarVentaPDF = async (venta, empresa) => {
             formatMoney(venta.valorRetenido || 0),
           ],
         ],
-        columnStyles: { 2: { halign: 'right' } },
+        columnStyles: { 2: { halign: 'center' } },
       })
 
       // --- 5. TOTALES (DERECHA) ---
