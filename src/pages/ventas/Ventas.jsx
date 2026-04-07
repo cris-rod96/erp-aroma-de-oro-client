@@ -744,57 +744,86 @@ const Ventas = () => {
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {currentVentas.length > 0 ? (
-                      currentVentas.map((v) => (
-                        <tr
-                          key={v.id}
-                          className="h-11 hover:bg-gray-100 transition-colors bg-white"
-                        >
-                          <td className="p-3 font-black border-r border-gray-100">
-                            {v.codigoVenta || v.numeroFactura || v.id.slice(0, 8)}
-                          </td>
-                          <td className="p-3 text-center font-mono border-r border-gray-100 text-gray-600">
-                            {new Date(v.createdAt).toLocaleDateString('es-EC')}
-                          </td>
-                          <td className="p-3 truncate border-r border-gray-100 font-black">
-                            {v.Persona?.nombreCompleto || '-- ANÓNIMO --'}
-                          </td>
-                          <td className="p-3 truncate border-r border-gray-100 uppercase">
-                            {v.Producto?.nombre}
-                          </td>
-                          <td className="p-3 text-center font-mono font-black border-r border-gray-100 text-emerald-800 bg-emerald-50">
-                            {parseFloat(v.cantidadNeta).toFixed(2)} QQ
-                          </td>
-                          <td className="p-3 text-right font-mono border-r border-gray-100">
-                            ${parseFloat(v.precioUnitario).toFixed(2)}
-                          </td>
-                          <td className="p-3 text-right font-black border-r border-gray-100 bg-gray-50">
-                            ${parseFloat(v.totalFactura).toFixed(2)}
-                          </td>
-                          <td className="p-2 text-center border-r border-gray-100">
-                            <span
-                              className={`px-2 py-0.5 text-[9px] font-black uppercase border ${getColorPago(v.tipoVenta)}`}
-                            >
-                              {v.tipoVenta}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right font-black text-red-700 border-r border-gray-100 bg-red-50">
-                            ${parseFloat(v.montoPendiente).toFixed(2)}
-                          </td>
-                          <td className="p-3 text-center">
-                            <button
-                              className="p-1.5 text-blue-600 hover:text-white bg-white hover:bg-blue-600 border border-blue-600 transition-all"
-                              onClick={() => handleGeneratePDF(v)}
-                            >
-                              <MdPrint size={18} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
+                      currentVentas.map((v) => {
+                        const pendiente = parseFloat(v.montoPendiente || 0)
+                        const efectivo = parseFloat(v.pagoEfectivo || 0)
+                        const transferencia = parseFloat(v.pagoTransferencia || 0)
+
+                        return (
+                          <tr
+                            key={v.id}
+                            className="h-11 hover:bg-gray-100 transition-colors bg-white"
+                          >
+                            <td className="p-3 font-black border-r border-gray-100">
+                              {v.codigoVenta || v.numeroFactura || v.id.slice(0, 8)}
+                            </td>
+                            <td className="p-3 text-center font-mono border-r border-gray-100 text-gray-600">
+                              {new Date(v.createdAt).toLocaleDateString('es-EC')}
+                            </td>
+                            <td className="p-3 truncate border-r border-gray-100 font-black">
+                              {v.Persona?.nombreCompleto || '-- ANÓNIMO --'}
+                            </td>
+                            <td className="p-3 truncate border-r border-gray-100 uppercase">
+                              {v.Producto?.nombre}
+                            </td>
+                            <td className="p-3 text-center font-mono font-black border-r border-gray-100 text-emerald-800 bg-emerald-50">
+                              {parseFloat(v.cantidadNeta).toFixed(2)} QQ
+                            </td>
+                            <td className="p-3 text-right font-mono border-r border-gray-100">
+                              ${parseFloat(v.precioUnitario).toFixed(2)}
+                            </td>
+                            <td className="p-3 text-right font-black border-r border-gray-100 bg-gray-50">
+                              ${parseFloat(v.totalFactura).toFixed(2)}
+                            </td>
+
+                            {/* COLUMNA PAGO CORREGIDA */}
+                            <td className="p-2 text-center border-r border-gray-100">
+                              <div className="flex flex-col gap-0.5 items-center">
+                                {pendiente > 0 && (
+                                  <span className="px-1.5 py-0.5 text-[8px] font-black uppercase border border-red-600 text-red-600 bg-red-50">
+                                    CRÉDITO
+                                  </span>
+                                )}
+                                <div className="flex gap-1">
+                                  {efectivo > 0 && (
+                                    <span className="px-1 py-0.5 text-[8px] font-black uppercase border border-emerald-600 text-emerald-700 bg-emerald-50">
+                                      EFEC.
+                                    </span>
+                                  )}
+                                  {transferencia > 0 && (
+                                    <span className="px-1 py-0.5 text-[8px] font-black uppercase border border-blue-600 text-blue-700 bg-blue-50">
+                                      TRANS.
+                                    </span>
+                                  )}
+                                </div>
+                                {/* Backup por si no hay datos de desglose aún */}
+                                {efectivo === 0 && transferencia === 0 && pendiente === 0 && (
+                                  <span className="px-1 py-0.5 text-[8px] font-black uppercase border border-gray-400 text-gray-400">
+                                    CONTADO
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+
+                            <td className="p-3 text-right font-black text-red-700 border-r border-gray-100 bg-red-50">
+                              ${pendiente.toFixed(2)}
+                            </td>
+                            <td className="p-3 text-center">
+                              <button
+                                className="p-1.5 text-blue-600 hover:text-white bg-white hover:bg-blue-600 border border-blue-600 transition-all shadow-sm"
+                                onClick={() => handleGeneratePDF(v)}
+                              >
+                                <MdPrint size={18} />
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })
                     ) : (
                       <tr>
                         <td
                           colSpan="10"
-                          className="p-16 text-center text-gray-300 font-black  uppercase bg-gray-50 tracking-widest text-xs"
+                          className="p-16 text-center text-gray-300 font-black uppercase bg-gray-50 tracking-widest text-xs"
                         >
                           -- NO SE ENCONTRARON REGISTROS --
                         </td>

@@ -41,7 +41,6 @@ export const exportarVentaPDF = async (venta, empresa) => {
     const retenciones = parseFloat(venta.valorRetenido || 0)
     const totalLiquidacionVenta = subtotalVenta - retenciones
     const anticiposAplicados = parseFloat(venta.montoAnticipo || 0)
-    const totalFinalReal = totalLiquidacionVenta - anticiposAplicados
 
     doc.setFillColor(254, 252, 230)
     doc.rect(0, 0, anchoPagina, doc.internal.pageSize.height, 'F')
@@ -145,11 +144,12 @@ export const exportarVentaPDF = async (venta, empresa) => {
           ],
         ],
       })
+
       const unidadesAbreviadas = {
         Quintales: 'QQ',
         Kilogramos: 'KG',
         Libras: 'LB',
-        Tacho: 'TCH', // O la abreviatura que prefieras
+        Tacho: 'TCH',
       }
       const unidadAbrev =
         unidadesAbreviadas[venta.Producto?.unidadMedida] || venta.Producto?.unidadMedida || 'Cant.'
@@ -241,7 +241,7 @@ export const exportarVentaPDF = async (venta, empresa) => {
         ],
       })
 
-      // --- 6. FLUJO DE PAGOS ---
+      // --- 6. FLUJO DE PAGOS (CORREGIDO CON DESGLOSE REAL) ---
       autoTable(doc, {
         ...baseConfig,
         startY: doc.lastAutoTable.finalY + espaciado,
@@ -249,10 +249,10 @@ export const exportarVentaPDF = async (venta, empresa) => {
         head: [['Efectivo Recibido', 'Transferencia', 'Abono Anticipo', 'Saldo Pendiente']],
         body: [
           [
-            formatMoney(venta.montoAbonado),
-            formatMoney(0),
-            formatMoney(venta.montoAnticipo),
-            { content: formatMoney(venta.montoPendiente), styles: { fontStyle: 'bold' } },
+            formatMoney(venta.pagoEfectivo || 0),
+            formatMoney(venta.pagoTransferencia || 0),
+            formatMoney(venta.montoAnticipo || 0),
+            { content: formatMoney(venta.montoPendiente || 0), styles: { fontStyle: 'bold' } },
           ],
         ],
       })
