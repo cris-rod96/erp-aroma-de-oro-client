@@ -13,6 +13,7 @@ import {
   MdChevronRight,
   MdTrendingUp,
   MdReceipt,
+  MdSwapHoriz,
 } from 'react-icons/md'
 import { FaHistory } from 'react-icons/fa'
 import { Container } from '../../components/index.components'
@@ -24,7 +25,7 @@ import Swal from 'sweetalert2'
 
 const CuentasPorCobrar = () => {
   const token = useAuthStore((state) => state.token)
-  const user = useAuthStore((state) => state.user) // Cambiado a user según tu store
+  const user = useAuthStore((state) => state.user)
   const setCaja = useCajaStore((store) => store.setCaja)
   const caja = useCajaStore((state) => state.caja)
 
@@ -33,11 +34,9 @@ const CuentasPorCobrar = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [error, setError] = useState(null)
 
-  // Paginación
   const [paginaActual, setPaginaActual] = useState(1)
   const registrosPorPagina = 8
 
-  // Modales
   const [selectedCuenta, setSelectedCuenta] = useState(null)
   const [showCobro, setShowCobro] = useState(false)
   const [showHistorial, setShowHistorial] = useState(false)
@@ -45,17 +44,18 @@ const CuentasPorCobrar = () => {
   const [historyData, setHistoryData] = useState([])
   const [loadingHistory, setLoadingHistory] = useState(false)
 
+  // ESTADOS PARA EL COBRO
   const [formData, setFormData] = useState({
     monto: '',
     metodoCobro: 'Efectivo',
   })
+  const [enviarACaja, setEnviarACaja] = useState(true)
 
   const fetchCuentas = async () => {
     setLoading(true)
     setError(null)
     try {
       const resp = await cuentasPorCobrarAPI.listarTodas(token)
-      // Filtramos las que ya están en cero para que no ensucien la cartera activa
       const data = resp.data?.cuentasPorCobrar || []
       setCuentas(data.filter((c) => parseFloat(c.montoPorCobrar) > 0))
     } catch (error) {
@@ -91,7 +91,7 @@ const CuentasPorCobrar = () => {
       case 'Venta':
         return {
           sujeto: c.Ventum?.Cliente?.nombreCompleto || 'CLIENTE',
-          detalle: 'VENTA DE INSUMOS',
+          detalle: 'VENTA DE PRODUCTOS',
           color: 'text-amber-600',
           fecha: c.Ventum?.createdAt,
           identificacion: c.Ventum?.Cliente?.numeroIdentificacion || '',
@@ -102,7 +102,6 @@ const CuentasPorCobrar = () => {
   }
 
   const filtered = useMemo(() => {
-    setPaginaActual(1)
     const term = searchTerm.toLowerCase()
     return cuentas.filter((c) => {
       const info = getDetallesOrigen(c)
@@ -123,6 +122,7 @@ const CuentasPorCobrar = () => {
   const handleOpenCobro = (cuenta) => {
     setSelectedCuenta(cuenta)
     setFormData({ monto: cuenta.montoPorCobrar, metodoCobro: 'Efectivo' })
+    setEnviarACaja(true) // Por defecto siempre asumimos que entra a caja
     setShowCobro(true)
   }
 
@@ -146,24 +146,36 @@ const CuentasPorCobrar = () => {
       return Swal.fire('Error', 'El monto excede el saldo pendiente', 'error')
     }
     setProcessing(true)
+
     try {
       const payload = {
         CuentaPorCobrarId: selectedCuenta.id,
         monto: formData.monto,
         metodoCobro: formData.metodoCobro,
         UsuarioId: user?.id,
-        CajaId: caja?.id,
+        // Solo enviamos CajaId si es Efectivo y el usuario marcó que SI entra a caja
+        CajaId: formData.metodoCobro === 'Efectivo' && enviarACaja ? caja?.id : null,
         origen: selectedCuenta.origen,
+        afectaCaja: formData.metodoCobro === 'Efectivo' && enviarACaja,
       }
+
       const resp = await cuentasPorCobrarAPI.registrarCobro(token, payload)
       if (resp.status === 200) {
-        Swal.fire({ title: '¡Éxito!', text: 'Cobro registrado', icon: 'success', timer: 1500 })
+        Swal.fire({
+          title: '¡Éxito!',
+          text: 'Cobro registrado correctamente',
+          icon: 'success',
+          timer: 1500,
+        })
         setShowCobro(false)
         fetchCuentas()
-        if (resp.data.caja) setCaja(resp.data.caja)
+        // Actualizamos el estado global de la caja solo si el dinero entró físicamente
+        if (resp.data.caja && payload.afectaCaja) {
+          setCaja(resp.data.caja)
+        }
       }
     } catch (error) {
-      Swal.fire('Error', error.response?.data?.message || 'Error al procesar', 'error')
+      Swal.fire('Error', error.response?.data?.message || 'Error al procesar el cobro', 'error')
     } finally {
       setProcessing(false)
     }
@@ -172,10 +184,10 @@ const CuentasPorCobrar = () => {
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-4">
-        {/* CABECERA ESTILO PAGAR */}
+        {/* HEADER */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="border-l-4 border-amber-400 pl-4">
-            <h1 className="text-3xl font-black text-gray-800 uppercase  tracking-tighter">
+            <h1 className="text-3xl font-black text-gray-800 uppercase tracking-tighter">
               Cuentas por Cobrar
             </h1>
             <p className="text-gray-500 text-[10px] font-bold uppercase tracking-[0.3em]">
@@ -237,7 +249,7 @@ const CuentasPorCobrar = () => {
                         >
                           <td className="px-8 py-5">
                             <div className="flex items-center gap-4">
-                              <div className="h-10 w-10 rounded-xl bg-gray-900 text-amber-400 flex items-center justify-center shadow-md font-mono text-[10px]">
+                              <div className="h-10 w-10 rounded-xl bg-gray-900 text-amber-400 flex items-center justify-center shadow-md">
                                 <MdReceipt size={18} />
                               </div>
                               <div>
@@ -271,7 +283,7 @@ const CuentasPorCobrar = () => {
                           <td className="px-8 py-5 text-right flex justify-end gap-2">
                             <button
                               onClick={() => handleOpenCobro(c)}
-                              className="bg-gray-900 text-amber-400 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-black transition-all italic shadow-lg active:scale-95 flex items-center gap-2"
+                              className="bg-gray-900 text-amber-400 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:bg-black transition-all italic shadow-lg flex items-center gap-2 active:scale-95"
                             >
                               <MdPayments size={14} /> Cobrar
                             </button>
@@ -299,7 +311,7 @@ const CuentasPorCobrar = () => {
               </table>
             </div>
 
-            {/* PAGINACIÓN ESTILO PAGAR */}
+            {/* PAGINACIÓN */}
             <div className="px-6 py-5 bg-gray-50/50 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                 Mostrando{' '}
@@ -333,7 +345,7 @@ const CuentasPorCobrar = () => {
               </div>
             </div>
 
-            {/* TOTALIZADOR NEGRO */}
+            {/* TOTALIZADOR */}
             <div className="bg-gray-900 p-8 flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 bg-amber-400/10 rounded-2xl text-amber-400 border border-amber-400/20">
@@ -361,7 +373,7 @@ const CuentasPorCobrar = () => {
         )}
       </div>
 
-      {/* MODAL COBRO (DISEÑO UNIFICADO) */}
+      {/* MODAL DE COBRO CON SWITCH DE CAJA */}
       {showCobro && selectedCuenta && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden border border-gray-200">
@@ -392,6 +404,7 @@ const CuentasPorCobrar = () => {
                     {formatMoney(selectedCuenta.montoPorCobrar)}
                   </span>
                 </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest ml-2">
                     Monto del Cobro
@@ -406,6 +419,7 @@ const CuentasPorCobrar = () => {
                     onChange={(e) => setFormData({ ...formData, monto: e.target.value })}
                   />
                 </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   {['Efectivo', 'Transferencia'].map((m) => (
                     <button
@@ -414,12 +428,35 @@ const CuentasPorCobrar = () => {
                       onClick={() => setFormData({ ...formData, metodoCobro: m })}
                       className={`py-3 rounded-xl text-[10px] font-black uppercase border-2 transition-all ${formData.metodoCobro === m ? 'border-gray-900 bg-gray-900 text-amber-400 shadow-lg' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
                     >
-                      <MdAccountBalanceWallet className="inline mr-2" size={16} />
-                      {m}
+                      <MdAccountBalanceWallet className="inline mr-2" size={16} /> {m}
                     </button>
                   ))}
                 </div>
+
+                {/* SWITCH: ¿ENTRA A CAJA? (Solo visible si es Efectivo) */}
+                {formData.metodoCobro === 'Efectivo' && (
+                  <div className="flex items-center justify-between p-4 bg-amber-50/50 rounded-2xl border border-amber-100">
+                    <div className="flex flex-col">
+                      <span className="text-[10px] font-black uppercase text-gray-900 tracking-widest">
+                        ¿Enviar a Caja Física?
+                      </span>
+                      <span className="text-[8px] font-bold text-amber-600 uppercase">
+                        {enviarACaja ? 'Suma al saldo actual' : 'No afecta el arqueo de hoy'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEnviarACaja(!enviarACaja)}
+                      className={`w-12 h-6 rounded-full transition-all relative ${enviarACaja ? 'bg-gray-900' : 'bg-gray-300'}`}
+                    >
+                      <div
+                        className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${enviarACaja ? 'left-7' : 'left-1'}`}
+                      />
+                    </button>
+                  </div>
+                )}
               </div>
+
               <div className="p-6 bg-gray-50 border-t border-gray-100">
                 <button
                   type="submit"
@@ -434,7 +471,7 @@ const CuentasPorCobrar = () => {
         </div>
       )}
 
-      {/* MODAL HISTORIAL (DISEÑO UNIFICADO) */}
+      {/* MODAL HISTORIAL */}
       {showHistorial && selectedCuenta && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-gray-950/80 backdrop-blur-md">
           <div className="bg-white rounded-3xl w-full max-w-2xl shadow-2xl overflow-hidden border border-gray-200">
