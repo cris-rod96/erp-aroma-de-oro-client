@@ -18,7 +18,7 @@ import {
 import { usePrestamos } from '../../hooks/usePrestamos'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
 import { Container } from '../../components/index.components'
-import { formatFecha } from '../../utils/fromatters'
+import { formatFecha, formatMoney } from '../../utils/fromatters'
 import { exportarPrestamoPDF } from '../../utils/prestamoReport'
 
 const Prestamos = () => {
@@ -122,7 +122,7 @@ const Prestamos = () => {
                 <p
                   className={`text-xl font-black font-mono tracking-tighter leading-none text-gray-900 `}
                 >
-                  ${caja.saldoActual.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(caja.saldoActual)}
                 </p>
               ) : (
                 <p

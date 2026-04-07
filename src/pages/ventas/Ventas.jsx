@@ -21,6 +21,7 @@ import {
 import { Container } from '../../components/index.components'
 import { useVentas } from '../../hooks/useVentas'
 import { exportarVentaPDF } from '../../utils/ventaReport'
+import { formatMoney } from '../../utils/fromatters'
 
 // --- FUNCIÓN HELPER PARA COLOR DE FORMA DE PAGO ---
 const getColorPago = (tipo) => {
@@ -201,7 +202,7 @@ const Ventas = () => {
                 <p
                   className={`text-xl font-black font-mono tracking-tighter leading-none text-gray-900 `}
                 >
-                  ${caja.saldoActual.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(caja.saldoActual)}
                 </p>
               ) : (
                 <p

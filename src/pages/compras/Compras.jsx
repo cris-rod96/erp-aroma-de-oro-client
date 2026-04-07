@@ -16,6 +16,7 @@ import {
 import { ComprasHeader, ComprasTable, Container } from '../../components/index.components'
 import { useLiquidacion } from '../../hooks/useLiquidacion'
 import { useEffect } from 'react'
+import { formatMoney } from '../../utils/fromatters'
 
 const Compras = () => {
   const {
@@ -147,7 +148,7 @@ const Compras = () => {
                 <p
                   className={`text-xl font-black font-mono tracking-tighter leading-none text-gray-900 `}
                 >
-                  ${caja.saldoActual.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(caja.saldoActual)}
                 </p>
               ) : (
                 <p

@@ -16,7 +16,7 @@ import {
 import { Container } from '../../components/index.components'
 import { useAnticipos } from '../../hooks/useAnticipos'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
-import { formatFecha } from '../../utils/fromatters'
+import { formatFecha, formatMoney } from '../../utils/fromatters'
 import { exportarAnticipoPDF } from '../../utils/anticipoReport'
 
 const Anticipos = () => {
@@ -122,7 +122,7 @@ const Anticipos = () => {
                 <p
                   className={`text-xl font-black font-mono tracking-tighter leading-none text-gray-900 `}
                 >
-                  ${caja.saldoActual.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatMoney(caja.saldoActual)}
                 </p>
               ) : (
                 <p
