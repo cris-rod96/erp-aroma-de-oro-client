@@ -1,25 +1,21 @@
-import { useState } from 'react'
-import { CajasHeader, CajasTable, Container, Modal } from '../../components/index.components'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  MdAttachMoney,
-  MdWarningAmber,
-  MdDescription,
-  MdTrendingUp,
-  MdTrendingDown,
-  MdInfo,
   MdAccountBalance,
-  MdSecurity,
+  MdAttachMoney,
+  MdInfo,
   MdInventory2,
+  MdSecurity,
+  MdTrendingDown,
+  MdTrendingUp,
 } from 'react-icons/md'
-import cajaAPI from '../../api/caja/caja.api'
 import Swal from 'sweetalert2'
+import cajaAPI from '../../api/caja/caja.api'
+import { productoAPI } from '../../api/index.api'
+import { CajasHeader, CajasTable, Container, Modal } from '../../components/index.components'
+import { useCajas } from '../../hooks/useCajas'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useCajaStore } from '../../store/useCajaStore'
-import { useCajas } from '../../hooks/useCajas'
 import { formatMoney } from '../../utils/fromatters'
-import { useEffect } from 'react'
-import { productoAPI } from '../../api/index.api'
-import { useMemo } from 'react'
 
 const Cajas = () => {
   const token = useAuthStore((state) => state.token)

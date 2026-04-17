@@ -1,23 +1,19 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  MdAccountBalanceWallet,
-  MdPersonSearch,
-  MdFilterList,
-  MdSearchOff,
-  MdErrorOutline,
-  MdReceiptLong,
-  MdEventRepeat,
-  MdPrint,
-  MdSecurity,
   MdChevronLeft,
   MdChevronRight,
-  MdWarning,
   MdEdit,
+  MdErrorOutline,
+  MdEventRepeat,
+  MdFilterList,
   MdOutlineAccountBalanceWallet,
+  MdPrint,
+  MdReceiptLong,
+  MdWarning,
 } from 'react-icons/md'
+import { Container } from '../../components/index.components'
 import { usePrestamos } from '../../hooks/usePrestamos'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
-import { Container } from '../../components/index.components'
 import { formatFecha, formatMoney } from '../../utils/fromatters'
 import { exportarPrestamoPDF } from '../../utils/prestamoReport'
 
@@ -367,7 +363,7 @@ const Prestamos = () => {
                         <td className="px-8 py-5 text-right font-mono text-gray-900 font-black text-base">
                           ${parseFloat(pres.saldoPendiente).toFixed(2)}
                         </td>
-                        <td className="px-8 py-5 text-center">
+                        <td className="px-8 py-5 text-center flex justify-center items-center">
                           <button
                             onClick={() => prepararEdicion(pres)}
                             className="p-3 bg-gray-900 text-amber-400 rounded-xl hover:scale-110 shadow-md border border-gray-700 transition-all mr-2"

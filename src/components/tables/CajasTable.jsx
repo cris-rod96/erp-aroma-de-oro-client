@@ -1,33 +1,40 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  MdArrowForward,
-  MdClose,
-  MdReceiptLong,
-  MdArrowUpward,
-  MdArrowDownward,
-  MdShoppingBag,
   MdAccountBalance,
-  MdGroups,
-  MdMoreHoriz,
-  MdAttachMoney,
-  MdPrint,
-  MdHandshake,
-  MdAssignmentReturn,
-  MdPublishedWithChanges,
-  MdMonetizationOn,
   MdAccountBalanceWallet,
-  MdSecurity,
+  MdArrowDownward,
+  MdArrowForward,
+  MdArrowUpward,
+  MdAssignmentReturn,
+  MdAttachMoney,
   MdChevronLeft, // Nuevo
-  MdChevronRight, // Nuevo
+  MdChevronRight,
+  MdClose,
+  MdGroups,
+  MdHandshake,
+  MdMonetizationOn,
+  MdMoreHoriz,
+  MdPrint,
+  MdPublishedWithChanges,
+  MdReceiptLong,
+  MdSecurity,
+  MdShoppingBag,
 } from 'react-icons/md'
-import { formatFecha, formatMoney } from '../../utils/fromatters'
-import { exportarCajaDetallePDF } from '../../utils/cajaReport'
+import Swal from 'sweetalert2'
+import { cajaAPI } from '../../api/index.api'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
+import { exportarCajaDetallePDF } from '../../utils/cajaReport'
+import { formatFecha, formatMoney } from '../../utils/fromatters'
+import { Modal } from '../index.components'
 
 const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
   const [selectedCaja, setSelectedCaja] = useState(null)
   const [showModal, setShowModal] = useState(false)
+
+  const token = useAuthStore((store) => store.token)
+
+  const [showModalUpdateCaja, setShowModalUpdateCaja] = useState(false)
 
   // --- LÓGICA DE PAGINACIÓN ---
   const [currentPage, setCurrentPage] = useState(1)
@@ -42,6 +49,29 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
 
   const user = useAuthStore((store) => store.user)
   const empresa = useEmpresaStore((store) => store.empresa)
+
+  const [montoCierre, setMontoCierre] = useState(0)
+
+  const handleShowUpdateCaja = async (caja) => {
+    setSelectedCaja(caja)
+    setShowModalUpdateCaja(!showModalUpdateCaja)
+  }
+
+  const handleUpdateCaja = async () => {
+    if (montoCierre === 0) {
+      return Swal.fire('Error', 'Necesitas ingresar un monto de cierre', 'error')
+    }
+
+    try {
+      const resp = await cajaAPI.actualizarDataCaja(token, selectedCaja.id, montoCierre)
+      if (resp.status === 200) {
+        Swal.fire('Éxito', 'Se ha actualizado el valor de la caja', 'success')
+      }
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Error al actualizar caja'
+      Swal.fire('Error', msg, 'error')
+    }
+  }
 
   // Resetear a página 1 si cambian los datos (por ejemplo, al filtrar o refrescar)
   useEffect(() => {
@@ -90,13 +120,15 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
       const isVirtual =
         m.descripcion?.toUpperCase().includes('BANCO') ||
         m.descripcion?.toUpperCase().includes('CHEQUE') ||
-        m.descripcion?.toUpperCase().includes('TRANSF')
+        m.descripcion?.toUpperCase().includes('TRANSFERENCIA') ||
+        m.descripcion?.toUpperCase().includes('BANCARIO')
       if (isVirtual) {
         banc += isIngreso ? monto : -monto
       } else {
         efec += isIngreso ? monto : -monto
       }
     })
+
     return {
       efectivoNeto: efec,
       bancosNeto: banc,
@@ -201,6 +233,13 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
                           className="text-amber-600 hover:text-amber-700 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic transition-all group"
                         >
                           Ver Movimientos
+                          <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
+                        </button>
+                        <button
+                          onClick={() => handleShowUpdateCaja(caja)}
+                          className="text-amber-600 hover:text-amber-700 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic transition-all group"
+                        >
+                          Actualizar Caja
                           <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
                         </button>
                         {/* Botón Reabrir: Ahora integrado al estilo de la app */}
@@ -327,7 +366,7 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
                   size={80}
                 />
                 <p className="text-[9px] font-black text-blue-600 uppercase mb-2">
-                  Balance Bancario/Cheques
+                  Cheques | Transferencias
                 </p>
                 <p className="text-xl font-black font-mono text-blue-700">
                   {formatMoney(desglose.bancosNeto)}
@@ -371,7 +410,9 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
                     {selectedCaja.Movimientos?.filter((m) => m.CajaId !== null).map((mov) => {
                       const isVirtual =
                         mov.descripcion?.toUpperCase().includes('BANCO') ||
-                        mov.descripcion?.toUpperCase().includes('CHEQUE')
+                        mov.descripcion?.toUpperCase().includes('CHEQUE') ||
+                        mov.descripcion?.toUpperCase().includes('BANCARIO') ||
+                        mov.descripcion?.toUpperCase().includes('TRANSFERENCIA')
                       const isIngreso = mov.tipoMovimiento === 'Ingreso'
 
                       return (
@@ -446,6 +487,37 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
           </div>
         </div>
       )}
+
+      <Modal
+        isOpen={showModalUpdateCaja}
+        onClose={() => setShowModalUpdateCaja(false)}
+        title="Actualizar data de caja"
+      >
+        <form onSubmit={handleUpdateCaja} className="p-4 space-y-6">
+          <div className="space-y-2 text-center">
+            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
+              Monto Cierre
+            </label>
+            <div className="flex items-center h-20 bg-gray-50 rounded-2xl border-2 border-gray-100 px-6">
+              <MdAttachMoney className="text-amber-500 text-3xl mr-2" />
+              <input
+                type="number"
+                value={montoCierre}
+                onChange={(e) => setMontoCierre(e.target.value)}
+                step="0.01"
+                required
+                className="bg-transparent w-full outline-none text-3xl font-black font-mono"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            className="w-full py-5 bg-gray-900 text-amber-400 rounded-2xl font-black uppercase text-[11px] tracking-[0.2em]"
+          >
+            Actualizar Data
+          </button>
+        </form>
+      </Modal>
     </div>
   )
 }
