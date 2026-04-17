@@ -120,7 +120,10 @@ const Cajas = () => {
       const desc = m.descripcion?.toUpperCase() || ''
       // Si la descripción menciona bancos o cheques, no es efectivo físico
       const esExterno =
-        desc.includes('BANCO') || desc.includes('CHEQUE') || desc.includes('TRANSFERENCIA')
+        desc.includes('BANCO') ||
+        desc.includes('CHEQUE') ||
+        desc.includes('TRANSFERENCIA') ||
+        desc.includes('BANCARIO')
       return esIngreso && !esExterno
     })
     .reduce((acc, curr) => acc + parseFloat(curr.monto), 0)
@@ -134,7 +137,10 @@ const Cajas = () => {
 
       // Filtro crítico: Ignoramos los $2,000 de "EGRESO BANCO" para el saldo físico
       const esExterno =
-        desc.includes('BANCO') || desc.includes('CHEQUE') || desc.includes('TRANSFERENCIA')
+        desc.includes('BANCO') ||
+        desc.includes('CHEQUE') ||
+        desc.includes('TRANSFERENCIA') ||
+        desc.includes('BANCARIO')
       const esContable = m.CajaId === null
 
       return esEgreso && !esExterno && !esContable
@@ -145,7 +151,12 @@ const Cajas = () => {
   const totalMovimientosVirtuales = movimientos
     .filter((m) => {
       const desc = m.descripcion?.toUpperCase() || ''
-      return desc.includes('BANCO') || desc.includes('CHEQUE') || desc.includes('TRANSFERENCIA')
+      return (
+        desc.includes('BANCO') ||
+        desc.includes('CHEQUE') ||
+        desc.includes('TRANSFERENCIA') ||
+        desc.includes('BANCARIO')
+      )
     })
     .reduce((acc, curr) => acc + parseFloat(curr.monto), 0)
 

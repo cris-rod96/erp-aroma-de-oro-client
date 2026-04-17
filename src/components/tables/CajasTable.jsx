@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
   MdAccountBalance,
-  MdAccountBalanceWallet,
   MdArrowDownward,
   MdArrowForward,
   MdArrowUpward,
@@ -333,7 +332,7 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
             </div>
 
             {/* TARJETAS DE DESGLOSE (ESTO ES LO QUE DA CLARIDAD) */}
-            <div className="grid grid-cols-4 gap-4 p-6 bg-gray-50/50">
+            <div className="grid grid-cols-3 gap-4 p-6 bg-gray-50/50">
               <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
                 <p className="text-[9px] font-black text-gray-400 uppercase mb-2">Fondo Apertura</p>
                 <p className="text-xl font-black font-mono text-gray-900">
@@ -373,7 +372,7 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
                 </span>
               </div>
 
-              <div className="bg-gray-900 p-5 rounded-2xl shadow-xl relative overflow-hidden">
+              {/* <div className="bg-gray-900 p-5 rounded-2xl shadow-xl relative overflow-hidden">
                 <MdAccountBalanceWallet
                   className="absolute -right-2 -bottom-2 text-white/5"
                   size={80}
@@ -387,7 +386,7 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
                 <span className="text-[8px] font-bold text-gray-400 uppercase italic">
                   Efectivo + Bancos
                 </span>
-              </div>
+              </div> */}
             </div>
 
             {/* Listado de Movimientos */}
