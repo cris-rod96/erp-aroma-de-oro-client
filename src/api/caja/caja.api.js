@@ -71,17 +71,17 @@ const cajaAPI = {
     )
   },
 
-  actualizarDataCaja: (token, id, montoCierre) => {
-    return instance.patch(
-      `/${model}/actualizar-data/${id}`,
-      { montoCierre },
-      {
-        headers: {
-          'x-token': token,
-        },
-      }
-    )
-  },
+  // actualizarDataCaja: (token, id, montoCierre) => {
+  //   return instance.patch(
+  //     `/${model}/actualizar-data/${id}`,
+  //     { montoCierre },
+  //     {
+  //       headers: {
+  //         'x-token': token,
+  //       },
+  //     }
+  //   )
+  // },
 }
 
 export default cajaAPI

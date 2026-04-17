@@ -20,21 +20,18 @@ import {
   MdSecurity,
   MdShoppingBag,
 } from 'react-icons/md'
-import Swal from 'sweetalert2'
-import { cajaAPI } from '../../api/index.api'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
 import { exportarCajaDetallePDF } from '../../utils/cajaReport'
 import { formatFecha, formatMoney } from '../../utils/fromatters'
-import { Modal } from '../index.components'
 
 const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
   const [selectedCaja, setSelectedCaja] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
-  const token = useAuthStore((store) => store.token)
+  // const token = useAuthStore((store) => store.token)
 
-  const [showModalUpdateCaja, setShowModalUpdateCaja] = useState(false)
+  // const [showModalUpdateCaja, setShowModalUpdateCaja] = useState(false)
 
   // --- LÓGICA DE PAGINACIÓN ---
   const [currentPage, setCurrentPage] = useState(1)
@@ -50,28 +47,28 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
   const user = useAuthStore((store) => store.user)
   const empresa = useEmpresaStore((store) => store.empresa)
 
-  const [montoCierre, setMontoCierre] = useState(0)
+  // const [montoCierre, setMontoCierre] = useState(0)
 
-  const handleShowUpdateCaja = async (caja) => {
-    setSelectedCaja(caja)
-    setShowModalUpdateCaja(!showModalUpdateCaja)
-  }
+  // const handleShowUpdateCaja = async (caja) => {
+  //   setSelectedCaja(caja)
+  //   setShowModalUpdateCaja(!showModalUpdateCaja)
+  // }
 
-  const handleUpdateCaja = async () => {
-    if (montoCierre === 0) {
-      return Swal.fire('Error', 'Necesitas ingresar un monto de cierre', 'error')
-    }
+  // const handleUpdateCaja = async () => {
+  //   if (montoCierre === 0) {
+  //     return Swal.fire('Error', 'Necesitas ingresar un monto de cierre', 'error')
+  //   }
 
-    try {
-      const resp = await cajaAPI.actualizarDataCaja(token, selectedCaja.id, montoCierre)
-      if (resp.status === 200) {
-        Swal.fire('Éxito', 'Se ha actualizado el valor de la caja', 'success')
-      }
-    } catch (error) {
-      const msg = error.response?.data?.message || 'Error al actualizar caja'
-      Swal.fire('Error', msg, 'error')
-    }
-  }
+  //   try {
+  //     const resp = await cajaAPI.actualizarDataCaja(token, selectedCaja.id, montoCierre)
+  //     if (resp.status === 200) {
+  //       Swal.fire('Éxito', 'Se ha actualizado el valor de la caja', 'success')
+  //     }
+  //   } catch (error) {
+  //     const msg = error.response?.data?.message || 'Error al actualizar caja'
+  //     Swal.fire('Error', msg, 'error')
+  //   }
+  // }
 
   // Resetear a página 1 si cambian los datos (por ejemplo, al filtrar o refrescar)
   useEffect(() => {
@@ -235,13 +232,13 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
                           Ver Movimientos
                           <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
                         </button>
-                        <button
+                        {/* <button
                           onClick={() => handleShowUpdateCaja(caja)}
                           className="text-amber-600 hover:text-amber-700 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic transition-all group"
                         >
                           Actualizar Caja
                           <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
-                        </button>
+                        </button> */}
                         {/* Botón Reabrir: Ahora integrado al estilo de la app */}
                         {user?.rol === 'Administrador' && esReabribleHoy(caja) && (
                           <button
@@ -487,7 +484,7 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
           </div>
         </div>
       )}
-
+      {/* 
       <Modal
         isOpen={showModalUpdateCaja}
         onClose={() => setShowModalUpdateCaja(false)}
@@ -517,7 +514,7 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
             Actualizar Data
           </button>
         </form>
-      </Modal>
+      </Modal> */}
     </div>
   )
 }
