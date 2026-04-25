@@ -1,6 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usuarioAPI } from '../api/index.api'
-import { useEffect } from 'react'
 
 export const useUsuarios = (token) => {
   const [error, setError] = useState(null)
@@ -14,7 +13,7 @@ export const useUsuarios = (token) => {
     nombresCompletos: '',
     cedula: '',
     telefono: '',
-    correo: '',
+    correo: null,
     clave: '',
     rol: '',
     estaActivo: true,
@@ -46,7 +45,7 @@ export const useUsuarios = (token) => {
         nombresCompletos: usuario.nombresCompletos,
         cedula: usuario.cedula,
         telefono: usuario.telefono,
-        correo: usuario.correo,
+        correo: usuario.correo || null,
         clave: '', // La clave no se suele enviar de vuelta al editar
         rol: usuario.rol,
         estaActivo: usuario.estaActivo,
@@ -57,7 +56,7 @@ export const useUsuarios = (token) => {
         nombresCompletos: '',
         cedula: '',
         telefono: '',
-        correo: '',
+        correo: null,
         clave: '',
         rol: '',
         estaActivo: true,
