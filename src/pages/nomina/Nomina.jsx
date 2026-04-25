@@ -1,27 +1,25 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
-  FaPlus,
-  FaHistory,
-  FaUsers,
-  FaHandHoldingUsd,
-  FaPhone,
-  FaIdCard,
-  FaCalendarAlt,
-  FaMoneyBillWave,
-  FaPlusCircle,
   FaArrowDown,
-  FaLayerGroup,
+  FaCalendarAlt,
+  FaHandHoldingUsd,
   FaHashtag,
+  FaIdCard,
+  FaLayerGroup,
+  FaMoneyBillWave,
+  FaPhone,
+  FaPlusCircle,
+  FaUsers,
 } from 'react-icons/fa'
+import { MdPayments } from 'react-icons/md'
+import Swal from 'sweetalert2'
+import { nominaAPI, trabajadorAPI } from '../../api/index.api'
+import prestamoAPI from '../../api/prestamo/prestamo.api'
 import { Container, Modal, NominaHeader, NominaTable } from '../../components/index.components'
-import { MdDelete, MdPayments } from 'react-icons/md'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useCajaStore } from '../../store/useCajaStore'
-import Swal from 'sweetalert2'
-import prestamoAPI from '../../api/prestamo/prestamo.api'
-import { nominaAPI, trabajadorAPI } from '../../api/index.api'
-import { exportarNominaPDF } from '../../utils/nominaReport'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
+import { exportarNominaPDF } from '../../utils/nominaReport'
 
 const Nomina = () => {
   // --- ESTADOS ---
@@ -216,6 +214,24 @@ const Nomina = () => {
       }
     }
   }
+  const handleDespedirTrabajador = async (id) => {
+    const result = await Swal.fire({
+      title: '¿Estás seguro de despedir a este trabajador. Esta acción es irreversible.?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      confirmButtonText: 'Sí, despedir',
+    })
+    if (result.isConfirmed) {
+      try {
+        await nominaAPI.eliminarTrabajador(id, token)
+        Swal.fire('Despedido', 'Trabajador despedido', 'success')
+        fetchTrabajadores()
+      } catch (error) {
+        Swal.fire('Error', error.response?.data.message || 'Error al despedir', 'error')
+      }
+    }
+  }
 
   const handleOpenPago = async (trabajador) => {
     if (!caja || caja.estado !== 'Abierta')
@@ -308,6 +324,7 @@ const Nomina = () => {
           handleEdit={handleEditTrabajador}
           handleImprimir={handleImprimir}
           handleOpenPago={handleOpenPago}
+          handleDespedirTrabajador={handleDespedirTrabajador}
           handleRestore={handleRestore}
           error={error}
           cumplesHoy={cumplesHoy}

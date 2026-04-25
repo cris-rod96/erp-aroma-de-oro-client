@@ -1,14 +1,14 @@
-import { useState, useEffect } from 'react'
-import { FaUserEdit, FaPrint, FaIdCard, FaTrashRestore } from 'react-icons/fa'
+import { useEffect, useState } from 'react'
+import { FaIdCard, FaPrint, FaTrashRestore, FaUserEdit } from 'react-icons/fa'
 import {
-  MdDelete,
-  MdPayments,
-  MdPhone,
-  MdInbox,
-  MdSecurity,
+  MdCake,
   MdChevronLeft,
   MdChevronRight,
-  MdCake,
+  MdDelete,
+  MdInbox,
+  MdPayments,
+  MdPhone,
+  MdSecurity,
 } from 'react-icons/md'
 
 const NominaTable = ({
@@ -23,6 +23,7 @@ const NominaTable = ({
   error,
   cumplesHoy,
   cumplesManana,
+  handleDespedirTrabajador,
 }) => {
   // --- LÓGICA DE PAGINACIÓN (IGUAL A INVENTARIO) ---
   const [currentPage, setCurrentPage] = useState(1)
@@ -82,9 +83,12 @@ const NominaTable = ({
                   <th className="px-6 py-5 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">
                     {activeTab === 'empleados' ? 'Estado' : 'Monto Pagado'}
                   </th>
-                  <th className="px-6 py-5 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                  <th className="px-6 py-5  text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">
                     Acciones
                   </th>
+                  {activeTab === 'empleados' && (
+                    <th className="px-6 py-5  text-[10px] font-black text-gray-400 uppercase tracking-widest text-center"></th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -169,7 +173,7 @@ const NominaTable = ({
 
                     {/* ACCIONES */}
                     <td className="px-6 py-4 text-right whitespace-nowrap">
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-center gap-2">
                         {activeTab === 'empleados' ? (
                           <>
                             {/* Si el empleado está activo, mostramos flujo normal */}
@@ -217,6 +221,16 @@ const NominaTable = ({
                         )}
                       </div>
                     </td>
+                    {activeTab === 'empleados' && (
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          className="px-4 py-2 bg-rose-500/10 text-rose-600 hover:bg-rose-600 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest  border border-rose-100 active:scale-95 transition-all duration-300  cursor-pointer"
+                          onClick={() => handleDespedirTrabajador(item.id)}
+                        >
+                          Despedir
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

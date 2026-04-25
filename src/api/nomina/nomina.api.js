@@ -20,7 +20,7 @@ const nominaAPI = {
   },
 
   eliminarTrabajador: (id, token) => {
-    return instance.delete(`/${model}/borrar-persona/${id}`, {
+    return instance.delete(`/${model}/eliminar-trabajador/${id}`, {
       headers: {
         'x-token': token,
       },
