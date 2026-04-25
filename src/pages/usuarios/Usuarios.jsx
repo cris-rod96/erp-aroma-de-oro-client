@@ -121,7 +121,6 @@ const Usuarios = () => {
   const cerrarModalLimpio = () => {
     setIsModalOpen(false)
     setRegistrarComoTrabajador(false)
-    handleOpenModal(false)
   }
 
   const handleRestore = async (id) => {
