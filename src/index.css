@@ -1,0 +1,26 @@
+@import 'tailwindcss';
+
+body {
+  font-family: 'Roboto Variable', sans-serif;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #4a636e; /* Un tono más claro que el aside */
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #5a7885;
+}
+
+.swal2-container {
+  z-index: 99999 !important;
+}
