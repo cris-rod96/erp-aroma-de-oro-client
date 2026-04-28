@@ -318,6 +318,31 @@ const Cajas = () => {
     }
   }
 
+  const handleAjustarCaja = async (cajaId) => {
+    const result = await Swal.fire({
+      title: '¿Ejecutar ajuste de flujos?',
+      text: 'Esto moverá los movimientos con fecha de hoy a la caja correcta y recalculará los saldos.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'SÍ, AJUSTAR',
+      confirmButtonColor: '#0f172a',
+    })
+
+    if (result.isConfirmed) {
+      try {
+        setLoading(true)
+        await cajaAPI.ajustarMovimientos(token, cajaId) // Tu nueva ruta
+        await fetchCajas() // Recargar todo
+        Swal.fire('¡Corregido!', 'Los saldos y movimientos han sido sincronizados.', 'success')
+      } catch (err) {
+        const error = err.response?.data?.message || 'No se pudo procesar el ajuste'
+        Swal.fire('Error', error, 'error')
+      } finally {
+        setLoading(false)
+      }
+    }
+  }
+
   return (
     <Container fullWidth={true}>
       <div className="w-full px-4 md:px-8 py-4 text-gray-800">
@@ -380,6 +405,7 @@ const Cajas = () => {
                 setCajaAProcesar(caja)
                 setIsClosingModal(true)
               }}
+              handleAjustarCaja={handleAjustarCaja}
             />
           )}
         </div>

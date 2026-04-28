@@ -19,13 +19,22 @@ import {
   MdReceiptLong,
   MdSecurity,
   MdShoppingBag,
+  MdSync,
 } from 'react-icons/md'
 import { useAuthStore } from '../../store/useAuthStore'
 import { useEmpresaStore } from '../../store/useEmpresaStore'
 import { exportarCajaDetallePDF } from '../../utils/cajaReport'
 import { formatFecha, formatMoney } from '../../utils/fromatters'
 
-const CajasTable = ({ fetching, cajas, error, reabrirCaja, cajaActiva, onCerrarTurnoAnterior }) => {
+const CajasTable = ({
+  fetching,
+  cajas,
+  error,
+  reabrirCaja,
+  cajaActiva,
+  onCerrarTurnoAnterior,
+  handleAjustarCaja,
+}) => {
   const [selectedCaja, setSelectedCaja] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
@@ -332,10 +341,23 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja, cajaActiva, onCerrarT
                   <h2 className="font-black uppercase tracking-tighter text-2xl text-gray-900 leading-none">
                     Auditoría de Flujos
                   </h2>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">
-                    Caja ID: {selectedCaja.id.split('-')[0]} |{' '}
-                    {formatFecha(selectedCaja.fechaApertura)}
-                  </p>
+                  <div className="flex items-center gap-3 mt-1">
+                    {' '}
+                    {/* Contenedor para ID y Botón */}
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      Caja ID: {selectedCaja.id.split('-')[0]} |{' '}
+                      {formatFecha(selectedCaja.fechaApertura)}
+                    </p>
+                    {/* BOTÓN DE AJUSTE MÁGICO */}
+                    <button
+                      onClick={() => handleAjustarCaja(selectedCaja.id)}
+                      className="flex items-center gap-1.5 px-2 py-1 bg-rose-50 text-rose-600 border border-rose-100 rounded-lg text-[9px] font-black uppercase hover:bg-rose-100 transition-all animate-pulse"
+                      title="Mover movimientos de hoy a la caja correcta"
+                    >
+                      <MdSync size={12} />
+                      Corregir Descuadre
+                    </button>
+                  </div>
                 </div>
               </div>
               <button
@@ -386,22 +408,6 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja, cajaActiva, onCerrarT
                   Movimientos virtuales
                 </span>
               </div>
-
-              {/* <div className="bg-gray-900 p-5 rounded-2xl shadow-xl relative overflow-hidden">
-                <MdAccountBalanceWallet
-                  className="absolute -right-2 -bottom-2 text-white/5"
-                  size={80}
-                />
-                <p className="text-[9px] font-black text-gray-400 uppercase mb-2">
-                  Saldo Total Sistema
-                </p>
-                <p className="text-xl font-black font-mono text-white">
-                  {formatMoney(selectedCaja.saldoActual || selectedCaja.montoCierre)}
-                </p>
-                <span className="text-[8px] font-bold text-gray-400 uppercase italic">
-                  Efectivo + Bancos
-                </span>
-              </div> */}
             </div>
 
             {/* Listado de Movimientos */}

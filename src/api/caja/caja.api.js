@@ -71,6 +71,20 @@ const cajaAPI = {
     )
   },
 
+  ajustarMovimientos: async (token, cajaId) => {
+    return instance.patch(
+      `/${model}/corregir-descuadre`,
+      {
+        CajaId: cajaId,
+      },
+      {
+        headers: {
+          'x-token': token,
+        },
+      }
+    )
+  },
+
   // actualizarDataCaja: (token, id, montoCierre) => {
   //   return instance.patch(
   //     `/${model}/actualizar-data/${id}`,
