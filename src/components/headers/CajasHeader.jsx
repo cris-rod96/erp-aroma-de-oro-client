@@ -17,6 +17,7 @@ const CajasHeader = ({
   setIsVentaModalOpen,
   loading,
   fetching,
+  conflictoCajas,
 }) => {
   const mensajeFechaCaja = useMemo(() => {
     if (!cajaActiva?.fechaApertura) return ''
@@ -91,6 +92,23 @@ const CajasHeader = ({
           </button>
         </div>
       </div>
+
+      {conflictoCajas?.hayConflicto && (
+        <div className="mb-6 bg-red-50 border-2 border-red-200 p-4 rounded-2xl flex items-center gap-4 animate-pulse">
+          <div className="bg-red-500 p-2 rounded-xl text-white shadow-lg">
+            <MdInfoOutline size={24} />
+          </div>
+          <div className="flex-1">
+            <p className="text-xs font-black text-red-700 uppercase tracking-wider">
+              ¡Conflicto de Turnos!
+            </p>
+            <p className="text-sm text-red-900">
+              Hay <strong>{conflictoCajas.cantidad} cajas abiertas</strong>. Cierra las pendientes
+              para evitar errores de saldo.
+            </p>
+          </div>
+        </div>
+      )}
 
       {cajaActiva && (
         <div className="mb-6 bg-white border-2 border-amber-100 p-5 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl shadow-amber-50/50 animate-fade-in">

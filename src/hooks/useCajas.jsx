@@ -1,6 +1,6 @@
-import { useState, useEffect, useMemo } from 'react'
-import { cajaAPI } from '../api/index.api'
+import { useEffect, useMemo, useState } from 'react'
 import Swal from 'sweetalert2'
+import { cajaAPI } from '../api/index.api'
 import { useCajaStore } from '../store/useCajaStore'
 
 export const useCajas = (token) => {
@@ -14,6 +14,17 @@ export const useCajas = (token) => {
   const [loading, setLoading] = useState(false)
   const [fetching, setFetching] = useState(true)
   const { setCaja } = useCajaStore()
+
+  const conflictoCajas = useMemo(() => {
+    const abiertas = cajas.filter((c) => c.estado === 'Abierta')
+    console.log(abiertas)
+    return {
+      hayConflicto: abiertas.length > 1,
+      cantidad: abiertas.length,
+      cajaActual: abiertas[0],
+      cajasPorCerrar: abiertas.slice(1),
+    }
+  }, [cajas])
 
   const fetchCajas = async () => {
     if (!token) return
@@ -36,9 +47,7 @@ export const useCajas = (token) => {
     fetchCajas()
   }, [token])
 
-  const cajaActiva = useMemo(() => {
-    return cajas.find((c) => c.estado === 'Abierta')
-  }, [cajas])
+  const cajaActiva = conflictoCajas.cajaActual
 
   // --- NUEVA FUNCIÓN PARA PROCESAR VENTAS PEQUEÑAS ---
   const ejecutarVentaRapida = async (data) => {
@@ -122,5 +131,6 @@ export const useCajas = (token) => {
     fetchCajas,
     ejecutarVentaRapida, // Exportada para usar en el submit del modal
     reabrirCaja,
+    conflictoCajas,
   }
 }

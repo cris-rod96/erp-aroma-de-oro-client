@@ -35,6 +35,7 @@ const Cajas = () => {
     setIsVentaModalOpen,
     ejecutarVentaRapida,
     reabrirCaja,
+    conflictoCajas,
   } = useCajas(token)
 
   // Estado de venta rápida
@@ -324,6 +325,7 @@ const Cajas = () => {
           user={user}
           loading={loading}
           fetching={fetching}
+          conflictoCajas={conflictoCajas}
         />
         <div className="mt-6">
           {fetching ? (
