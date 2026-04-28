@@ -1,16 +1,5 @@
-import { useState, useEffect } from 'react'
-import { ITEMS_DATA } from '../../data'
+import { useEffect, useState } from 'react'
 import { NavLink, useOutletContext } from 'react-router-dom'
-import {
-  MdTrendingUp,
-  MdLock,
-  MdSecurity,
-  MdWarning,
-  MdErrorOutline,
-  MdArrowForward,
-} from 'react-icons/md'
-import { Container, CumplesTrabajadores, Loading } from '../../components/index.components'
-import { useAuthStore } from '../../store/useAuthStore'
 import {
   anticipoAPI,
   cajaAPI,
@@ -26,6 +15,9 @@ import {
   ventaAPI,
 } from '../../api/index.api'
 import prestamoAPI from '../../api/prestamo/prestamo.api'
+import { Loading } from '../../components/index.components'
+import { ITEMS_DATA } from '../../data'
+import { useAuthStore } from '../../store/useAuthStore'
 
 const Home = () => {
   const { hiddenMenu } = useOutletContext()
@@ -203,6 +195,66 @@ const Home = () => {
         <div
           className={`flex flex-col ${hiddenMenu ? 'w-[90%]' : 'w-[80%] pl-56'} mx-auto py-32 px-10`}
         >
+          {/* SECCIÓN DE CUMPLEAÑOS */}
+          {(cumplesHoy.length > 0 || cumplesManana.length > 0) && (
+            <div className="mb-10 flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-1000">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-amber-200 to-transparent"></div>
+                <span className="text-[10px] font-black text-amber-600 uppercase tracking-[0.3em]">
+                  Celebraciones del Equipo
+                </span>
+                <div className="h-[2px] flex-1 bg-gradient-to-r from-transparent via-amber-200 to-transparent"></div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* HOY */}
+                {cumplesHoy.map((cumple) => (
+                  <div
+                    key={cumple.id}
+                    className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-amber-600 p-6 rounded-[2rem] shadow-xl shadow-amber-200/50 flex items-center gap-5 border-2 border-white/20"
+                  >
+                    <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-md text-white">
+                      <span className="text-2xl">🎂</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-white font-black uppercase italic tracking-tighter text-lg leading-none">
+                        {cumple.mensaje}
+                      </h3>
+                      <p className="text-amber-100 text-[11px] font-bold mt-1 uppercase tracking-wider">
+                        {cumple.detalles} — 🎉 ¡Felicidades!
+                      </p>
+                    </div>
+                    <div className="absolute -right-4 -bottom-4 opacity-20 text-white transform -rotate-12">
+                      <span className="text-8xl">🎈</span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* MAÑANA */}
+                {cumplesManana.map((cumple) => (
+                  <div
+                    key={cumple.id}
+                    className="relative overflow-hidden bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm flex items-center gap-5"
+                  >
+                    <div className="bg-blue-50 p-3 rounded-2xl text-blue-500 border border-blue-100">
+                      <span className="text-2xl">🎁</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-gray-900 font-black uppercase italic tracking-tighter text-lg leading-none">
+                        {cumple.mensaje}
+                      </h3>
+                      <p className="text-gray-400 text-[11px] font-bold mt-1 uppercase tracking-wider">
+                        {cumple.detalles} — Prepárale una sorpresa
+                      </p>
+                    </div>
+                    <div className="absolute -right-4 -bottom-4 opacity-5 text-gray-900 transform -rotate-12">
+                      <span className="text-8xl">🍰</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div
             className={`grid md:grid-cols-2 sm:grid-cols-1 gap-10 ${hiddenMenu ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}
           >
