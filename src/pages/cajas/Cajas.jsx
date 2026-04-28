@@ -322,6 +322,8 @@ const Cajas = () => {
           setIsBancoModalOpen={setIsBancoModalOpen}
           setIsVentaModalOpen={setIsVentaModalOpen}
           user={user}
+          loading={loading}
+          fetching={fetching}
         />
         <div className="mt-6">
           {fetching ? (

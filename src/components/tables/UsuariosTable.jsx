@@ -1,14 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { FaTrashRestore, FaUserEdit } from 'react-icons/fa'
 import {
+  MdChevronLeft,
+  MdChevronRight,
   MdDelete,
   MdEmail,
   MdInbox,
   MdPhone,
   MdSecurity,
-  MdChevronLeft,
-  MdChevronRight,
-  MdVerifiedUser,
 } from 'react-icons/md'
 
 const UsuariosTable = ({
@@ -113,7 +112,8 @@ const UsuariosTable = ({
                     <td className="px-6 py-5">
                       <div className="space-y-1">
                         <div className="flex items-center text-[11px] text-gray-600 font-bold tracking-tight">
-                          <MdEmail className="mr-2 text-amber-500" size={14} /> {u.correo}
+                          <MdEmail className="mr-2 text-amber-500" size={14} />
+                          {u.correo || 'S/C'}
                         </div>
                         <div className="flex items-center text-[11px] text-gray-500 font-bold">
                           <MdPhone className="mr-2 text-amber-500" size={14} /> {u.telefono}

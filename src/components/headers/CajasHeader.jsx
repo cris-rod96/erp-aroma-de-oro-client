@@ -15,6 +15,8 @@ const CajasHeader = ({
   setIsBancoModalOpen,
   user,
   setIsVentaModalOpen,
+  loading,
+  fetching,
 }) => {
   const mensajeFechaCaja = useMemo(() => {
     if (!cajaActiva?.fechaApertura) return ''
@@ -68,16 +70,24 @@ const CajasHeader = ({
               </button>
             </>
           )}
-
           <button
-            disabled={!!cajaActiva}
+            // Se bloquea si está cargando la lista inicial O si hay una acción en curso O si ya hay una caja
+            disabled={fetching || loading || !!cajaActiva}
             onClick={() => setIsModalOpen(true)}
             className={`px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-lg flex items-center gap-2 ${
-              cajaActiva ? 'bg-gray-200 text-gray-400' : 'bg-gray-900 text-amber-400'
+              fetching || loading || cajaActiva
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-900 text-amber-400 hover:scale-105'
             }`}
           >
             <MdAccountBalanceWallet size={18} />
-            {cajaActiva ? 'Caja en uso' : 'Nueva Apertura'}
+            {fetching
+              ? 'Sincronizando...'
+              : loading
+                ? 'Procesando...'
+                : cajaActiva
+                  ? 'Caja en uso'
+                  : 'Nueva Apertura'}
           </button>
         </div>
       </div>
