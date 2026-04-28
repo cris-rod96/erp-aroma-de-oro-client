@@ -14,6 +14,7 @@ const Cajas = () => {
   const setCaja = useCajaStore((state) => state.setCaja)
   const user = useAuthStore((store) => store.user)
   const [observacionesCierre, setObservacionesCierre] = useState('')
+  const [cajaAProcesar, setCajaAProcesar] = useState(null)
 
   const {
     cajaActiva,
@@ -159,12 +160,14 @@ const Cajas = () => {
   const diferenciaActual = useMemo(() => {
     if (!montoFisicoCierre) return 0
 
-    // const diff = parseFloat(montoFisicoCierre) - saldoEsperado
-    const diff = parseFloat(montoFisicoCierre) - Number(cajaActiva.saldoActual)
+    // Usamos el saldo de la caja que estamos procesando (la vieja o la activa)
+    const saldoReferencia = cajaAProcesar
+      ? Number(cajaAProcesar.saldoActual)
+      : Number(cajaActiva?.saldoActual || 0)
 
-    // Forzamos el redondeo a 2 decimales para eliminar residuos infinitesimales
+    const diff = parseFloat(montoFisicoCierre) - saldoReferencia
     return Number(diff.toFixed(2))
-  }, [montoFisicoCierre])
+  }, [montoFisicoCierre, cajaAProcesar, cajaActiva])
 
   const handleVentaRapidaSubmit = async (e) => {
     e.preventDefault()
@@ -251,6 +254,7 @@ const Cajas = () => {
 
   const handleCerrarCaja = async (e) => {
     e.preventDefault()
+    const idCajaCerrar = cajaAProcesar?.id || cajaActiva?.id
 
     if (diferenciaActual !== 0) {
       const result = await Swal.fire({
@@ -275,7 +279,7 @@ const Cajas = () => {
           observacionesCierre || `Cierre Aroma Oro. Diferencia: ${formatMoney(diferenciaActual)}`,
       }
 
-      const resp = await cajaAPI.cerrarCaja(cajaActiva.id, token, payload)
+      const resp = await cajaAPI.cerrarCaja(idCajaCerrar, token, payload)
       const { resumen } = resp.data
 
       setIsClosingModal(false)
@@ -304,6 +308,7 @@ const Cajas = () => {
         setObservacionesCierre('')
         fetchCajas()
         setCaja(null)
+        setCajaAProcesar(null)
       }, 150)
     } catch (error) {
       console.log(error.response.data.message || 'Error al cerrar')
@@ -365,7 +370,17 @@ const Cajas = () => {
             </div>
           ) : (
             /* --- VISTA DE TABLA (Pasamos el error por si acaso) --- */
-            <CajasTable fetching={fetching} cajas={cajas} error={error} reabrirCaja={reabrirCaja} />
+            <CajasTable
+              fetching={fetching}
+              cajas={cajas}
+              error={error}
+              reabrirCaja={reabrirCaja}
+              cajaActiva={cajaActiva}
+              onCerrarTurnoAnterior={(caja) => {
+                setCajaAProcesar(caja)
+                setIsClosingModal(true)
+              }}
+            />
           )}
         </div>
       </div>
@@ -579,7 +594,11 @@ const Cajas = () => {
       {/* CIERRE (ARQUEO CORREGIDO) */}
       <Modal
         isOpen={isClosingModal}
-        onClose={() => setIsClosingModal(false)}
+        onClose={() => {
+          setIsClosingModal(false)
+          setCajaAProcesar(null)
+          setMontoFisicoCierre('')
+        }}
         title="Arqueo Aroma de Oro"
       >
         <form onSubmit={handleCerrarCaja} className="p-4 space-y-6">
@@ -590,14 +609,20 @@ const Cajas = () => {
                   <span className="text-[9px] font-black uppercase text-gray-400">
                     Fondo Inicial
                   </span>
-                  <p className="text-2xl font-black font-mono">{formatMoney(saldoInicial)}</p>
+                  <p className="text-2xl font-black font-mono">
+                    {formatMoney(
+                      Number(cajaAProcesar?.montoApertura || cajaActiva?.montoApertura || 0)
+                    )}
+                  </p>
                 </div>
                 <div className="space-y-1 text-right">
                   <span className="text-[9px] font-black uppercase text-amber-500">
                     Saldo Esperado (Físico)
                   </span>
                   <p className="text-2xl font-black font-mono text-amber-400">
-                    {formatMoney(Number(cajaActiva?.saldoActual) || 0.0)}
+                    {formatMoney(
+                      Number(cajaAProcesar?.saldoActual || cajaActiva?.saldoActual || 0)
+                    )}
                   </p>
                 </div>
               </div>

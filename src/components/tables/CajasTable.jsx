@@ -25,7 +25,7 @@ import { useEmpresaStore } from '../../store/useEmpresaStore'
 import { exportarCajaDetallePDF } from '../../utils/cajaReport'
 import { formatFecha, formatMoney } from '../../utils/fromatters'
 
-const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
+const CajasTable = ({ fetching, cajas, error, reabrirCaja, cajaActiva, onCerrarTurnoAnterior }) => {
   const [selectedCaja, setSelectedCaja] = useState(null)
   const [showModal, setShowModal] = useState(false)
 
@@ -245,13 +245,14 @@ const CajasTable = ({ fetching, cajas, error, reabrirCaja }) => {
                           Ver Movimientos
                           <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
                         </button>
-                        {/* <button
-                          onClick={() => handleShowUpdateCaja(caja)}
-                          className="text-amber-600 hover:text-amber-700 text-[10px] font-black flex items-center justify-end gap-1.5 uppercase tracking-wider italic transition-all group"
-                        >
-                          Actualizar Caja
-                          <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
-                        </button> */}
+                        {caja.estado === 'Abierta' && caja.id !== cajaActiva?.id && (
+                          <button
+                            onClick={() => onCerrarTurnoAnterior(caja)}
+                            className="bg-rose-50 text-rose-600 border border-rose-100 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase hover:bg-rose-600 hover:text-white transition-all"
+                          >
+                            Cerrar Turno Olvidado
+                          </button>
+                        )}
                         {/* Botón Reabrir: Ahora integrado al estilo de la app */}
                         {user?.rol === 'Administrador' && esReabribleHoy(caja) && (
                           <button
