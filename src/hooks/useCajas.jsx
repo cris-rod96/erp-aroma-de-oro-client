@@ -17,7 +17,6 @@ export const useCajas = (token) => {
 
   const conflictoCajas = useMemo(() => {
     const abiertas = cajas.filter((c) => c.estado === 'Abierta')
-    console.log(abiertas)
     return {
       hayConflicto: abiertas.length > 1,
       cantidad: abiertas.length,
@@ -105,6 +104,20 @@ export const useCajas = (token) => {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (cajas.length > 0) {
+      const abiertas = cajas.filter((c) => c.estado === 'Abierta')
+      if (abiertas.length > 0) {
+        const ordenadas = [...abiertas].sort((a, b) => {
+          return new Date(b.createdAt) - new Date(a.createdAt)
+        })
+
+        const masreciente = ordenadas[0]
+        setCaja(masreciente)
+      }
+    }
+  }, [cajas, setCaja])
 
   return {
     // Estados de Modales

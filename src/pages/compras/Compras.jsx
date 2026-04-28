@@ -1,21 +1,19 @@
 import {
-  MdBusiness,
-  MdSearch,
-  MdPersonAdd,
-  MdPayments,
-  MdMoneyOff,
   MdAccountBalanceWallet,
-  MdReceipt,
   MdClose,
-  MdLocationOn,
   MdEmail,
-  MdPhone,
-  MdSecurity,
+  MdLocationOn,
+  MdMoneyOff,
   MdOutlineAccountBalanceWallet,
+  MdPayments,
+  MdPersonAdd,
+  MdPhone,
+  MdReceipt,
+  MdSearch,
+  MdSecurity,
 } from 'react-icons/md'
 import { ComprasHeader, ComprasTable, Container } from '../../components/index.components'
 import { useLiquidacion } from '../../hooks/useLiquidacion'
-import { useEffect } from 'react'
 import { formatMoney } from '../../utils/fromatters'
 
 const Compras = () => {
@@ -97,10 +95,6 @@ const Compras = () => {
     Libras: 'LB',
     Quintales: 'QQ',
   }
-
-  useEffect(() => {
-    console.log(deudaAnterior)
-  }, [])
 
   return (
     <Container fullWidth={true}>
